@@ -49,6 +49,7 @@ class BufrFilter(abc.Iterable):
         for message in self.stream:
             if any(message.get(key) != value for key, value in self.header_filters.items()):
                 continue
+            assert message['numberOfSubsets'] == 1 or message['compressedData'] == 1
             message['unpack'] = 1
             if all(message.get(key) == value for key, value in self.data_filters.items()):
                 yield {key: message.get(key) for key in self.selections}
