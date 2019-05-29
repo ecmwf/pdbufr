@@ -24,6 +24,20 @@ from eccodes import messages
 import pandas as pd
 
 
+def datetime_from_bufr(message):
+    return pd.Timestamp(
+        *map(int, [message[k] for k in ['year', 'month', 'day', 'hour', 'minute']])
+    )
+
+
+COMPUTED_KEYS = {'datetime': (datetime_from_bufr, None)}
+
+
+@attr.attrs()
+class PdMessage(messages.ComputedKeysMessage):
+    computed_keys = attr.attrib(default=COMPUTED_KEYS)
+
+
 @attr.attrs()
 class BufrFilter(abc.Iterable):
     stream = attr.attrib()
@@ -41,6 +55,8 @@ class BufrFilter(abc.Iterable):
 
 
 def read_bufr(path, *args, **kwargs):
-    stream = messages.FileStream(path, product_kind=eccodes.CODES_PRODUCT_BUFR)
+    stream = messages.FileStream(
+        path, product_kind=eccodes.CODES_PRODUCT_BUFR, message_class=PdMessage
+    )
     filtered = BufrFilter(stream, *args, **kwargs)
     return pd.DataFrame(filtered)

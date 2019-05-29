@@ -1,4 +1,3 @@
-
 import os
 
 import pandas as pd
@@ -21,6 +20,32 @@ def test_read_bufr():
 
     assert len(res) == 6
 
-    res = read_bufr(TEST_DATA, selections=('latitude',), data_filters={'cloudAmount': 2})
+    res = read_bufr(TEST_DATA, selections=('latitude',), data_filters={'stationNumber': 894})
 
-    assert len(res) == 6
+    assert len(res) == 1
+
+    selections = (
+        'stationNumber',
+        'datetime',
+        'latitude',
+        'longitude',
+        'heightOfStation',
+        'airTemperatureAt2M',
+        'dewpointTemperatureAt2M',
+        'horizontalVisibility',
+    )
+    expected_first_row = {
+        'airTemperatureAt2M': 282.40000000000003,
+        'datetime': pd.Timestamp('2017-04-25 12:00:00'),
+        'dewpointTemperatureAt2M': 274.0,
+        'heightOfStation': 101,
+        'horizontalVisibility': 55000.0,
+        'latitude': 49.43000000000001,
+        'longitude': -2.6,
+        'stationNumber': 894,
+    }
+
+    res = read_bufr(TEST_DATA, selections=selections)
+
+    assert len(res) == 50
+    assert res.iloc[0].to_dict() == expected_first_row
