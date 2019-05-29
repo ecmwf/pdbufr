@@ -47,18 +47,9 @@ setuptools.setup(
     url='https://github.com/ecmwf/pdbufr',
     packages=setuptools.find_packages(),
     include_package_data=True,
-    setup_requires=[
-        'pytest-runner',
-    ],
-    install_requires=[
-        'eccodes-python',
-        'pandas',
-    ],
-    tests_require=[
-        'pytest',
-        'pytest-cov',
-        'pytest-flakes',
-    ],
+    setup_requires=['pytest-runner'],
+    install_requires=['eccodes-python', 'pandas'],
+    tests_require=['pytest', 'pytest-cov', 'pytest-flakes'],
     test_suite='tests',
     zip_safe=True,
     keywords='eccodes grib xarray',
