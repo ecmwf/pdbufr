@@ -26,37 +26,6 @@ import pandas as pd
 LOG = logging.getLogger(__name__)
 
 
-class CachedBufrMessage(messages.Message):
-    def __init__(self, *args, **kwargs):
-        super(CachedBufrMessage, self).__init__(*args, **kwargs)
-        self._cache = {}
-
-    def __iter__(self):
-        for key in self.message_bufr_keys():
-            yield key
-
-    def __getitem__(self, item):
-        if item not in self._cache:
-            self._cache[item] = super(CachedBufrMessage, self).__getitem__(item)
-        return self._cache[item]
-
-    def items(self):
-        return ((k, self[k]) for k in self)
-
-class BufrDict(dict):
-    def __getitem__(self, item):
-        try:
-            return super(BufrDict, self).__getitem__(item)
-        except KeyError:
-            return super(BufrDict, self).__getitem__('#1#' + item)
-
-    def get(self, item, default=None):
-        try:
-            return super(BufrDict, self).__getitem__(item)
-        except KeyError:
-            return super(BufrDict, self).get('#1#' + item, default)
-
-
 def compile_filters(filters):
     # type: (T.Mapping[str, T.Any]) -> T.Dict[str, T.FrozenSet[T.Any]]
     compiled_filters = {}
@@ -69,55 +38,72 @@ def compile_filters(filters):
     return compiled_filters
 
 
-def match_compiled_filters(message, filters):
-    # type: (T.Mapping[str, T.Any], T.Dict[str, T.FrozenSet[T.Any]]) -> bool
-    for key, value in filters.items():
-        if message.get(key) not in value:
-            return False
+def match_compiled_filters(message_items, filters):
+    # type: (T.Iterable[T.Tuple[str, T.Any]], T.Dict[str, T.FrozenSet[T.Any]]) -> bool
+    seen = set()
+    for key, value in message_items:
+        short_key = key.rpartition('#')[2]
+        if short_key in filters:
+            if value not in filters[short_key]:
+                return False
+            else:
+                seen.add(short_key)
+    if len(seen) != len(filters):
+        return False
     return True
 
 
-def datetime_from_bufr(message):
-    return pd.Timestamp(
-        *map(int, [message[k] for k in ['year', 'month', 'day', 'hour', 'minute']])
-    )
+def iter_message_items(message, excluded=frozenset(['unexpandedDescriptors', 'operator'])):
+    # type: (messages.Message, T.Container) -> T.Generator[T.Tuple[str, T.Any]]
+    for k in message.message_bufr_keys():
+        if k not in excluded:
+            yield (k, message[k])
 
 
-def extract_observations(message):
-    # type: (T.Mapping[str, T.Any]) -> T.Generator[T.Dict[str, T.Any]]
-    for observation in extract_subsets(message):
-        try:
-            observation['datetime'] = datetime_from_bufr(observation)
-        except:
-            pass
+def datetime_from_bufr(message_items):
+    parts = {
+        k.rpartition('#')[2]: v
+        for k, v in message_items
+        if k.rpartition('#')[2] in ['year', 'month', 'day', 'hour', 'minute']
+    }
+    return pd.Timestamp(*map(int, [parts[k] for k in ['year', 'month', 'day', 'hour', 'minute']]))
+
+
+def extract_observations(message_items):
+    # type: (T.Iterable[T.Tuple[str, T.Any]]) -> T.Generator[T.List[T.Tuple[str, T.Any]]]
+    for subset_items in extract_subsets(message_items):
+        observation = subset_items
+        observation.append(('datetime', datetime_from_bufr(observation)))
         yield observation
 
 
-def extract_subsets(message):
-    # type: (T.Mapping[str, T.Any]) -> T.Generator[T.Dict[str, T.Any]]
-    subset_count = message['numberOfSubsets']
+def extract_subsets(message_items):
+    # type: (T.Iterable[T.Tuple[str, T.Any]]) -> T.Generator[T.List[T.Tuple[str, T.Any]]]
+    subset_count = None
+    is_compressed = None
+    for key, value in message_items:
+        if key == 'numberOfSubsets':
+            subset_count = value
+        elif key == 'compressedData':
+            is_compressed = value
     if subset_count == 1:
-        yield BufrDict(message)
-    elif message['compressedData'] == 1:
+        yield message_items
+    elif is_compressed == 1:
         for i in range(subset_count):
-            yield BufrDict(
-                {
-                    k: v[i] if isinstance(v, list) and len(v) == subset_count else v
-                    for k, v in message.items()
-                }
-            )
+            yield [(k, v[i] if isinstance(v, list) else v) for k, v in message_items]
     else:
-        header = {k: v for k, v in message.items() if k[0] != '#' or '#2#' + k.rpartition('#')[2] not in message}
-        not_first_subset = False
-        subset = BufrDict(header)
-        for key, value in message.items():
+        first_subset = True
+        subset = []
+        header = []
+        for key, value in message_items:
             if key == 'subsetNumber':
-                if not_first_subset:
-                    yield subset
-                    subset = BufrDict(header)
+                if first_subset:
+                    header = subset
+                    first_subset = False
                 else:
-                    not_first_subset = True
-            subset[key.rpartition('#')[2]] = value
+                    yield header + subset
+                subset = []
+            subset.append((key, value))
         yield subset
 
 
@@ -125,16 +111,17 @@ def filter_stream(stream, selections, header_filters={}, observation_filters={})
     compiled_header_filters = compile_filters(header_filters)
     compiled_observation_filters = compile_filters(observation_filters)
     for message in stream:
-        if match_compiled_filters(message, compiled_header_filters):
-            message['unpack'] = 1
-            for observation in extract_observations(message):
-                if match_compiled_filters(observation, compiled_observation_filters):
-                    yield {key: observation.get(key) for key in selections}
+        message_items = list(iter_message_items(message))
+        if not match_compiled_filters(message_items, compiled_header_filters):
+            continue
+        message['unpack'] = 1
+        message_items = list(iter_message_items(message))
+        for observation in extract_observations(message_items):
+            if match_compiled_filters(observation, compiled_observation_filters):
+                yield {k: v for k, v in observation if k.rpartition('#')[2] in selections}
 
 
 def read_bufr(path, *args, **kwargs):
-    stream = messages.FileStream(
-        path, product_kind=eccodes.CODES_PRODUCT_BUFR, message_class=CachedBufrMessage
-    )
+    stream = messages.FileStream(path, product_kind=eccodes.CODES_PRODUCT_BUFR)
     filtered_iterator = filter_stream(stream, *args, **kwargs)
-    return pd.DataFrame(filtered_iterator)
+    return pd.DataFrame.from_records(filtered_iterator)
