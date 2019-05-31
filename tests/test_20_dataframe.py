@@ -20,9 +20,7 @@ def test_read_bufr_data1():
     assert 'latitude' in res
     assert len(res) == 50
 
-    res = read_bufr(
-        TEST_DATA_1, selections=('latitude'), header_filters={'rdbtimeTime': '115557'}
-    )
+    res = read_bufr(TEST_DATA_1, selections=('latitude'), header_filters={'rdbtimeTime': '115557'})
 
     assert len(res) == 6
 

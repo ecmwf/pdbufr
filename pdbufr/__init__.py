@@ -59,6 +59,7 @@ def datetime_from_bufr(message):
         *map(int, [message[k] for k in ['year', 'month', 'day', 'hour', 'minute']])
     )
 
+
 def extract_observations(message):
     # type: (T.Mapping[str, T.Any]) -> T.Generator[T.Dict[str, T.Any]]
     for observation in extract_subsets(message):
@@ -78,10 +79,12 @@ def extract_subsets(message):
         yield cached_message
     else:
         for i in range(subset_count):
-            yield BufrDict({
-                k: v[i] if isinstance(v, list) and len(v) == subset_count else v
-                for k, v in cached_message.items()
-            })
+            yield BufrDict(
+                {
+                    k: v[i] if isinstance(v, list) and len(v) == subset_count else v
+                    for k, v in cached_message.items()
+                }
+            )
 
 
 def filter_stream(stream, selections, header_filters={}, observation_filters={}):
