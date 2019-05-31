@@ -15,13 +15,43 @@
 
 __version__ = '0.0.1.dev0'
 
+import logging
+import typing as T
 
-from collections import abc
-
-import attr
 import eccodes
 from eccodes import messages
 import pandas as pd
+
+
+LOG = logging.getLogger(__name__)
+
+
+class BufrMessage(messages.Message):
+    def __iter__(self):
+        for key in self.message_bufr_keys():
+            yield key
+
+
+class BufrDict(dict):
+    def __getitem__(self, item):
+        try:
+            return super(BufrDict, self).__getitem__(item)
+        except KeyError:
+            return super(BufrDict, self).__getitem__('#1#' + item)
+
+    def get(self, item, default=None):
+        try:
+            return super(BufrDict, self).__getitem__(item)
+        except KeyError:
+            return super(BufrDict, self).get('#1#' + item, default)
+
+
+def match_filters(message, filters):
+    # type: (T.Mapping, T.Mapping) -> bool
+    for key, value in filters.items():
+        if message.get(key) != value:
+            return False
+    return True
 
 
 def datetime_from_bufr(message):
@@ -29,35 +59,43 @@ def datetime_from_bufr(message):
         *map(int, [message[k] for k in ['year', 'month', 'day', 'hour', 'minute']])
     )
 
+def extract_observations(message):
+    # type: (T.Mapping[str, T.Any]) -> T.Generator[T.Dict[str, T.Any]]
+    for observation in extract_subsets(message):
+        try:
+            observation['#1#datetime'] = datetime_from_bufr(observation)
+        except Exception:
+            # logging.exception("datetime build failed")
+            pass
+        yield observation
 
-COMPUTED_KEYS = {'datetime': (datetime_from_bufr, None)}
+
+def extract_subsets(message):
+    # type: (T.Mapping[str, T.Any]) -> T.Generator[T.Dict[str, T.Any]]
+    subset_count = message['numberOfSubsets']
+    cached_message = BufrDict(message)
+    if subset_count == 1:
+        yield cached_message
+    else:
+        for i in range(subset_count):
+            yield BufrDict({
+                k: v[i] if isinstance(v, list) and len(v) == subset_count else v
+                for k, v in cached_message.items()
+            })
 
 
-@attr.attrs()
-class PdMessage(messages.ComputedKeysMessage):
-    computed_keys = attr.attrib(default=COMPUTED_KEYS)
-
-
-@attr.attrs()
-class BufrFilter(abc.Iterable):
-    stream = attr.attrib()
-    selections = attr.attrib()
-    header_filters = attr.attrib(default={})
-    data_filters = attr.attrib(default={})
-
-    def __iter__(self):
-        for message in self.stream:
-            if any(message.get(key) != value for key, value in self.header_filters.items()):
-                continue
-            assert message['numberOfSubsets'] == 1 or message['compressedData'] == 1
+def filter_stream(stream, selections, header_filters={}, observation_filters={}):
+    for message in stream:
+        if match_filters(message, header_filters):
             message['unpack'] = 1
-            if all(message.get(key) == value for key, value in self.data_filters.items()):
-                yield {key: message.get(key) for key in self.selections}
+            for observation in extract_observations(message):
+                if match_filters(observation, observation_filters):
+                    yield {key: observation.get(key) for key in selections}
 
 
 def read_bufr(path, *args, **kwargs):
     stream = messages.FileStream(
-        path, product_kind=eccodes.CODES_PRODUCT_BUFR, message_class=PdMessage
+        path, product_kind=eccodes.CODES_PRODUCT_BUFR, message_class=BufrMessage
     )
-    filtered = BufrFilter(stream, *args, **kwargs)
-    return pd.DataFrame(filtered)
+    filtered_iterator = filter_stream(stream, *args, **kwargs)
+    return pd.DataFrame(filtered_iterator)
