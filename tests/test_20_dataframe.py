@@ -11,6 +11,10 @@ TEST_DATA_2 = os.path.join(
     SAMPLE_DATA_FOLDER,
     'M02-HIRS-HIRxxx1B-NA-1.0-20181122114854.000000000Z-20181122132602-1304602.bfr',
 )
+TEST_DATA_3 = os.path.join(
+    SAMPLE_DATA_FOLDER,
+    'synop_multi_subset_uncompressed.bufr',
+)
 
 
 def test_read_bufr_data1():
@@ -110,6 +114,54 @@ def test_read_bufr_data2():
     )
 
     assert len(res) == 56
+    assert res.iloc[0].to_dict() == expected_first_row
+
+
+def test_read_bufr_data3():
+    res = read_bufr(TEST_DATA_3, selections=('latitude',))
+
+    assert isinstance(res, pd.DataFrame)
+    assert 'latitude' in res
+    assert len(res) == 12
+
+    res = read_bufr(
+        TEST_DATA_3, selections=('latitude',), header_filters={'observedData': 1}
+    )
+
+    assert len(res) == 12
+
+    res = read_bufr(
+        TEST_DATA_3, selections=('latitude',), observation_filters={'stationNumber': 27}
+    )
+
+    assert len(res) == 1
+
+    res = read_bufr(
+        TEST_DATA_3, selections=('latitude',), observation_filters={'stationNumber': [27, 84]}
+    )
+
+    assert len(res) == 2
+
+    selections = [
+        'datetime',
+        'latitude',
+        'longitude',
+    'heightOfStationGroundAboveMeanSeaLevel',
+        'airTemperature',
+    ]
+    expected_first_row = {
+        'datetime': pd.Timestamp('2015-01-26 10:00:00'),
+        'latitude': 69.65230000000001,
+        'longitude': 18.905700000000003,
+        'heightOfStationGroundAboveMeanSeaLevel': 20.0,
+        'airTemperature': 276.45,
+    }
+
+    res = read_bufr(
+        TEST_DATA_3, selections=selections, observation_filters={'stationNumber': 27}
+    )
+
+    assert len(res) == 1
     assert res.iloc[0].to_dict() == expected_first_row
 
 

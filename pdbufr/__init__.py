@@ -26,11 +26,22 @@ import pandas as pd
 LOG = logging.getLogger(__name__)
 
 
-class BufrMessage(messages.Message):
+class CachedBufrMessage(messages.Message):
+    def __init__(self, *args, **kwargs):
+        super(CachedBufrMessage, self).__init__(*args, **kwargs)
+        self._cache = {}
+
     def __iter__(self):
         for key in self.message_bufr_keys():
             yield key
 
+    def __getitem__(self, item):
+        if item not in self._cache:
+            self._cache[item] = super(CachedBufrMessage, self).__getitem__(item)
+        return self._cache[item]
+
+    def items(self):
+        return ((k, self[k]) for k in self)
 
 class BufrDict(dict):
     def __getitem__(self, item):
@@ -76,26 +87,38 @@ def extract_observations(message):
     # type: (T.Mapping[str, T.Any]) -> T.Generator[T.Dict[str, T.Any]]
     for observation in extract_subsets(message):
         try:
-            observation['#1#datetime'] = datetime_from_bufr(observation)
-        except Exception:
-            logging.exception("datetime build failed")
+            observation['datetime'] = datetime_from_bufr(observation)
+        except:
+            pass
         yield observation
 
 
 def extract_subsets(message):
     # type: (T.Mapping[str, T.Any]) -> T.Generator[T.Dict[str, T.Any]]
     subset_count = message['numberOfSubsets']
-    cached_message = BufrDict(message)
     if subset_count == 1:
-        yield cached_message
-    else:
+        yield BufrDict(message)
+    elif message['compressedData'] == 1:
         for i in range(subset_count):
             yield BufrDict(
                 {
                     k: v[i] if isinstance(v, list) and len(v) == subset_count else v
-                    for k, v in cached_message.items()
+                    for k, v in message.items()
                 }
             )
+    else:
+        header = {k: v for k, v in message.items() if k[0] != '#' or '#2#' + k.rpartition('#')[2] not in message}
+        not_first_subset = False
+        subset = BufrDict(header)
+        for key, value in message.items():
+            if key == 'subsetNumber':
+                if not_first_subset:
+                    yield subset
+                    subset = BufrDict(header)
+                else:
+                    not_first_subset = True
+            subset[key.rpartition('#')[2]] = value
+        yield subset
 
 
 def filter_stream(stream, selections, header_filters={}, observation_filters={}):
@@ -111,7 +134,7 @@ def filter_stream(stream, selections, header_filters={}, observation_filters={})
 
 def read_bufr(path, *args, **kwargs):
     stream = messages.FileStream(
-        path, product_kind=eccodes.CODES_PRODUCT_BUFR, message_class=BufrMessage
+        path, product_kind=eccodes.CODES_PRODUCT_BUFR, message_class=CachedBufrMessage
     )
     filtered_iterator = filter_stream(stream, *args, **kwargs)
     return pd.DataFrame(filtered_iterator)
