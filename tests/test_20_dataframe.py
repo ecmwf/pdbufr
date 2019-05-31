@@ -30,6 +30,12 @@ def test_read_bufr_data1():
 
     assert len(res) == 1
 
+    res = read_bufr(
+        TEST_DATA_1, selections=('latitude',), observation_filters={'stationNumber': [894, 103]}
+    )
+
+    assert len(res) == 2
+
     selections = (
         'stationNumber',
         'datetime',
@@ -75,6 +81,12 @@ def test_read_bufr_data2():
     )
 
     assert len(res) == 56
+
+    res = read_bufr(
+        TEST_DATA_2, selections=('latitude',), observation_filters={'hour': 11, 'minute': [48, 49]}
+    )
+
+    assert len(res) == 616
 
     selections = [
         'datetime',

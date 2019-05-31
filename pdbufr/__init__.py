@@ -46,10 +46,22 @@ class BufrDict(dict):
             return super(BufrDict, self).get('#1#' + item, default)
 
 
-def match_filters(message, filters):
-    # type: (T.Mapping, T.Mapping) -> bool
+def compile_filters(filters):
+    # type: (T.Mapping[str, T.Any]) -> T.Dict[str, T.FrozenSet[T.Any]]
+    compiled_filters = {}
     for key, value in filters.items():
-        if message.get(key) != value:
+        if isinstance(value, (T.Iterable, T.Iterator)) and not isinstance(value, str):
+            uniform_value = frozenset(value)
+        else:
+            uniform_value = frozenset([value])
+        compiled_filters[key] = uniform_value
+    return compiled_filters
+
+
+def match_compiled_filters(message, filters):
+    # type: (T.Mapping[str, T.Any], T.Dict[str, T.FrozenSet[T.Any]]) -> bool
+    for key, value in filters.items():
+        if message.get(key) not in value:
             return False
     return True
 
@@ -66,8 +78,7 @@ def extract_observations(message):
         try:
             observation['#1#datetime'] = datetime_from_bufr(observation)
         except Exception:
-            # logging.exception("datetime build failed")
-            pass
+            logging.exception("datetime build failed")
         yield observation
 
 
@@ -88,11 +99,13 @@ def extract_subsets(message):
 
 
 def filter_stream(stream, selections, header_filters={}, observation_filters={}):
+    compiled_header_filters = compile_filters(header_filters)
+    compiled_observation_filters = compile_filters(observation_filters)
     for message in stream:
-        if match_filters(message, header_filters):
+        if match_compiled_filters(message, compiled_header_filters):
             message['unpack'] = 1
             for observation in extract_observations(message):
-                if match_filters(observation, observation_filters):
+                if match_compiled_filters(observation, compiled_observation_filters):
                     yield {key: observation.get(key) for key in selections}
 
 
