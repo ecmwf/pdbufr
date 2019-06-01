@@ -69,14 +69,6 @@ def datetime_from_bufr(message_items):
     return pd.Timestamp(*map(int, [parts[k] for k in ['year', 'month', 'day', 'hour', 'minute']]))
 
 
-def extract_observations(message_items):
-    # type: (T.Iterable[T.Tuple[str, T.Any]]) -> T.Generator[T.List[T.Tuple[str, T.Any]]]
-    for subset_items in extract_subsets(message_items):
-        observation = subset_items
-        observation.append(('datetime', datetime_from_bufr(observation)))
-        yield observation
-
-
 def extract_subsets(message_items):
     # type: (T.Iterable[T.Tuple[str, T.Any]]) -> T.Generator[T.List[T.Tuple[str, T.Any]]]
     subset_count = None
@@ -104,7 +96,14 @@ def extract_subsets(message_items):
                     yield header + subset
                 subset = []
             subset.append((key, value))
-        yield subset
+        yield header + subset
+
+
+def extract_observations(subset_items):
+    # type: (T.Iterable[T.Tuple[str, T.Any]]) -> T.Generator[T.List[T.Tuple[str, T.Any]]]
+    observation = list(subset_items)
+    observation.append(('datetime', datetime_from_bufr(observation)))
+    yield observation
 
 
 def filter_stream(stream, selections, header_filters={}, observation_filters={}):
@@ -116,9 +115,10 @@ def filter_stream(stream, selections, header_filters={}, observation_filters={})
             continue
         message['unpack'] = 1
         message_items = list(iter_message_items(message))
-        for observation in extract_observations(message_items):
-            if match_compiled_filters(observation, compiled_observation_filters):
-                yield {k: v for k, v in observation if k.rpartition('#')[2] in selections}
+        for subset_items in extract_subsets(message_items):
+            for observation_items in extract_observations(subset_items):
+                if match_compiled_filters(observation_items, compiled_observation_filters):
+                    yield {k: v for k, v in observation_items if k.rpartition('#')[2] in selections}
 
 
 def read_bufr(path, *args, **kwargs):
