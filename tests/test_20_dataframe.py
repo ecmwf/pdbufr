@@ -15,14 +15,16 @@ TEST_DATA_3 = os.path.join(
 )
 
 
-def test_read_bufr_data1():
+def test_read_bufr_one_subset_one_observation_filters():
     res = read_bufr(TEST_DATA_1, selections=('latitude',))
 
     assert isinstance(res, pd.DataFrame)
     assert 'latitude' in res
     assert len(res) == 50
 
-    res = read_bufr(TEST_DATA_1, selections=('latitude',), header_filters={'rdbtimeTime': '115557'})
+    res = read_bufr(
+        TEST_DATA_1, selections=('latitude',), header_filters={'rdbtimeTime': '115557'}
+    )
 
     assert len(res) == 6
 
@@ -38,8 +40,11 @@ def test_read_bufr_data1():
 
     assert len(res) == 2
 
+
+def test_read_bufr_one_subset_one_observation_data():
     selections = (
         'stationNumber',
+        'datetime',
         'latitude',
         'longitude',
         'heightOfStation',
@@ -48,13 +53,14 @@ def test_read_bufr_data1():
         'horizontalVisibility',
     )
     expected_first_row = {
-        'airTemperatureAt2M': 282.40000000000003,
-        'dewpointTemperatureAt2M': 274.0,
-        'heightOfStation': 101,
-        'horizontalVisibility': 55000.0,
+        'stationNumber': 894.0,
+        'datetime': pd.Timestamp('2017-04-25 12:00:00'),
         'latitude': 49.43000000000001,
         'longitude': -2.6,
-        'stationNumber': 894,
+        'heightOfStation': 101.0,
+        'airTemperatureAt2M': 282.40000000000003,
+        'dewpointTemperatureAt2M': 274.0,
+        'horizontalVisibility': 55000.0,
     }
 
     res = read_bufr(TEST_DATA_1, selections=selections)
@@ -63,7 +69,7 @@ def test_read_bufr_data1():
     assert res.iloc[0].to_dict() == expected_first_row
 
 
-def test_read_bufr_data2():
+def test_read_bufr_multiple_uncompressed_subsets_one_observation():
     res = read_bufr(TEST_DATA_2, selections=('latitude',))
 
     assert isinstance(res, pd.DataFrame)
@@ -105,20 +111,7 @@ def test_read_bufr_data2():
     assert res.iloc[0].to_dict() == expected_first_row
 
 
-@pytest.mark.skip()
-def test_read_bufr_data3():
-    res = read_bufr(TEST_DATA_3, selections=('latitude',))
-
-    assert isinstance(res, pd.DataFrame)
-    assert 'latitude' in res
-    assert len(res) == 51968
-
-    res = read_bufr(
-        TEST_DATA_3, selections=('latitude',), header_filters={'numberOfSubsets': 1008}
-    )
-
-    assert len(res) == 19152
-
+def test_read_bufr_multiple_compressed_subsets_multiple_observations_filters():
     res = read_bufr(
         TEST_DATA_3, selections=('latitude',), observation_filters={'hour': 11, 'minute': 48}
     )
@@ -131,23 +124,34 @@ def test_read_bufr_data3():
 
     assert len(res) == 616
 
+
+# @pytest.mark.skip()
+def test_read_bufr_multiple_compressed_subsets_multiple_observations_data():
     selections = [
-        'latitude',
+        'datetime',
         'longitude',
+        'latitude',
         'heightOfStation',
+        'tovsOrAtovsOrAvhrrInstrumentationChannelNumber',
         'brightnessTemperature',
-        'channelRadiance',
     ]
     expected_first_row = {
-        'heightOfStation': 828400.0,
-        'latitude': 53.354200000000006,
+        'datetime': pd.Timestamp('2018-11-22 11:48:00'),
         'longitude': -9.201400000000001,
-        'tovsOrAtovsOrAvhrrInstrumentationChannelNumber': 2,
-        'brightnessTemperature': 220.23000000000002,
+        'latitude': 53.354200000000006,
+        'heightOfStation': 828400.0,
+        'tovsOrAtovsOrAvhrrInstrumentationChannelNumber': 2.0,
+        'brightnessTemperature': 218.76,
     }
 
     res = read_bufr(
-        TEST_DATA_3, selections=selections, observation_filters={'hour': 11, 'minute': 48}
+        TEST_DATA_3,
+        selections=selections,
+        observation_filters={
+            'hour': 11,
+            'minute': 48,
+            'tovsOrAtovsOrAvhrrInstrumentationChannelNumber': 2,
+        },
     )
 
     assert len(res) == 56

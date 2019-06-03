@@ -52,13 +52,11 @@ def match_compiled_filters(message_items, filters):
     return True
 
 
-def datetime_from_bufr(observation, datetime_keys):
-    return pd.Timestamp(*map(int, [observation[k] for k in datetime_keys]))
+def datetime_from_bufr(observation, prefix, datetime_keys):
+    return pd.Timestamp(*map(int, [observation[prefix + k] for k in datetime_keys]))
 
 
-COMPUTED_KEYS = [
-    (['year', 'month', 'day', 'hour', 'minute'], 'datetime', datetime_from_bufr)
-]
+COMPUTED_KEYS = [(['year', 'month', 'day', 'hour', 'minute'], 'datetime', datetime_from_bufr)]
 
 
 def iter_message_items(message, include=None):
@@ -69,15 +67,8 @@ def iter_message_items(message, include=None):
             yield (key, short_key, message[key])
 
 
-def extract_subsets(message_items):
-    # type: (T.Iterable[T.Tuple[str, str, T.Any]]) -> T.Generator[T.List[T.Tuple[str, str, T.Any]]]
-    subset_count = None
-    is_compressed = None
-    for key, short_key, value in message_items:
-        if key == 'numberOfSubsets':
-            subset_count = value
-        elif key == 'compressedData':
-            is_compressed = value
+def extract_subsets(message_items, subset_count, is_compressed):
+    # type: (T.Iterable[T.Tuple[str, str, T.Any]], int, int) -> T.Generator[T.List[T.Tuple[str, str, T.Any]]]
     if subset_count == 1:
         yield message_items
     elif is_compressed == 1:
@@ -106,8 +97,19 @@ def extract_subsets(message_items):
         yield header + subset
 
 
-def extract_observations(subset_items):
-    # type: (T.Iterable[T.Tuple[str, str, T.Any]]) -> T.Generator[T.List[T.Tuple[str, str, T.Any]]]
+def add_computed(observation_items, include_computed=frozenset()):
+    # type: (T.List[T.Tuple[str, str, T.Any]], T.Container) -> T.List[T.Tuple[str, str, T.Any]]
+    computed_items = []
+    for keys, computed_key, getter in COMPUTED_KEYS:
+        if computed_key in include_computed:
+            observation = {short_key: value for _, short_key, value in observation_items}
+            prefix = '#1#'
+            computed_items.append((prefix + computed_key, computed_key, getter(observation, '', keys)))
+    return observation_items + computed_items
+
+
+def extract_observations(subset_items, include_computed=frozenset()):
+    # type: (T.Iterable[T.Tuple[str, str, T.Any]], T.Container) -> T.Generator[T.List[T.Tuple[str, str, T.Any]]]
     header_keys = set()
     for key, short_key, _ in subset_items:
         if key[0] != '#' or key[:3] == '#1#':
@@ -122,17 +124,12 @@ def extract_observations(subset_items):
         if key in header_keys:
             continue
         if short_key in observation_seen:
-            for keys, computed_key, getter in COMPUTED_KEYS:
-                try:
-                    observation_items.append((computed_key, computed_key, getter(observation_items, keys)))
-                except Exception:
-                    logging.exception("can't compute key %r", computed_key)
-            yield header + observation_items
+            yield add_computed(header + observation_items, include_computed)
             observation_items = []
             observation_seen = set()
         observation_items.append((key, short_key, value))
         observation_seen.add(short_key)
-    yield header + observation_items
+    yield add_computed(header + observation_items, include_computed)
 
 
 def filter_stream(stream, selections, header_filters={}, observation_filters={}):
@@ -143,14 +140,16 @@ def filter_stream(stream, selections, header_filters={}, observation_filters={})
         if not match_compiled_filters(message_items, compiled_header_filters):
             continue
         message['unpack'] = 1
-        included_keys = {'numberOfSubsets', 'compressedData'}
-        included_keys |= set(compiled_observation_filters)
+        included_keys = set(compiled_observation_filters)
         included_keys |= set(selections)
-        for keys, _, _ in COMPUTED_KEYS:
-            included_keys |= set(keys)
+        for keys, computed_key, _ in COMPUTED_KEYS:
+            if computed_key in included_keys:
+                included_keys |= set(keys)
         message_items = list(iter_message_items(message, include=included_keys))
-        for subset_items in extract_subsets(message_items):
-            for observation_items in extract_observations(subset_items):
+        for subset_items in extract_subsets(
+            message_items, message['numberOfSubsets'], message['compressedData']
+        ):
+            for observation_items in extract_observations(subset_items, include_computed=included_keys):
                 if match_compiled_filters(observation_items, compiled_observation_filters):
                     yield {s: v for k, s, v in observation_items if s in selections}
 
