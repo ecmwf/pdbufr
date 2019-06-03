@@ -1,15 +1,26 @@
 
 Pandas reader for the BUFR format using ecCodes.
 
-Features with development status **Pre-Alpha**:
+Features with development status **Alpha**:
 
-- Reading BUFR
+- Extracts observations from a BUFR file as a Pandas DataFrame,
+- reads BUFR 3 and 4 files,
+- supports all modern versions of Python 3.7, 3.6, 3.5 and PyPy3,
+- works on Linux, MacOS and Windows, the ecCodes C-library is the only binary dependency,
+- PyPI package with no install time build (binds via CFFI ABI mode),
 
+Limitations:
+
+- no conda-forge package (yet),
 
 Installation
 ============
 
-The package is installed from PyPI with::
+The easiest way to install *pdbufr* binary dependencies is via Conda::
+
+    $ conda install -c conda-forge eccodes
+
+and *pdbufr* itself as a Python package from PyPI with::
 
     $ pip install pdbufr
 
@@ -28,19 +39,13 @@ On a MacOS with HomeBrew use::
 
     $ brew install eccodes
 
-Or if you manage binary packages with *Conda* use::
-
-    $ conda install eccodes
-
 As an alternative you may install the official source distribution
 by following the instructions at
 https://software.ecmwf.int/wiki/display/ECC/ecCodes+installation
 
-Note that *ecCodes* support for the Windows operating system is experimental.
-
 You may run a simple selfcheck command to ensure that your system is set up correctly::
 
-    $ python -m cfgrib selfcheck
+    $ python -m pdbufr selfcheck
     Found: ecCodes v2.7.0.
     Your system is ready.
 
