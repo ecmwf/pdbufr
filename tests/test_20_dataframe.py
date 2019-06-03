@@ -11,7 +11,7 @@ TEST_DATA_2 = os.path.join(SAMPLE_DATA_FOLDER, 'synop_multi_subset_uncompressed.
 TEST_DATA_3 = os.path.join(SAMPLE_DATA_FOLDER, 'temp.bufr')
 TEST_DATA_4 = os.path.join(
     SAMPLE_DATA_FOLDER,
-    'M02-HIRS-HIRxxx1B-NA-1.0-20181122114854.000000000Z-20181122132602-1304602.bfr',
+    'M02-HIRS-HIRxxx1B-NA-1.0-20181122114854.000000000Z-20181122132602-1304602.bufr',
 )
 
 
@@ -147,11 +147,11 @@ def test_read_bufr_one_subsets_multiple_observations_data():
     expected_second_row = {
         'stationNumber': 823,
         'datetime': pd.Timestamp('2008-12-08 12:00:00'),
-        'longitude':  -73.67,
+        'longitude': -73.67,
         'latitude': 53.75000000000001,
         'heightOfStation': 302,
         'pressure': 100000.0,
-        'airTemperature': -1e+100,
+        'airTemperature': -1e100,
     }
 
     res = read_bufr(TEST_DATA_3, selections=selections, observation_filters={'pressure': 100000})
