@@ -77,7 +77,11 @@ Filters match on a single value or on one value in a list and the are always in 
     3     18.43     -69.88            486
     4     21.98    -159.33            165
 
-    >>> df_one = pdbufr.read_bufr('temp.bufr', columns=('stationNumber', 'latitude', 'longitude'), observation_filters={'stationNumber': 907})
+    >>> df_one = pdbufr.read_bufr(
+    ...     'temp.bufr',
+    ...     columns=('stationNumber', 'latitude', 'longitude'),
+    ...     observation_filters={'stationNumber': 907},
+    ... )
     >>> df_one.head()
        latitude  longitude  stationNumber
     0     58.47     -78.08            907
@@ -87,6 +91,7 @@ Filters match on a single value or on one value in a list and the are always in 
     ...     columns=('stationNumber', 'latitude', 'longitude', 'datetime', 'pressure', 'airTemperature'),
     ...     observation_filters={'stationNumber': [823, 9]},
     ... )
+
     >>> df_two.head()
        airTemperature            datetime  latitude  longitude  pressure  stationNumber
     0  -1.000000e+100 2008-12-08 12:00:00     53.75     -73.67  100000.0            823
@@ -94,6 +99,7 @@ Filters match on a single value or on one value in a list and the are always in 
     2    2.551000e+02 2008-12-08 12:00:00     53.75     -73.67   93700.0            823
     3    2.553000e+02 2008-12-08 12:00:00     53.75     -73.67   92500.0            823
     4    2.567000e+02 2008-12-08 12:00:00     53.75     -73.67   90600.0            823
+
     >>> df_two.tail()
          airTemperature            datetime  latitude  longitude  pressure  stationNumber
     190  -1.000000e+100 2008-12-08 12:00:00     51.77      36.17    2990.0              9
