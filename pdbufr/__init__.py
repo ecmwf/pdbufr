@@ -17,7 +17,7 @@
 #   Alessandro Amici - B-Open - https://bopen.eu
 #
 
-__version__ = '0.1.0'
+__version__ = '0.1.1.dev0'
 
 import logging
 import typing as T
