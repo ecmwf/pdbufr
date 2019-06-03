@@ -138,7 +138,7 @@ def extract_observations(subset_items, include_computed=frozenset()):
     yield add_computed(header + observation_items, include_computed)
 
 
-def filter_stream(stream, selections, header_filters={}, observation_filters={}):
+def filter_stream(stream, columns, header_filters={}, observation_filters={}):
     compiled_header_filters = compile_filters(header_filters)
     compiled_observation_filters = compile_filters(observation_filters)
     for message in stream:
@@ -147,7 +147,7 @@ def filter_stream(stream, selections, header_filters={}, observation_filters={})
             continue
         message['unpack'] = 1
         included_keys = set(compiled_observation_filters)
-        included_keys |= set(selections)
+        included_keys |= set(columns)
         for keys, computed_key, _ in COMPUTED_KEYS:
             if computed_key in included_keys:
                 included_keys |= set(keys)
@@ -159,7 +159,7 @@ def filter_stream(stream, selections, header_filters={}, observation_filters={})
                 subset_items, include_computed=included_keys
             ):
                 if match_compiled_filters(observation_items, compiled_observation_filters):
-                    yield {s: v for k, s, v in observation_items if s in selections}
+                    yield {s: v for k, s, v in observation_items if s in columns}
 
 
 def read_bufr(path, *args, **kwargs):

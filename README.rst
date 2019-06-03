@@ -4,7 +4,7 @@ Pandas reader for the BUFR format using ecCodes.
 Features with development status **Alpha**:
 
 - Extracts observations from a BUFR file as a Pandas DataFrame,
-- reads BUFR 3 and 4 files,
+- reads BUFR 3 and 4 files with uncompressed and compressed subsets,
 - supports all modern versions of Python 3.7, 3.6, 3.5 and PyPy3,
 - works on Linux, MacOS and Windows, the ecCodes C-library is the only binary dependency,
 - PyPI package with no install time build (binds via CFFI ABI mode),
@@ -48,6 +48,59 @@ You may run a simple selfcheck command to ensure that your system is set up corr
     $ python -m pdbufr selfcheck
     Found: ecCodes v2.7.0.
     Your system is ready.
+
+
+Usage
+=====
+
+First, you need a well-formed BUFR file, if you don't have one at hand you can download our
+`sample file <http://download.ecmwf.int/test-data/metview/gallery/temp.bufr>`_::
+
+    $ wget http://download.ecmwf.int/test-data/metview/gallery/temp.bufr
+
+You can explore the file with *ecCodes* command line tools ``bufr_ls`` and ``bufr_dump`` to
+understand the structure and the keys/values you can use to select the observations you
+are interested in.
+
+The ``pdbufr.read_bufr`` function return a ``pandas.DataDrame`` with the requested columns.
+It accepts query filters on the BUFR message header
+that are very fast and query filters on the observation keys.
+Filters match on a single value or on one value in a list and the are always in logical and::
+
+    >>> import pdbufr
+    >>> df_all = pdbufr.read_bufr('temp.bufr', columns=('stationNumber', 'latitude', 'longitude'))
+    >>> df_all.head()
+       latitude  longitude  stationNumber
+    0     58.47     -78.08            907
+    1     53.75     -73.67            823
+    2    -90.00       0.00              9
+    3     18.43     -69.88            486
+    4     21.98    -159.33            165
+
+    >>> df_one = pdbufr.read_bufr('temp.bufr', columns=('stationNumber', 'latitude', 'longitude'), observation_filters={'stationNumber': 907})
+    >>> df_one.head()
+       latitude  longitude  stationNumber
+    0     58.47     -78.08            907
+
+    >>> df_two = pdbufr.read_bufr(
+    ...     'temp.bufr',
+    ...     columns=('stationNumber', 'latitude', 'longitude', 'datetime', 'pressure', 'airTemperature'),
+    ...     observation_filters={'stationNumber': [823, 9]},
+    ... )
+    >>> df_two.head()
+       airTemperature            datetime  latitude  longitude  pressure  stationNumber
+    0  -1.000000e+100 2008-12-08 12:00:00     53.75     -73.67  100000.0            823
+    1    2.567000e+02 2008-12-08 12:00:00     53.75     -73.67   97400.0            823
+    2    2.551000e+02 2008-12-08 12:00:00     53.75     -73.67   93700.0            823
+    3    2.553000e+02 2008-12-08 12:00:00     53.75     -73.67   92500.0            823
+    4    2.567000e+02 2008-12-08 12:00:00     53.75     -73.67   90600.0            823
+    >>> df_two.tail()
+         airTemperature            datetime  latitude  longitude  pressure  stationNumber
+    190  -1.000000e+100 2008-12-08 12:00:00     51.77      36.17    2990.0              9
+    191    2.063000e+02 2008-12-08 12:00:00     51.77      36.17    2790.0              9
+    192  -1.000000e+100 2008-12-08 12:00:00     51.77      36.17    2170.0              9
+    193    2.031000e+02 2008-12-08 12:00:00     51.77      36.17    2000.0              9
+    194    1.979000e+02 2008-12-08 12:00:00     51.77      36.17    1390.0              9
 
 
 Contributing

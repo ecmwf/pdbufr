@@ -16,33 +16,33 @@ TEST_DATA_4 = os.path.join(
 
 
 def test_read_bufr_one_subset_one_observation_filters():
-    res = read_bufr(TEST_DATA_1, selections=('latitude',))
+    res = read_bufr(TEST_DATA_1, columns=('latitude',))
 
     assert isinstance(res, pd.DataFrame)
     assert 'latitude' in res
     assert len(res) == 50
 
     res = read_bufr(
-        TEST_DATA_1, selections=('latitude',), header_filters={'rdbtimeTime': '115557'}
+        TEST_DATA_1, columns=('latitude',), header_filters={'rdbtimeTime': '115557'}
     )
 
     assert len(res) == 6
 
     res = read_bufr(
-        TEST_DATA_1, selections=('latitude',), observation_filters={'stationNumber': 894}
+        TEST_DATA_1, columns=('latitude',), observation_filters={'stationNumber': 894}
     )
 
     assert len(res) == 1
 
     res = read_bufr(
-        TEST_DATA_1, selections=('latitude',), observation_filters={'stationNumber': [894, 103]}
+        TEST_DATA_1, columns=('latitude',), observation_filters={'stationNumber': [894, 103]}
     )
 
     assert len(res) == 2
 
 
 def test_read_bufr_one_subset_one_observation_data():
-    selections = (
+    columns = (
         'stationNumber',
         'datetime',
         'latitude',
@@ -63,36 +63,36 @@ def test_read_bufr_one_subset_one_observation_data():
         'horizontalVisibility': 55000.0,
     }
 
-    res = read_bufr(TEST_DATA_1, selections=selections)
+    res = read_bufr(TEST_DATA_1, columns=columns)
 
     assert len(res) == 50
     assert res.iloc[0].to_dict() == expected_first_row
 
 
 def test_read_bufr_multiple_uncompressed_subsets_one_observation():
-    res = read_bufr(TEST_DATA_2, selections=('latitude',))
+    res = read_bufr(TEST_DATA_2, columns=('latitude',))
 
     assert isinstance(res, pd.DataFrame)
     assert 'latitude' in dict(res)
     assert len(res) == 12
 
-    res = read_bufr(TEST_DATA_2, selections=('latitude',), header_filters={'observedData': 1})
+    res = read_bufr(TEST_DATA_2, columns=('latitude',), header_filters={'observedData': 1})
 
     assert len(res) == 12
 
     res = read_bufr(
-        TEST_DATA_2, selections=('latitude',), observation_filters={'stationNumber': 27}
+        TEST_DATA_2, columns=('latitude',), observation_filters={'stationNumber': 27}
     )
 
     assert len(res) == 1
 
     res = read_bufr(
-        TEST_DATA_2, selections=('latitude',), observation_filters={'stationNumber': [27, 84]}
+        TEST_DATA_2, columns=('latitude',), observation_filters={'stationNumber': [27, 84]}
     )
 
     assert len(res) == 2
 
-    selections = [
+    columns = [
         'latitude',
         'longitude',
         'heightOfStationGroundAboveMeanSeaLevel',
@@ -105,7 +105,7 @@ def test_read_bufr_multiple_uncompressed_subsets_one_observation():
         'airTemperature': 276.45,
     }
 
-    res = read_bufr(TEST_DATA_2, selections=selections, observation_filters={'stationNumber': 27})
+    res = read_bufr(TEST_DATA_2, columns=columns, observation_filters={'stationNumber': 27})
 
     assert len(res) == 1
     assert res.iloc[0].to_dict() == expected_first_row
@@ -113,20 +113,20 @@ def test_read_bufr_multiple_uncompressed_subsets_one_observation():
 
 def test_read_bufr_one_subsets_multiple_observations_filters():
     res = read_bufr(
-        TEST_DATA_3, selections=('latitude',), observation_filters={'stationNumber': 907}
+        TEST_DATA_3, columns=('latitude',), observation_filters={'stationNumber': 907}
     )
 
     assert len(res) == 1
 
     res = read_bufr(
-        TEST_DATA_3, selections=('latitude',), observation_filters={'pressure': [100000, 26300]}
+        TEST_DATA_3, columns=('latitude',), observation_filters={'pressure': [100000, 26300]}
     )
 
     assert len(res) == 425
 
 
 def test_read_bufr_one_subsets_multiple_observations_data():
-    selections = [
+    columns = [
         'stationNumber',
         'datetime',
         'longitude',
@@ -154,7 +154,7 @@ def test_read_bufr_one_subsets_multiple_observations_data():
         'airTemperature': -1e100,
     }
 
-    res = read_bufr(TEST_DATA_3, selections=selections, observation_filters={'pressure': 100000})
+    res = read_bufr(TEST_DATA_3, columns=columns, observation_filters={'pressure': 100000})
 
     assert len(res) == 408
     assert res.iloc[0].to_dict() == expected_first_row
@@ -163,20 +163,20 @@ def test_read_bufr_one_subsets_multiple_observations_data():
 
 def test_read_bufr_multiple_compressed_subsets_multiple_observations_filters():
     res = read_bufr(
-        TEST_DATA_4, selections=('latitude',), observation_filters={'hour': 11, 'minute': 48}
+        TEST_DATA_4, columns=('latitude',), observation_filters={'hour': 11, 'minute': 48}
     )
 
     assert len(res) == 56
 
     res = read_bufr(
-        TEST_DATA_4, selections=('latitude',), observation_filters={'hour': 11, 'minute': [48, 49]}
+        TEST_DATA_4, columns=('latitude',), observation_filters={'hour': 11, 'minute': [48, 49]}
     )
 
     assert len(res) == 616
 
 
 def test_read_bufr_multiple_compressed_subsets_multiple_observations_data():
-    selections = [
+    columns = [
         'datetime',
         'longitude',
         'latitude',
@@ -195,7 +195,7 @@ def test_read_bufr_multiple_compressed_subsets_multiple_observations_data():
 
     res = read_bufr(
         TEST_DATA_4,
-        selections=selections,
+        columns=columns,
         observation_filters={
             'hour': 11,
             'minute': 48,
