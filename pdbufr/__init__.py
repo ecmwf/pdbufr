@@ -104,7 +104,9 @@ def add_computed(observation_items, include_computed=frozenset()):
         if computed_key in include_computed:
             observation = {short_key: value for _, short_key, value in observation_items}
             prefix = '#1#'
-            computed_items.append((prefix + computed_key, computed_key, getter(observation, '', keys)))
+            computed_items.append(
+                (prefix + computed_key, computed_key, getter(observation, '', keys))
+            )
     return observation_items + computed_items
 
 
@@ -149,7 +151,9 @@ def filter_stream(stream, selections, header_filters={}, observation_filters={})
         for subset_items in extract_subsets(
             message_items, message['numberOfSubsets'], message['compressedData']
         ):
-            for observation_items in extract_observations(subset_items, include_computed=included_keys):
+            for observation_items in extract_observations(
+                subset_items, include_computed=included_keys
+            ):
                 if match_compiled_filters(observation_items, compiled_observation_filters):
                     yield {s: v for k, s, v in observation_items if s in selections}
 
