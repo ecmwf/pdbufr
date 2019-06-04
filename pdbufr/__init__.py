@@ -19,15 +19,56 @@
 
 __version__ = '0.1.1.dev0'
 
+import collections.abc
 import logging
 import typing as T
 
 import eccodes
-from eccodes import messages
 import pandas as pd
 
 
 LOG = logging.getLogger(__name__)
+
+
+class BufrMessage(collections.abc.MutableMapping):
+    def __init__(self, file):
+        self.codes_id = eccodes.codes_bufr_new_from_file(file)
+
+    def __del__(self):
+        eccodes.codes_release(self.codes_id)
+
+    def __iter__(self):
+        iterator = eccodes.codes_bufr_keys_iterator_new(self.codes_id)
+        while eccodes.codes_bufr_keys_iterator_next(iterator):
+            yield eccodes.codes_bufr_keys_iterator_get_name(iterator)
+        eccodes.codes_bufr_keys_iterator_delete(iterator)
+
+    def __getitem__(self, item):
+        # type: (str) -> T.Any
+        """Get value of a given key as its native or specified type."""
+        try:
+            values = eccodes.codes_get_array(self.codes_id, item)
+            if values is None:
+                values = ['unsupported_key_type']
+        except eccodes.KeyValueNotFoundError:
+            raise KeyError(item)
+        if len(values) == 1:
+            return values[0]
+        return values
+
+    def __setitem__(self, item, value):
+        # type: (str, T.Any) -> None
+        set_array = isinstance(value, T.Sequence) and not isinstance(value, str)
+        if set_array:
+            eccodes.codes_set_array(self.codes_id, item, value)
+        else:
+            eccodes.codes_set(self.codes_id, item, value)
+
+    def __len__(self):
+        return sum(1 for _ in self)
+
+    def __delitem__(self, key):
+        raise NotImplementedError()
 
 
 def compile_filters(filters):
@@ -64,8 +105,8 @@ COMPUTED_KEYS = [(['year', 'month', 'day', 'hour', 'minute'], 'datetime', dateti
 
 
 def iter_message_items(message, include=None):
-    # type: (messages.Message, T.Container) -> T.Generator[T.Tuple[str, str, T.Any]]
-    for key in message.message_bufr_keys():
+    # type: (BufrMessage, T.Container) -> T.Generator[T.Tuple[str, str, T.Any]]
+    for key in message:
         short_key = key.rpartition('#')[2]
         if include is None or short_key in include:
             yield (key, short_key, message[key])
@@ -138,10 +179,13 @@ def extract_observations(subset_items, include_computed=frozenset()):
     yield add_computed(header + observation_items, include_computed)
 
 
-def filter_stream(stream, columns, header_filters={}, observation_filters={}):
+def filter_stream(file, columns, header_filters={}, observation_filters={}):
     compiled_header_filters = compile_filters(header_filters)
     compiled_observation_filters = compile_filters(observation_filters)
-    for message in stream:
+    while True:
+        message = BufrMessage(file)
+        if message.codes_id is None:
+            break
         message_items = list(iter_message_items(message, include=compiled_header_filters))
         if not match_compiled_filters(message_items, compiled_header_filters):
             continue
@@ -163,6 +207,6 @@ def filter_stream(stream, columns, header_filters={}, observation_filters={}):
 
 
 def read_bufr(path, *args, **kwargs):
-    stream = messages.FileStream(path, product_kind=eccodes.CODES_PRODUCT_BUFR)
-    filtered_iterator = filter_stream(stream, *args, **kwargs)
-    return pd.DataFrame.from_records(filtered_iterator)
+    with open(path) as file:
+        filtered_iterator = filter_stream(file, *args, **kwargs)
+        return pd.DataFrame.from_records(filtered_iterator)
