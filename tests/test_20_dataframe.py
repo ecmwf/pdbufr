@@ -5,7 +5,7 @@ import pandas as pd
 from pdbufr import read_bufr
 
 
-SAMPLE_DATA_FOLDER = os.path.join('/Users/amici/devel/ECM/pdbufr/tests', 'sample-data')
+SAMPLE_DATA_FOLDER = os.path.join(os.path.dirname(__file__), 'sample-data')
 TEST_DATA_1 = os.path.join(SAMPLE_DATA_FOLDER, 'obs_3day.bufr')
 TEST_DATA_2 = os.path.join(SAMPLE_DATA_FOLDER, 'synop_multi_subset_uncompressed.bufr')
 TEST_DATA_3 = os.path.join(SAMPLE_DATA_FOLDER, 'temp.bufr')
