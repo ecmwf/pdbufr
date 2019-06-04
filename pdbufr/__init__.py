@@ -35,7 +35,8 @@ class BufrMessage(collections.abc.MutableMapping):
         self.codes_id = eccodes.codes_bufr_new_from_file(file)
 
     def __del__(self):
-        eccodes.codes_release(self.codes_id)
+        if self.codes_id:
+            eccodes.codes_release(self.codes_id)
 
     def __iter__(self):
         iterator = eccodes.codes_bufr_keys_iterator_new(self.codes_id)
