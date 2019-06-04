@@ -1,5 +1,5 @@
 
-PACKAGE := cfgrib
+PACKAGE := pdbufr
 IMAGE := $(PACKAGE)
 MODULE := $(PACKAGE)
 PYTHONS := python3.7 python3.6 python3.5 pypy3 python2.7 pypy

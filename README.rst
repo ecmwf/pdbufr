@@ -124,7 +124,7 @@ Lead developer:
 
 - `Alessandro Amici <https://github.com/alexamici>`_ - `B-Open <https://bopen.eu>`_
 
-See also the list of `contributors <https://github.com/ecmwf/cfgrib/contributors>`_ who participated in this project.
+See also the list of `contributors <https://github.com/ecmwf/pdbufr/contributors>`_ who participated in this project.
 
 
 License
