@@ -53,6 +53,7 @@ def test_read_bufr_one_subset_one_observation_data():
         'airTemperatureAt2M',
         'dewpointTemperatureAt2M',
         'horizontalVisibility',
+        'rdbtimeTime',
     )
     expected_first_row = {
         'stationNumber': 894.0,
@@ -63,6 +64,7 @@ def test_read_bufr_one_subset_one_observation_data():
         'airTemperatureAt2M': 282.40000000000003,
         'dewpointTemperatureAt2M': 274.0,
         'horizontalVisibility': 55000.0,
+        'rdbtimeTime': '115225',
     }
 
     res = pdbufr.read_bufr(TEST_DATA_1, columns=columns)
