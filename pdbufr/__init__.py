@@ -143,17 +143,17 @@ def extract_subsets(message_items, subset_count, is_compressed):
         yield header + subset
 
 
-def add_computed(observation_items, include_computed=frozenset()):
+def add_computed(data_items, include_computed=frozenset()):
     # type: (T.List[T.Tuple[str, str, T.Any]], T.Container) -> T.List[T.Tuple[str, str, T.Any]]
     computed_items = []
     for keys, computed_key, getter in COMPUTED_KEYS:
         if computed_key in include_computed:
-            observation = {short_key: value for _, short_key, value in observation_items}
+            observation = {short_key: value for _, short_key, value in data_items}
             prefix = '#1#'
             computed_items.append(
                 (prefix + computed_key, computed_key, getter(observation, '', keys))
             )
-    return observation_items + computed_items
+    return data_items + computed_items
 
 
 def extract_observations(subset_items, include_computed=frozenset()):
@@ -166,23 +166,23 @@ def extract_observations(subset_items, include_computed=frozenset()):
             header_keys.discard('#1#' + short_key)
     header = [(k, s, v) for k, s, v in subset_items if k in header_keys]
 
-    observation_items = []
-    observation_seen = set()
+    data_items = []
+    data_seen = set()
     for key, short_key, value in subset_items:
         if key in header_keys:
             continue
-        if short_key in observation_seen:
-            yield add_computed(header + observation_items, include_computed)
-            observation_items = []
-            observation_seen = set()
-        observation_items.append((key, short_key, value))
-        observation_seen.add(short_key)
-    yield add_computed(header + observation_items, include_computed)
+        if short_key in data_seen:
+            yield add_computed(header + data_items, include_computed)
+            data_items = []
+            data_seen = set()
+        data_items.append((key, short_key, value))
+        data_seen.add(short_key)
+    yield add_computed(header + data_items, include_computed)
 
 
-def filter_stream(file, columns, header_filters={}, observation_filters={}):
+def filter_stream(file, columns, header_filters={}, data_filters={}):
     compiled_header_filters = compile_filters(header_filters)
-    compiled_observation_filters = compile_filters(observation_filters)
+    compiled_data_filters = compile_filters(data_filters)
     while True:
         message = BufrMessage(file)
         if message.codes_id is None:
@@ -191,7 +191,7 @@ def filter_stream(file, columns, header_filters={}, observation_filters={}):
         if not match_compiled_filters(message_items, compiled_header_filters):
             continue
         message['unpack'] = 1
-        included_keys = set(compiled_observation_filters)
+        included_keys = set(compiled_data_filters)
         included_keys |= set(columns)
         for keys, computed_key, _ in COMPUTED_KEYS:
             if computed_key in included_keys:
@@ -200,11 +200,9 @@ def filter_stream(file, columns, header_filters={}, observation_filters={}):
         for subset_items in extract_subsets(
             message_items, message['numberOfSubsets'], message['compressedData']
         ):
-            for observation_items in extract_observations(
-                subset_items, include_computed=included_keys
-            ):
-                if match_compiled_filters(observation_items, compiled_observation_filters):
-                    yield {s: v for k, s, v in observation_items if s in columns}
+            for data_items in extract_observations(subset_items, include_computed=included_keys):
+                if match_compiled_filters(data_items, compiled_data_filters):
+                    yield {s: v for k, s, v in data_items if s in columns}
 
 
 def read_bufr(path, *args, **kwargs):
