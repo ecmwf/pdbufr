@@ -11,6 +11,7 @@ Features with development status **Alpha**:
 
 Limitations:
 
+- no special handling of nodata values, yet,
 - no conda-forge package (yet),
 - filters only match exact values.
 
