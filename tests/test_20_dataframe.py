@@ -215,6 +215,7 @@ def test_read_bufr_multiple_compressed_subsets_multiple_observations_data():
 
 def test_temp_single_station_1():
     columns = [
+        'WMO_station_id',
         'stationNumber',
         'datetime',
         'longitude',
@@ -227,6 +228,7 @@ def test_temp_single_station_1():
     ref_num = 25
 
     ref = {
+        'WMO_station_id': np.full(ref_num, 71823),
         'stationNumber': np.full(ref_num, 823),
         'latitude': np.full(ref_num, 53.75),
         'longitude': np.full(ref_num, -73.67),

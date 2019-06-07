@@ -106,7 +106,14 @@ def datetime_from_bufr(observation, prefix, datetime_keys):
     return pd.Timestamp(*map(int, [observation[prefix + k] for k in datetime_keys]))
 
 
-COMPUTED_KEYS = [(['year', 'month', 'day', 'hour', 'minute'], 'datetime', datetime_from_bufr)]
+def wmo_station_id_from_bufr(observation, prefix, keys):
+    return observation[prefix + keys[0]] * 1000 + observation[prefix + keys[1]]
+
+
+COMPUTED_KEYS = [
+    (['year', 'month', 'day', 'hour', 'minute'], 'datetime', datetime_from_bufr),
+    (['blockNumber', 'stationNumber'], 'WMO_station_id', wmo_station_id_from_bufr),
+]
 
 
 def iter_message_items(message, include=None):
