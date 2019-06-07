@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 import numpy as np
-
+import pytest
 import pdbufr
 
 
@@ -17,6 +17,8 @@ TEST_DATA_4 = os.path.join(
 # contains compressed subsets
 TEST_DATA_5 = os.path.join(SAMPLE_DATA_FOLDER, 'tropical_cyclone.bufr')
 
+# contains uncompressed subsets (1 message)
+TEST_DATA_6 = os.path.join(SAMPLE_DATA_FOLDER, 'wave_uncompressed.bufr')
 
 def test_read_bufr_one_subset_one_data_filters():
     res = pdbufr.read_bufr(TEST_DATA_1, columns=('latitude',))
@@ -498,3 +500,16 @@ def test_tropicalcyclone_2():
 
     for k in ref.keys():
         assert np.allclose(res[k].values, ref[k])
+
+@pytest.mark.xfail()
+def test_wave_1():
+    columns = ['datetime', 'longitude', 'latitude', 'significantWaveHeight']
+
+    res = pdbufr.read_bufr(
+        TEST_DATA_6,
+        columns=columns
+    )
+
+    #print(res)
+    print( res.iloc[0].to_dict())
+    print( res.iloc[1].to_dict())
