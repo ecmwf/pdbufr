@@ -77,3 +77,6 @@ venv.bak/
 tests/sample-data/cds*.grib
 tests/sample-data/cds*.nc
 *.idx
+
+# kate
+.kate-swp
