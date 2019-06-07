@@ -24,6 +24,7 @@ import logging
 import typing as T
 
 import eccodes
+import numpy as np
 import pandas as pd
 
 
@@ -54,6 +55,8 @@ class BufrMessage(collections.abc.MutableMapping):
         except eccodes.KeyValueNotFoundError:
             raise KeyError(item)
         if len(values) == 1:
+            if isinstance(values, np.ndarray):
+                values = values.tolist()
             return values[0]
         return values
 
@@ -119,7 +122,7 @@ def extract_subsets(message_items, subset_count, is_compressed):
         yield message_items
     elif is_compressed == 1:
         for i in range(subset_count):
-            yield [(k, s, v[i] if isinstance(v, list) else v) for k, s, v in message_items]
+            yield [(k, s, v[i] if isinstance(v, (list, np.ndarray)) else v) for k, s, v in message_items]
     else:
         header_keys = set()
         for key, short_key, _ in message_items:
