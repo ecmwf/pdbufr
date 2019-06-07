@@ -56,6 +56,7 @@ def test_read_bufr_one_subset_one_data_filters():
 
 def test_read_bufr_one_subset_one_observation_data():
     columns = (
+        'count',
         'stationNumber',
         'datetime',
         'latitude',
@@ -66,6 +67,7 @@ def test_read_bufr_one_subset_one_observation_data():
         'horizontalVisibility',
     )
     expected_first_row = {
+        'count': 1,
         'stationNumber': 894.0,
         'datetime': pd.Timestamp('2017-04-25 12:00:00'),
         'latitude': 49.43000000000001,

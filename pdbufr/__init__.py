@@ -214,6 +214,8 @@ def filter_stream(file, columns, header_filters={}, data_filters={}, required_co
             if computed_key in included_keys:
                 included_keys |= set(keys)
         message_items = list(iter_message_items(message, include=included_keys))
+        if 'count' in included_keys:
+            message_items += [('count', 'count', count)]
         for subset_items in extract_subsets(
             message_items, message['numberOfSubsets'], message['compressedData']
         ):
