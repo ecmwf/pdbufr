@@ -191,7 +191,7 @@ def test_read_bufr_multiple_compressed_subsets_multiple_observations_data():
         'brightnessTemperature',
     ]
     expected_first_row = {
-        'datetime': pd.Timestamp('2018-11-22 11:48:00'),
+        'datetime': pd.Timestamp('2018-11-22 11:48:54'),
         'longitude': -9.201400000000001,
         'latitude': 53.354200000000006,
         'heightOfStation': 828400.0,

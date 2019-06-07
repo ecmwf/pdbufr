@@ -103,7 +103,11 @@ def match_compiled_filters(message_items, filters):
 
 
 def datetime_from_bufr(observation, prefix, datetime_keys):
-    return pd.Timestamp(*map(int, [observation[prefix + k] for k in datetime_keys]))
+    minute = observation.get(prefix + datetime_keys[4], 0)
+    seconds = observation.get(prefix + datetime_keys[5], 0.0)
+    second = int(seconds)
+    nanosecond = int(seconds * 1000000000) % 1000000000
+    return pd.Timestamp(*[observation[prefix + k] for k in datetime_keys[:4]] + [minute, second], nanosecond=nanosecond)
 
 
 def wmo_station_id_from_bufr(observation, prefix, keys):
@@ -111,7 +115,7 @@ def wmo_station_id_from_bufr(observation, prefix, keys):
 
 
 COMPUTED_KEYS = [
-    (['year', 'month', 'day', 'hour', 'minute'], 'datetime', datetime_from_bufr),
+    (['year', 'month', 'day', 'hour', 'minute', 'second'], 'datetime', datetime_from_bufr),
     (['blockNumber', 'stationNumber'], 'WMO_station_id', wmo_station_id_from_bufr),
 ]
 
