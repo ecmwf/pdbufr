@@ -23,6 +23,7 @@ TEST_DATA_6 = os.path.join(SAMPLE_DATA_FOLDER, 'wave_uncompressed.bufr')
 # contains 1 message - each subset with multiple timePeriods
 TEST_DATA_7 = os.path.join(SAMPLE_DATA_FOLDER, 'ens_multi_subset_uncompressed.bufr')
 
+
 def test_read_bufr_one_subset_one_data_filters():
     res = pdbufr.read_bufr(TEST_DATA_1, columns=('latitude',))
 
@@ -362,6 +363,7 @@ def test_temp_single_station_3():
     for k in ref.keys():
         assert np.allclose(res[k].values, ref[k])
 
+
 @pytest.mark.xfail()
 def test_tropicalcyclone_1():
     columns = ['datetime', 'longitude', 'latitude', 'windSpeedAt10M']
@@ -509,58 +511,45 @@ def test_tropicalcyclone_2():
 def test_wave_1():
     columns = ['datetime', 'longitude', 'latitude', 'significantWaveHeight']
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_6,
-        columns=columns
-    )
+    res = pdbufr.read_bufr(TEST_DATA_6, columns=columns)
 
-    print( res.iloc[0].to_dict())
-    print( res.iloc[1].to_dict())
+    print(res.iloc[0].to_dict())
+    print(res.iloc[1].to_dict())
 
 
 @pytest.mark.xfail()
 def test_ens_uncompressed_1():
-    columns = ['datetime','longitude', 'latitude', 'ensembleMemberNumber', 'timePeriod', 'airTemperatureAt2M']
+    columns = [
+        'datetime',
+        'longitude',
+        'latitude',
+        'ensembleMemberNumber',
+        'timePeriod',
+        'airTemperatureAt2M',
+    ]
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_7,
-        columns=columns
-    )
+    res = pdbufr.read_bufr(TEST_DATA_7, columns=columns)
 
-    print('len=',len(res))
+    print('len=', len(res))
 
 
 @pytest.mark.xfail()
 def test_ens_uncompressed_2():
     columns = ['longitude', 'latitude', 'ensembleMemberNumber', 'timePeriod', 'airTemperatureAt2M']
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_7,
-        columns=columns
-    )
+    res = pdbufr.read_bufr(TEST_DATA_7, columns=columns)
 
     ref = {
-        'latitude': [
-            51.52,
-            51.52],
-        'longitude': [
-            0.9700000000000001,
-            0.9700000000000001],
-        'ensembleMemberNumber': [
-            0,
-            0],
-        'timePeriod': [
-            0,
-            6],
-        'airTemperatureAt2M': [
-            292.7,
-            291.6],
-    }    
+        'latitude': [51.52, 51.52],
+        'longitude': [0.9700000000000001, 0.9700000000000001],
+        'ensembleMemberNumber': [0, 0],
+        'timePeriod': [0, 6],
+        'airTemperatureAt2M': [292.7, 291.6],
+    }
 
-    print("len=",len(res))
+    print("len=", len(res))
     print(res.iloc[0].to_dict())
     print(res.iloc[1].to_dict())
 
     for k in ref.keys():
         assert np.allclose(res[k].values[0:2], ref[k])
-
