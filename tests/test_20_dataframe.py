@@ -554,7 +554,7 @@ def test_ens_uncompressed_2():
             6],
         'airTemperatureAt2M': [
             292.7,
-            291.],
+            291.6],
     }    
 
     print("len=",len(res))
