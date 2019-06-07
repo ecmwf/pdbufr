@@ -20,6 +20,7 @@
 __version__ = '0.1.1.dev0'
 
 import collections.abc
+import itertools
 import logging
 import typing as T
 
@@ -195,13 +196,17 @@ def filter_stream(file, columns, header_filters={}, data_filters={}, required_co
         required_columns = frozenset(required_columns)
     compiled_header_filters = compile_filters(header_filters)
     compiled_data_filters = compile_filters(data_filters)
-    while True:
+    max_count = max(compiled_header_filters.get('count', [float('inf')]))
+    for count in itertools.count(1):
         message = BufrMessage(file)
         if message.codes_id is None:
             break
-        message_items = list(iter_message_items(message, include=compiled_header_filters))
+        message_items = [('count', 'count', count)] + list(iter_message_items(message, include=compiled_header_filters))
         if not match_compiled_filters(message_items, compiled_header_filters):
-            continue
+            if count >= max_count:
+                break
+            else:
+                continue
         message['unpack'] = 1
         included_keys = set(compiled_data_filters)
         included_keys |= set(columns)

@@ -37,6 +37,12 @@ def test_read_bufr_one_subset_one_data_filters():
 
     assert len(res) == 6
 
+    res = pdbufr.read_bufr(
+        TEST_DATA_1, columns=('latitude',), header_filters={'count': 1}
+    )
+
+    assert len(res) == 1
+
     res = pdbufr.read_bufr(TEST_DATA_1, columns=('latitude',), data_filters={'stationNumber': 894})
 
     assert len(res) == 1
