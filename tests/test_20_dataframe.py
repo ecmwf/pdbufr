@@ -357,14 +357,10 @@ def test_temp_single_station_3():
         },
     )
 
-    # print(res['pressure'].tolist())
-    # print(res['airTemperature'].tolist())
-
     for k in ref.keys():
         assert np.allclose(res[k].values, ref[k])
 
 
-@pytest.mark.xfail()
 def test_tropicalcyclone_1():
     columns = ['datetime', 'longitude', 'latitude', 'windSpeedAt10M']
 
@@ -375,6 +371,15 @@ def test_tropicalcyclone_1():
     )
 
     assert len(res) == 34
+
+    res = pdbufr.read_bufr(
+        TEST_DATA_5,
+        columns=columns,
+        data_filters={'stormIdentifier': '70E', 'ensembleMemberNumber': 4},
+        required_columns=False,
+    )
+
+    assert len(res) == 69
 
 
 def test_tropicalcyclone_2():

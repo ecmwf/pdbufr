@@ -122,7 +122,10 @@ def extract_subsets(message_items, subset_count, is_compressed):
         yield message_items
     elif is_compressed == 1:
         for i in range(subset_count):
-            yield [(k, s, v[i] if isinstance(v, (list, np.ndarray)) else v) for k, s, v in message_items]
+            yield [
+                (k, s, v[i] if isinstance(v, (list, np.ndarray)) else v)
+                for k, s, v in message_items
+            ]
     else:
         header_keys = set()
         for key, short_key, _ in message_items:
@@ -183,7 +186,13 @@ def extract_observations(subset_items, include_computed=frozenset()):
     yield add_computed(header + data_items, include_computed)
 
 
-def filter_stream(file, columns, header_filters={}, data_filters={}):
+def filter_stream(file, columns, header_filters={}, data_filters={}, required_columns=True):
+    if required_columns is True:
+        required_columns = frozenset(columns)
+    elif required_columns is False:
+        required_columns = frozenset()
+    else:
+        required_columns = frozenset(required_columns)
     compiled_header_filters = compile_filters(header_filters)
     compiled_data_filters = compile_filters(data_filters)
     while True:
@@ -205,7 +214,9 @@ def filter_stream(file, columns, header_filters={}, data_filters={}):
         ):
             for data_items in extract_observations(subset_items, include_computed=included_keys):
                 if match_compiled_filters(data_items, compiled_data_filters):
-                    yield {s: v for k, s, v in data_items if s in columns}
+                    data = {s: v for k, s, v in data_items if s in columns}
+                    if required_columns.issubset(data):
+                        yield data
 
 
 def read_bufr(path, *args, **kwargs):
