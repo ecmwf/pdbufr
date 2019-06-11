@@ -23,6 +23,9 @@ TEST_DATA_6 = os.path.join(SAMPLE_DATA_FOLDER, 'wave_uncompressed.bufr')
 # contains 1 message - each subset with multiple timePeriods
 TEST_DATA_7 = os.path.join(SAMPLE_DATA_FOLDER, 'ens_multi_subset_uncompressed.bufr')
 
+# contains 3 messages - each with 128 compressed subsets
+TEST_DATA_8 = os.path.join(SAMPLE_DATA_FOLDER, 'compress_3.bufr')
+
 
 def test_read_bufr_one_subset_one_data_filters():
     res = pdbufr.read_bufr(TEST_DATA_1, columns=('latitude',))
@@ -566,3 +569,48 @@ def test_ens_uncompressed_2():
 
     for k in ref.keys():
         assert np.allclose(res[k].values[0:2], ref[k])
+
+
+@pytest.mark.xfail()
+def test_sat_compressed_1():
+    columns = [
+        'datetime',
+        'latitude',
+        'longitude',
+        'nonCoordinateLatitude',
+        'nonCoordinateLongitude',
+        'significandOfVolumetricMixingRatio',
+        'nonCoordinatePressure',
+    ]
+
+    expected_first_row = {
+        'datetime': pd.Timestamp('2015-08-21 01:59:05'), 
+        'latitude': -44.833890000000004, 
+        'longitude': 171.16350000000003, 
+        'nonCoordinateLatitude': -44.82399, 
+        'nonCoordinateLongitude': 171.05569000000003, 
+        'nonCoordinatePressure': 8555.0, 
+        'significandOfVolumetricMixingRatio': 8531573
+    }
+
+    expected_second_row = {
+        'datetime': pd.Timestamp('2015-08-21 01:59:05'), 
+        'latitude': -44.833890000000004, 
+        'longitude': 171.16350000000003, 
+        'nonCoordinateLatitude': -44.82399, 
+        'nonCoordinateLongitude': 171.05569000000003, 
+        'nonCoordinatePressure': 17100.1, 
+        'significandOfVolumetricMixingRatio': 8486850
+    }
+
+    res = pdbufr.read_bufr(TEST_DATA_8, columns=columns,
+          data_filters={
+              'firstOrderStatistics': 15
+          })
+
+    # THIS FAILS AS WELL!!!!
+    #assert(len(res) == 5376)
+
+    print('len=', len(res))
+    assert res.iloc[0].to_dict() == expected_first_row
+    assert res.iloc[1].to_dict() == expected_second_row
