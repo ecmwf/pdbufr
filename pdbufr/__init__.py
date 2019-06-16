@@ -107,7 +107,10 @@ def datetime_from_bufr(observation, prefix, datetime_keys):
     seconds = observation.get(prefix + datetime_keys[5], 0.0)
     second = int(seconds)
     nanosecond = int(seconds * 1000000000) % 1000000000
-    return pd.Timestamp(*[observation[prefix + k] for k in datetime_keys[:4]] + [minute, second], nanosecond=nanosecond)
+    return pd.Timestamp(
+        *[observation[prefix + k] for k in datetime_keys[:4]] + [minute, second],
+        nanosecond=nanosecond
+    )
 
 
 def wmo_station_id_from_bufr(observation, prefix, keys):
@@ -116,6 +119,18 @@ def wmo_station_id_from_bufr(observation, prefix, keys):
 
 COMPUTED_KEYS = [
     (['year', 'month', 'day', 'hour', 'minute', 'second'], 'datetime', datetime_from_bufr),
+    (
+        [
+            'typicalYear',
+            'typicalMonth',
+            'typicalDay',
+            'typicalHour',
+            'typicalMinute',
+            'typicalSecond',
+        ],
+        'typical_datetime',
+        datetime_from_bufr,
+    ),
     (['blockNumber', 'stationNumber'], 'WMO_station_id', wmo_station_id_from_bufr),
 ]
 
@@ -212,7 +227,9 @@ def filter_stream(file, columns, header_filters={}, data_filters={}, required_co
         message = BufrMessage(file)
         if message.codes_id is None:
             break
-        message_items = [('count', 'count', count)] + list(iter_message_items(message, include=compiled_header_filters))
+        message_items = [('count', 'count', count)] + list(
+            iter_message_items(message, include=compiled_header_filters)
+        )
         if not match_compiled_filters(message_items, compiled_header_filters):
             if count >= max_count:
                 break
