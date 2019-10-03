@@ -396,8 +396,6 @@ def test_tropicalcyclone_1():
 def test_tropicalcyclone_2():
     columns = ['datetime', 'longitude', 'latitude', 'windSpeedAt10M']
 
-    ref_num = 34
-
     ref = {
         'latitude': [
             12.700000000000001,
