@@ -5,7 +5,7 @@ MODULE := $(PACKAGE)
 PYTHONS := python3.7 python3.6 python3.5 pypy3 python2.7 pypy
 PYTHON := python
 
-PYTESTFLAGS_TEST := -v --flakes --doctest-glob '*.rst' --cov=$(MODULE) --cov=cf2cdm --cov-report=html --cache-clear
+PYTESTFLAGS_TEST := -v --flakes --doctest-glob '*.rst' --cov=$(MODULE) --cov-report=html --cache-clear
 PYTESTFLAGS_QC := --pep8 --mccabe $(PYTESTFLAGS_TEST)
 
 export WHEELHOUSE := ~/.wheelhouse
