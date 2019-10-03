@@ -1,0 +1,15 @@
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - black
+  - check-manifest
+  - cffi
+  - eccodes
+  - pandas
+  - pip
+  - pytest
+  - pytest-cov
+  - pytest-flakes
+  - pip:
+    - eccodes-python
