@@ -118,7 +118,7 @@ def wmo_station_id_from_bufr(observation, prefix, keys):
 
 
 COMPUTED_KEYS = [
-    (['year', 'month', 'day', 'hour', 'minute', 'second'], 'datetime', datetime_from_bufr),
+    (['year', 'month', 'day', 'hour', 'minute', 'second'], 'data_datetime', datetime_from_bufr),
     (
         [
             'typicalYear',

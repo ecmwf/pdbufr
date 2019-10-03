@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import numpy as np
 import pytest
+
 import pdbufr
 
 
@@ -59,7 +60,7 @@ def test_read_bufr_one_subset_one_observation_data():
     columns = (
         'count',
         'stationNumber',
-        'datetime',
+        'data_datetime',
         'latitude',
         'longitude',
         'heightOfStation',
@@ -70,7 +71,7 @@ def test_read_bufr_one_subset_one_observation_data():
     expected_first_row = {
         'count': 1,
         'stationNumber': 894.0,
-        'datetime': pd.Timestamp('2017-04-25 12:00:00'),
+        'data_datetime': pd.Timestamp('2017-04-25 12:00:00'),
         'latitude': 49.43000000000001,
         'longitude': -2.6,
         'heightOfStation': 101.0,
@@ -135,7 +136,7 @@ def test_read_bufr_one_subsets_multiple_observations_filters():
 def test_read_bufr_one_subsets_multiple_observations_data():
     columns = [
         'stationNumber',
-        'datetime',
+        'data_datetime',
         'longitude',
         'latitude',
         'heightOfStation',
@@ -144,7 +145,7 @@ def test_read_bufr_one_subsets_multiple_observations_data():
     ]
     expected_first_row = {
         'stationNumber': 907,
-        'datetime': pd.Timestamp('2008-12-08 12:00:00'),
+        'data_datetime': pd.Timestamp('2008-12-08 12:00:00'),
         'longitude': -78.08000000000001,
         'latitude': 58.470000000000006,
         'heightOfStation': 26,
@@ -153,7 +154,7 @@ def test_read_bufr_one_subsets_multiple_observations_data():
     }
     expected_second_row = {
         'stationNumber': 823,
-        'datetime': pd.Timestamp('2008-12-08 12:00:00'),
+        'data_datetime': pd.Timestamp('2008-12-08 12:00:00'),
         'longitude': -73.67,
         'latitude': 53.75000000000001,
         'heightOfStation': 302,
@@ -184,7 +185,7 @@ def test_read_bufr_multiple_compressed_subsets_multiple_observations_filters():
 
 def test_read_bufr_multiple_compressed_subsets_multiple_observations_data():
     columns = [
-        'datetime',
+        'data_datetime',
         'longitude',
         'latitude',
         'heightOfStation',
@@ -192,7 +193,7 @@ def test_read_bufr_multiple_compressed_subsets_multiple_observations_data():
         'brightnessTemperature',
     ]
     expected_first_row = {
-        'datetime': pd.Timestamp('2018-11-22 11:48:54'),
+        'data_datetime': pd.Timestamp('2018-11-22 11:48:54'),
         'longitude': -9.201400000000001,
         'latitude': 53.354200000000006,
         'heightOfStation': 828400.0,
@@ -218,7 +219,7 @@ def test_temp_single_station_1():
     columns = [
         'WMO_station_id',
         'stationNumber',
-        'datetime',
+        'data_datetime',
         'longitude',
         'latitude',
         'pressure',
@@ -323,7 +324,7 @@ def test_temp_single_station_1():
 
 
 def test_temp_single_station_2():
-    columns = ['stationNumber', 'datetime', 'longitude', 'latitude', 'pressure', 'airTemperature']
+    columns = ['stationNumber', 'data_datetime', 'longitude', 'latitude', 'pressure', 'airTemperature']
 
     ref_num = 8
 
@@ -346,7 +347,7 @@ def test_temp_single_station_2():
 
 
 def test_temp_single_station_3():
-    columns = ['stationNumber', 'datetime', 'longitude', 'latitude', 'airTemperature', 'pressure']
+    columns = ['stationNumber', 'data_datetime', 'longitude', 'latitude', 'airTemperature', 'pressure']
 
     ref_num = 2
 
@@ -373,7 +374,7 @@ def test_temp_single_station_3():
 
 
 def test_tropicalcyclone_1():
-    columns = ['datetime', 'longitude', 'latitude', 'windSpeedAt10M']
+    columns = ['data_datetime', 'longitude', 'latitude', 'windSpeedAt10M']
 
     res = pdbufr.read_bufr(
         TEST_DATA_5,
@@ -394,7 +395,7 @@ def test_tropicalcyclone_1():
 
 
 def test_tropicalcyclone_2():
-    columns = ['datetime', 'longitude', 'latitude', 'windSpeedAt10M']
+    columns = ['data_datetime', 'longitude', 'latitude', 'windSpeedAt10M']
 
     ref = {
         'latitude': [
@@ -523,7 +524,7 @@ def test_tropicalcyclone_2():
 
 @pytest.mark.xfail()
 def test_wave_1():
-    columns = ['datetime', 'longitude', 'latitude', 'significantWaveHeight']
+    columns = ['data_datetime', 'longitude', 'latitude', 'significantWaveHeight']
 
     res = pdbufr.read_bufr(TEST_DATA_6, columns=columns)
 
@@ -534,7 +535,7 @@ def test_wave_1():
 @pytest.mark.xfail()
 def test_ens_uncompressed_1():
     columns = [
-        'datetime',
+        'data_datetime',
         'longitude',
         'latitude',
         'ensembleMemberNumber',
@@ -572,7 +573,7 @@ def test_ens_uncompressed_2():
 @pytest.mark.xfail()
 def test_sat_compressed_1():
     columns = [
-        'datetime',
+        'data_datetime',
         'latitude',
         'longitude',
         'nonCoordinateLatitude',
@@ -582,7 +583,7 @@ def test_sat_compressed_1():
     ]
 
     expected_first_row = {
-        'datetime': pd.Timestamp('2015-08-21 01:59:05'), 
+        'data_datetime': pd.Timestamp('2015-08-21 01:59:05'),
         'latitude': -44.833890000000004, 
         'longitude': 171.16350000000003, 
         'nonCoordinateLatitude': -44.82399, 
@@ -592,7 +593,7 @@ def test_sat_compressed_1():
     }
 
     expected_second_row = {
-        'datetime': pd.Timestamp('2015-08-21 01:59:05'), 
+        'data_datetime': pd.Timestamp('2015-08-21 01:59:05'),
         'latitude': -44.833890000000004, 
         'longitude': 171.16350000000003, 
         'nonCoordinateLatitude': -44.82399, 
