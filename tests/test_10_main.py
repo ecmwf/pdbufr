@@ -1,4 +1,3 @@
-
 import pytest
 
 from pdbufr import __main__

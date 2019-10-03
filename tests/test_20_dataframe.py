@@ -324,7 +324,14 @@ def test_temp_single_station_1():
 
 
 def test_temp_single_station_2():
-    columns = ['stationNumber', 'data_datetime', 'longitude', 'latitude', 'pressure', 'airTemperature']
+    columns = [
+        'stationNumber',
+        'data_datetime',
+        'longitude',
+        'latitude',
+        'pressure',
+        'airTemperature',
+    ]
 
     ref_num = 8
 
@@ -347,7 +354,14 @@ def test_temp_single_station_2():
 
 
 def test_temp_single_station_3():
-    columns = ['stationNumber', 'data_datetime', 'longitude', 'latitude', 'airTemperature', 'pressure']
+    columns = [
+        'stationNumber',
+        'data_datetime',
+        'longitude',
+        'latitude',
+        'airTemperature',
+        'pressure',
+    ]
 
     ref_num = 2
 
@@ -584,31 +598,28 @@ def test_sat_compressed_1():
 
     expected_first_row = {
         'data_datetime': pd.Timestamp('2015-08-21 01:59:05'),
-        'latitude': -44.833890000000004, 
-        'longitude': 171.16350000000003, 
-        'nonCoordinateLatitude': -44.82399, 
-        'nonCoordinateLongitude': 171.05569000000003, 
-        'nonCoordinatePressure': 8555.0, 
-        'significandOfVolumetricMixingRatio': 8531573
+        'latitude': -44.833890000000004,
+        'longitude': 171.16350000000003,
+        'nonCoordinateLatitude': -44.82399,
+        'nonCoordinateLongitude': 171.05569000000003,
+        'nonCoordinatePressure': 8555.0,
+        'significandOfVolumetricMixingRatio': 8531573,
     }
 
     expected_second_row = {
         'data_datetime': pd.Timestamp('2015-08-21 01:59:05'),
-        'latitude': -44.833890000000004, 
-        'longitude': 171.16350000000003, 
-        'nonCoordinateLatitude': -44.82399, 
-        'nonCoordinateLongitude': 171.05569000000003, 
-        'nonCoordinatePressure': 17100.1, 
-        'significandOfVolumetricMixingRatio': 8486850
+        'latitude': -44.833890000000004,
+        'longitude': 171.16350000000003,
+        'nonCoordinateLatitude': -44.82399,
+        'nonCoordinateLongitude': 171.05569000000003,
+        'nonCoordinatePressure': 17100.1,
+        'significandOfVolumetricMixingRatio': 8486850,
     }
 
-    res = pdbufr.read_bufr(TEST_DATA_8, columns=columns,
-          data_filters={
-              'firstOrderStatistics': 15
-          })
+    res = pdbufr.read_bufr(TEST_DATA_8, columns=columns, data_filters={'firstOrderStatistics': 15})
 
     # THIS FAILS AS WELL!!!!
-    #assert(len(res) == 5376)
+    # assert(len(res) == 5376)
 
     print('len=', len(res))
     assert res.iloc[0].to_dict() == expected_first_row
