@@ -48,7 +48,7 @@ https://software.ecmwf.int/wiki/display/ECC/ecCodes+installation
 You may run a simple selfcheck command to ensure that your system is set up correctly::
 
     $ python -m pdbufr selfcheck
-    Found: ecCodes v2.7.0.
+    Found: ecCodes v2.13.1.
     Your system is ready.
 
 
@@ -67,48 +67,50 @@ are interested in.
 The ``pdbufr.read_bufr`` function return a ``pandas.DataDrame`` with the requested columns.
 It accepts query filters on the BUFR message header
 that are very fast and query filters on the observation keys.
-Filters match on a single value or on one value in a list and the are always in logical and::
+Filters match on a single value or on one value in a list and the are always in logical and:
+
+.. code-block:: python
 
     >>> import pdbufr
     >>> df_all = pdbufr.read_bufr('temp.bufr', columns=('stationNumber', 'latitude', 'longitude'))
     >>> df_all.head()
-       latitude  longitude  stationNumber
-    0     58.47     -78.08            907
-    1     53.75     -73.67            823
-    2    -90.00       0.00              9
-    3     18.43     -69.88            486
-    4     21.98    -159.33            165
+       stationNumber  latitude  longitude
+    0            907     58.47     -78.08
+    1            823     53.75     -73.67
+    2              9    -90.00       0.00
+    3            486     18.43     -69.88
+    4            165     21.98    -159.33
 
     >>> df_one = pdbufr.read_bufr(
     ...     'temp.bufr',
     ...     columns=('stationNumber', 'latitude', 'longitude'),
-    ...     observation_filters={'stationNumber': 907},
+    ...     data_filters={'stationNumber': 907},
     ... )
     >>> df_one.head()
-       latitude  longitude  stationNumber
-    0     58.47     -78.08            907
+       stationNumber  latitude  longitude
+    0            907     58.47     -78.08
 
     >>> df_two = pdbufr.read_bufr(
     ...     'temp.bufr',
     ...     columns=('stationNumber', 'latitude', 'longitude', 'datetime', 'pressure', 'airTemperature'),
-    ...     observation_filters={'stationNumber': [823, 9]},
+    ...     data_filters={'stationNumber': [823, 9]},
     ... )
 
     >>> df_two.head()
-       airTemperature            datetime  latitude  longitude  pressure  stationNumber
-    0  -1.000000e+100 2008-12-08 12:00:00     53.75     -73.67  100000.0            823
-    1    2.567000e+02 2008-12-08 12:00:00     53.75     -73.67   97400.0            823
-    2    2.551000e+02 2008-12-08 12:00:00     53.75     -73.67   93700.0            823
-    3    2.553000e+02 2008-12-08 12:00:00     53.75     -73.67   92500.0            823
-    4    2.567000e+02 2008-12-08 12:00:00     53.75     -73.67   90600.0            823
+       stationNumber  latitude  longitude  pressure  airTemperature            datetime
+    0            823     53.75     -73.67  100000.0  -1.000000e+100 2008-12-08 12:00:00
+    1            823     53.75     -73.67   97400.0    2.567000e+02 2008-12-08 12:00:00
+    2            823     53.75     -73.67   93700.0    2.551000e+02 2008-12-08 12:00:00
+    3            823     53.75     -73.67   92500.0    2.553000e+02 2008-12-08 12:00:00
+    4            823     53.75     -73.67   90600.0    2.567000e+02 2008-12-08 12:00:00
 
     >>> df_two.tail()
-         airTemperature            datetime  latitude  longitude  pressure  stationNumber
-    190  -1.000000e+100 2008-12-08 12:00:00     51.77      36.17    2990.0              9
-    191    2.063000e+02 2008-12-08 12:00:00     51.77      36.17    2790.0              9
-    192  -1.000000e+100 2008-12-08 12:00:00     51.77      36.17    2170.0              9
-    193    2.031000e+02 2008-12-08 12:00:00     51.77      36.17    2000.0              9
-    194    1.979000e+02 2008-12-08 12:00:00     51.77      36.17    1390.0              9
+         stationNumber  latitude  longitude  pressure  airTemperature            datetime
+    190              9     51.77      36.17    2990.0  -1.000000e+100 2008-12-08 12:00:00
+    191              9     51.77      36.17    2790.0    2.063000e+02 2008-12-08 12:00:00
+    192              9     51.77      36.17    2170.0  -1.000000e+100 2008-12-08 12:00:00
+    193              9     51.77      36.17    2000.0    2.031000e+02 2008-12-08 12:00:00
+    194              9     51.77      36.17    1390.0    1.979000e+02 2008-12-08 12:00:00
 
 
 Contributing
@@ -124,6 +126,10 @@ Please see the CONTRIBUTING.rst document for the best way to help.
 Lead developer:
 
 - `Alessandro Amici <https://github.com/alexamici>`_ - `B-Open <https://bopen.eu>`_
+
+Main contributors:
+
+- Sandor Kertesz - `ECMWF <https://ecmwf.int>`_
 
 See also the list of `contributors <https://github.com/ecmwf/pdbufr/contributors>`_ who participated in this project.
 
