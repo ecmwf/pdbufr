@@ -88,8 +88,8 @@ def compile_filters(filters):
     return compiled_filters
 
 
-def match_compiled_filters(message_items, filters):
-    # type: (T.Iterable[T.Tuple[str, str, T.Any]], T.Dict[str, T.FrozenSet[T.Any]]) -> bool
+def match_compiled_filters(message_items, filters, required=True):
+    # type: (T.Iterable[T.Tuple[str, str, T.Any]], T.Dict[str, T.FrozenSet[T.Any]], bool) -> bool
     seen = set()
     for key, short_key, value in message_items:
         if short_key in filters:
@@ -97,7 +97,7 @@ def match_compiled_filters(message_items, filters):
                 return False
             else:
                 seen.add(short_key)
-    if len(seen) != len(filters):
+    if required and len(seen) != len(filters):
         return False
     return True
 
@@ -213,30 +213,29 @@ def extract_observations(subset_items, include_computed=frozenset()):
     yield add_computed(header + data_items, include_computed)
 
 
-def filter_stream(file, columns, header_filters={}, data_filters={}, required_columns=True):
+def filter_stream(file, columns, filters={}, required_columns=True):
     if required_columns is True:
         required_columns = frozenset(columns)
     elif required_columns is False:
         required_columns = frozenset()
     else:
         required_columns = frozenset(required_columns)
-    compiled_header_filters = compile_filters(header_filters)
-    compiled_data_filters = compile_filters(data_filters)
-    max_count = max(compiled_header_filters.get('count', [float('inf')]))
+    compiled_filters = compile_filters(filters)
+    max_count = max(compiled_filters.get('count', [float('inf')]))
     for count in itertools.count(1):
         message = BufrMessage(file)
         if message.codes_id is None:
             break
         message_items = [('count', 'count', count)] + list(
-            iter_message_items(message, include=compiled_header_filters)
+            iter_message_items(message, include=compiled_filters)
         )
-        if not match_compiled_filters(message_items, compiled_header_filters):
+        if not match_compiled_filters(message_items, compiled_filters, required=False):
             if count >= max_count:
                 break
             else:
                 continue
         message['unpack'] = 1
-        included_keys = set(compiled_data_filters)
+        included_keys = set(compiled_filters)
         included_keys |= set(columns)
         for keys, computed_key, _ in COMPUTED_KEYS:
             if computed_key in included_keys:
@@ -248,7 +247,7 @@ def filter_stream(file, columns, header_filters={}, data_filters={}, required_co
             message_items, message['numberOfSubsets'], message['compressedData']
         ):
             for data_items in extract_observations(subset_items, include_computed=included_keys):
-                if match_compiled_filters(data_items, compiled_data_filters):
+                if match_compiled_filters(data_items, compiled_filters):
                     data = {s: v for k, s, v in data_items if s in columns}
                     if required_columns.issubset(data):
                         yield data

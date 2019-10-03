@@ -84,7 +84,7 @@ Filters match on a single value or on one value in a list and the are always in 
     >>> df_one = pdbufr.read_bufr(
     ...     'temp.bufr',
     ...     columns=('stationNumber', 'latitude', 'longitude'),
-    ...     data_filters={'stationNumber': 907},
+    ...     filters={'stationNumber': 907},
     ... )
     >>> df_one.head()
        stationNumber  latitude  longitude
@@ -93,7 +93,7 @@ Filters match on a single value or on one value in a list and the are always in 
     >>> df_two = pdbufr.read_bufr(
     ...     'temp.bufr',
     ...     columns=('stationNumber', 'latitude', 'longitude', 'data_datetime', 'pressure', 'airTemperature'),
-    ...     data_filters={'stationNumber': [823, 9]},
+    ...     filters={'stationNumber': [823, 9]},
     ... )
 
     >>> df_two.head()
