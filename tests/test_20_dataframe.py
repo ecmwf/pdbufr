@@ -1,3 +1,18 @@
+#
+# Copyright 2019 European Centre for Medium-Range Weather Forecasts (ECMWF).
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 
 import pandas as pd
@@ -35,9 +50,7 @@ def test_read_bufr_one_subset_one_filters():
     assert 'latitude' in res
     assert len(res) == 50
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_1, columns=('latitude',), filters={'rdbtimeTime': '115557'}
-    )
+    res = pdbufr.read_bufr(TEST_DATA_1, columns=('latitude',), filters={'rdbtimeTime': '115557'})
 
     assert len(res) == 6
 
@@ -101,9 +114,7 @@ def test_read_bufr_multiple_uncompressed_subsets_one_observation():
 
     assert len(res) == 1
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_2, columns=('latitude',), filters={'stationNumber': [27, 84]}
-    )
+    res = pdbufr.read_bufr(TEST_DATA_2, columns=('latitude',), filters={'stationNumber': [27, 84]})
 
     assert len(res) == 2
 
@@ -170,9 +181,7 @@ def test_read_bufr_one_subsets_multiple_observations_data():
 
 
 def test_read_bufr_multiple_compressed_subsets_multiple_observations_filters():
-    res = pdbufr.read_bufr(
-        TEST_DATA_4, columns=('latitude',), filters={'hour': 11, 'minute': 48}
-    )
+    res = pdbufr.read_bufr(TEST_DATA_4, columns=('latitude',), filters={'hour': 11, 'minute': 48})
 
     assert len(res) == 56
 
@@ -204,11 +213,7 @@ def test_read_bufr_multiple_compressed_subsets_multiple_observations_data():
     res = pdbufr.read_bufr(
         TEST_DATA_4,
         columns=columns,
-        filters={
-            'hour': 11,
-            'minute': 48,
-            'tovsOrAtovsOrAvhrrInstrumentationChannelNumber': 2,
-        },
+        filters={'hour': 11, 'minute': 48, 'tovsOrAtovsOrAvhrrInstrumentationChannelNumber': 2},
     )
 
     assert len(res) == 56
@@ -391,9 +396,7 @@ def test_tropicalcyclone_1():
     columns = ['data_datetime', 'longitude', 'latitude', 'windSpeedAt10M']
 
     res = pdbufr.read_bufr(
-        TEST_DATA_5,
-        columns=columns,
-        filters={'stormIdentifier': '70E', 'ensembleMemberNumber': 4},
+        TEST_DATA_5, columns=columns, filters={'stormIdentifier': '70E', 'ensembleMemberNumber': 4}
     )
 
     assert len(res) == 34
@@ -536,7 +539,6 @@ def test_tropicalcyclone_2():
         assert np.allclose(res[k].values, ref[k])
 
 
-@pytest.mark.xfail()
 def test_wave_1():
     columns = ['data_datetime', 'longitude', 'latitude', 'significantWaveHeight']
 
