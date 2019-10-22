@@ -183,9 +183,12 @@ def add_computed(data_items, include_computed=frozenset()):
         if computed_key in include_computed:
             observation = {short_key: value for _, short_key, value in data_items}
             prefix = '#1#'
-            computed_items.append(
-                (prefix + computed_key, computed_key, getter(observation, '', keys))
-            )
+            try:
+                computed_value = getter(observation, '', keys)
+            except Exception:
+                LOG.exception("can't compute key %r", computed_key)
+                computed_value = None
+            computed_items.append((prefix + computed_key, computed_key, computed_value))
     return data_items + computed_items
 
 

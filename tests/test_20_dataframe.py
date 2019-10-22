@@ -541,11 +541,23 @@ def test_tropicalcyclone_2():
 
 def test_wave_1():
     columns = ['data_datetime', 'longitude', 'latitude', 'significantWaveHeight']
+    expected_0 = {
+        'latitude': -28.866670000000003,
+        'longitude': 153.38333,
+        'significantWaveHeight': 2.34,
+        'data_datetime': pd.Timestamp('2017-11-02 10:00:00'),
+    }
+    expected_1 = {
+        'latitude': -30.366670000000003,
+        'longitude': 153.36667,
+        'significantWaveHeight': -1e100,
+        'data_datetime': pd.Timestamp('2017-11-02 10:00:00'),
+    }
 
     res = pdbufr.read_bufr(TEST_DATA_6, columns=columns)
 
-    print(res.iloc[0].to_dict())
-    print(res.iloc[1].to_dict())
+    assert res.iloc[0].to_dict() == expected_0
+    assert res.iloc[1].to_dict() == expected_1
 
 
 @pytest.mark.xfail()
