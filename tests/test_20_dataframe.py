@@ -560,7 +560,6 @@ def test_wave_1():
     assert res.iloc[1].to_dict() == expected_1
 
 
-@pytest.mark.xfail()
 def test_ens_uncompressed_1():
     columns = [
         'data_datetime',
@@ -573,7 +572,7 @@ def test_ens_uncompressed_1():
 
     res = pdbufr.read_bufr(TEST_DATA_7, columns=columns)
 
-    print('len=', len(res))
+    assert len(res) == 51
 
 
 @pytest.mark.xfail()
@@ -590,7 +589,7 @@ def test_ens_uncompressed_2():
         'airTemperatureAt2M': [292.7, 291.6],
     }
 
-    print("len=", len(res))
+    assert len(res) == 51
     print(res.iloc[0].to_dict())
     print(res.iloc[1].to_dict())
 
