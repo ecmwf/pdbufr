@@ -399,7 +399,7 @@ def test_tropicalcyclone_1():
         TEST_DATA_5, columns=columns, filters={'stormIdentifier': '70E', 'ensembleMemberNumber': 4}
     )
 
-    assert len(res) == 34
+    assert len(res) == 67
 
     res = pdbufr.read_bufr(
         TEST_DATA_5,
@@ -572,10 +572,9 @@ def test_ens_uncompressed_1():
 
     res = pdbufr.read_bufr(TEST_DATA_7, columns=columns)
 
-    assert len(res) == 51
+    assert len(res) == 3111
 
 
-@pytest.mark.xfail()
 def test_ens_uncompressed_2():
     columns = ['longitude', 'latitude', 'ensembleMemberNumber', 'timePeriod', 'airTemperatureAt2M']
 
@@ -589,7 +588,7 @@ def test_ens_uncompressed_2():
         'airTemperatureAt2M': [292.7, 291.6],
     }
 
-    assert len(res) == 51
+    assert len(res) == 3111
     print(res.iloc[0].to_dict())
     print(res.iloc[1].to_dict())
 
@@ -597,7 +596,6 @@ def test_ens_uncompressed_2():
         assert np.allclose(res[k].values[0:2], ref[k])
 
 
-@pytest.mark.xfail()
 def test_sat_compressed_1():
     columns = [
         'data_datetime',
@@ -625,14 +623,13 @@ def test_sat_compressed_1():
         'longitude': 171.16350000000003,
         'nonCoordinateLatitude': -44.82399,
         'nonCoordinateLongitude': 171.05569000000003,
-        'nonCoordinatePressure': 17100.1,
+        'nonCoordinatePressure': 17100.100000000002,
         'significandOfVolumetricMixingRatio': 8486850,
     }
 
     res = pdbufr.read_bufr(TEST_DATA_8, columns=columns, filters={'firstOrderStatistics': 15})
 
-    # THIS FAILS AS WELL!!!!
-    # assert(len(res) == 5376)
+    assert len(res) == 4224
 
     print('len=', len(res))
     assert res.iloc[0].to_dict() == expected_first_row

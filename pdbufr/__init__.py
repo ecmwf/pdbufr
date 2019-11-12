@@ -145,6 +145,12 @@ def iter_message_items(message, include=None):
 
 def extract_subsets(message_items, subset_count, is_compressed):
     # type: (T.Iterable[T.Tuple[str, str, T.Any]], int, int) -> T.Generator[T.List[T.Tuple[str, str, T.Any]]]
+    LOG.debug(
+        "extracting subsets count %d and is_compressed %d items %d",
+        subset_count,
+        is_compressed,
+        len(message_items),
+    )
     if subset_count == 1:
         yield message_items
     elif is_compressed == 1:
@@ -186,34 +192,35 @@ def add_computed(data_items, include_computed=frozenset()):
             try:
                 computed_value = getter(observation, '', keys)
             except Exception:
-                LOG.exception("can't compute key %r", computed_key)
+                LOG.debug("can't compute key %r", computed_key)
                 computed_value = None
             computed_items.append((prefix + computed_key, computed_key, computed_value))
     return data_items + computed_items
 
 
-def extract_observations(subset_items, include_computed=frozenset()):
-    # type: (T.Iterable[T.Tuple[str, str, T.Any]], T.Container) -> T.Generator[T.List[T.Tuple[str, str, T.Any]]]
-    header_keys = set()
-    for key, short_key, _ in subset_items:
-        if key[0] != '#' or key[:3] == '#1#':
-            header_keys.add(key)
-        else:
-            header_keys.discard('#1#' + short_key)
-    header = [(k, s, v) for k, s, v in subset_items if k in header_keys]
+def merge_data_items(old_data_items, data_items):
+    for _, short_name, _ in data_items:
+        old_data_items.pop(short_name, None)
+    return data_items + list(old_data_items.values())
 
+
+def extract_observations(subset_items, include_computed=frozenset()):
+    # type: (T.List[T.Tuple[str, str, T.Any]], T.Container) -> T.Generator[T.List[T.Tuple[str, str, T.Any]]]
+    old_data_items = {}
     data_items = []
     data_seen = set()
+    subset_items = add_computed(subset_items, include_computed)
     for key, short_key, value in subset_items:
-        if key in header_keys:
-            continue
         if short_key in data_seen:
-            yield add_computed(header + data_items, include_computed)
+            all_data_items = merge_data_items(old_data_items, data_items)
+            yield add_computed(all_data_items, include_computed)
+            old_data_items = {item[1]: item for item in all_data_items}
             data_items = []
             data_seen = set()
         data_items.append((key, short_key, value))
         data_seen.add(short_key)
-    yield add_computed(header + data_items, include_computed)
+    all_data_items = merge_data_items(old_data_items, data_items)
+    yield add_computed(all_data_items, include_computed)
 
 
 def filter_stream(file, columns, filters={}, required_columns=True):
@@ -226,17 +233,18 @@ def filter_stream(file, columns, filters={}, required_columns=True):
     compiled_filters = compile_filters(filters)
     max_count = max(compiled_filters.get('count', [float('inf')]))
     for count in itertools.count(1):
+        if count > max_count:
+            LOG.debug("stopping processing after max_count: %d", max_count)
+            break
         message = BufrMessage(file)
         if message.codes_id is None:
             break
+        LOG.debug("starting reading message: %d", count)
         message_items = [('count', 'count', count)] + list(
             iter_message_items(message, include=compiled_filters)
         )
         if not match_compiled_filters(message_items, compiled_filters, required=False):
-            if count >= max_count:
-                break
-            else:
-                continue
+            continue
         message['unpack'] = 1
         included_keys = set(compiled_filters)
         included_keys |= set(columns)
