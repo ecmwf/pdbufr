@@ -42,6 +42,9 @@ TEST_DATA_7 = os.path.join(SAMPLE_DATA_FOLDER, 'ens_multi_subset_uncompressed.bu
 # contains 3 messages - each with 128 compressed subsets
 TEST_DATA_8 = os.path.join(SAMPLE_DATA_FOLDER, 'compress_3.bufr')
 
+# contains 1 message - with 51 compressed subsets with multiple timePeriods
+TEST_DATA_9 = os.path.join(SAMPLE_DATA_FOLDER, 'ens_multi_subset_compressed.bufr')
+
 
 def test_read_bufr_one_subset_one_filters():
     res = pdbufr.read_bufr(TEST_DATA_1, columns=('latitude',))
@@ -560,22 +563,7 @@ def test_wave_1():
     assert res.iloc[1].to_dict() == expected_1
 
 
-def test_ens_uncompressed_1():
-    columns = [
-        'data_datetime',
-        'longitude',
-        'latitude',
-        'ensembleMemberNumber',
-        'timePeriod',
-        'airTemperatureAt2M',
-    ]
-
-    res = pdbufr.read_bufr(TEST_DATA_7, columns=columns)
-
-    assert len(res) == 3111
-
-
-def test_ens_uncompressed_2():
+def test_ens_uncompressed():
     columns = ['longitude', 'latitude', 'ensembleMemberNumber', 'timePeriod', 'airTemperatureAt2M']
 
     res = pdbufr.read_bufr(TEST_DATA_7, columns=columns)
@@ -589,11 +577,28 @@ def test_ens_uncompressed_2():
     }
 
     assert len(res) == 3111
-    print(res.iloc[0].to_dict())
-    print(res.iloc[1].to_dict())
 
     for k in ref.keys():
         assert np.allclose(res[k].values[0:2], ref[k])
+
+def test_ens_compressed():
+    columns = ['longitude', 'latitude', 'ensembleMemberNumber', 'timePeriod', 'cape']
+
+    res = pdbufr.read_bufr(TEST_DATA_9, columns=columns, 
+        filters={'timePeriod': [0, 24], 'ensembleMemberNumber': [2, 5]})
+
+    ref = {
+        'latitude': [51.52, 51.52, 51.52, 51.52],
+        'longitude': [0.9700000000000001, 0.9700000000000001, 0.9700000000000001, 0.9700000000000001],
+        'ensembleMemberNumber': [2, 2, 5, 5],
+        'timePeriod': [0, 24, 0, 24],
+        'cape': [41.9, 0, 14.4, 0],
+    }
+
+    assert len(res) == 4
+
+    for k in ref.keys():
+        assert np.allclose(res[k].values[0:4], ref[k])
 
 
 def test_sat_compressed_1():
