@@ -219,8 +219,9 @@ def extract_observations(subset_items, include_computed=frozenset()):
             data_seen = set()
         data_items.append((key, short_key, value))
         data_seen.add(short_key)
-    all_data_items = merge_data_items(old_data_items, data_items)
-    yield add_computed(all_data_items, include_computed)
+    if data_items:
+        all_data_items = merge_data_items(old_data_items, data_items)
+        yield add_computed(all_data_items, include_computed)
 
 
 def filter_stream(file, columns, filters={}, required_columns=True):
