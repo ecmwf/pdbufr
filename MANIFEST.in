@@ -1,3 +1,5 @@
+include *.bufr
+include *.yml
 include LICENSE
 include Makefile
 recursive-include tests *.bufr
