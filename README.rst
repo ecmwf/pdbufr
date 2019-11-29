@@ -6,12 +6,11 @@ Features with development status **Alpha**:
 - extracts observations from a BUFR file as a Pandas DataFrame,
 - reads BUFR 3 and 4 files with uncompressed and compressed subsets,
 - supports all modern versions of Python 3.7, 3.6, 3.5 and PyPy3,
-- works on Linux, MacOS and Windows, the ecCodes C-library is the only binary dependency,
-- PyPI package with no install time build (binds via CFFI ABI mode).
+- works on Linux, MacOS and Windows, the ecCodes C-library is the only binary dependency.
 
 Limitations:
 
-- no special handling of nodata values, yet,
+- no special handling of nodata values (yet),
 - no conda-forge package (yet),
 - filters only match exact values.
 
