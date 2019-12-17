@@ -206,19 +206,23 @@ def merge_data_items(old_data_items, data_items):
 
 def extract_observations(subset_items, include_computed=frozenset()):
     # type: (T.List[T.Tuple[str, str, T.Any]], T.Container) -> T.Generator[T.List[T.Tuple[str, str, T.Any]]]
+    short_key_order = []
     old_data_items = {}
     data_items = []
-    data_seen = set()
-    subset_items = add_computed(subset_items, include_computed)
+    short_key_index_seen = -1
     for key, short_key, value in subset_items:
-        if short_key in data_seen:
+        try:
+            short_key_index = short_key_order.index(short_key)
+        except ValueError:
+            short_key_order.append(short_key)
+            short_key_index = len(short_key_order) - 1
+        if short_key_index <= short_key_index_seen:
             all_data_items = merge_data_items(old_data_items, data_items)
             yield add_computed(all_data_items, include_computed)
             old_data_items = {item[1]: item for item in all_data_items}
             data_items = []
-            data_seen = set()
         data_items.append((key, short_key, value))
-        data_seen.add(short_key)
+        short_key_index_seen = short_key_index
     if data_items:
         all_data_items = merge_data_items(old_data_items, data_items)
         yield add_computed(all_data_items, include_computed)

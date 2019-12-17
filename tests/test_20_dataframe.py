@@ -551,16 +551,25 @@ def test_wave_1():
         'data_datetime': pd.Timestamp('2017-11-02 10:00:00'),
     }
     expected_1 = {
+        'latitude': -28.866670000000003,
+        'longitude': 153.38333,
+        'significantWaveHeight': -1e100,
+        'data_datetime': pd.Timestamp('2017-11-02 10:00:00'),
+    }
+    expected_2 = {
         'latitude': -30.366670000000003,
         'longitude': 153.36667,
-        'significantWaveHeight': -1e100,
+        'significantWaveHeight': 1.72,
         'data_datetime': pd.Timestamp('2017-11-02 10:00:00'),
     }
 
     res = pdbufr.read_bufr(TEST_DATA_6, columns=columns)
 
+    assert len(res) == 72
+
     assert res.iloc[0].to_dict() == expected_0
     assert res.iloc[1].to_dict() == expected_1
+    assert res.iloc[2].to_dict() == expected_2
 
 
 def test_ens_uncompressed():
@@ -581,15 +590,24 @@ def test_ens_uncompressed():
     for k in ref.keys():
         assert np.allclose(res[k].values[0:2], ref[k])
 
+
 def test_ens_compressed():
     columns = ['longitude', 'latitude', 'ensembleMemberNumber', 'timePeriod', 'cape']
 
-    res = pdbufr.read_bufr(TEST_DATA_9, columns=columns, 
-        filters={'timePeriod': [0, 24], 'ensembleMemberNumber': [2, 5]})
+    res = pdbufr.read_bufr(
+        TEST_DATA_9,
+        columns=columns,
+        filters={'timePeriod': [0, 24], 'ensembleMemberNumber': [2, 5]},
+    )
 
     ref = {
         'latitude': [51.52, 51.52, 51.52, 51.52],
-        'longitude': [0.9700000000000001, 0.9700000000000001, 0.9700000000000001, 0.9700000000000001],
+        'longitude': [
+            0.9700000000000001,
+            0.9700000000000001,
+            0.9700000000000001,
+            0.9700000000000001,
+        ],
         'ensembleMemberNumber': [2, 2, 5, 5],
         'timePeriod': [0, 24, 0, 24],
         'cape': [41.9, 0, 14.4, 0],
@@ -601,7 +619,6 @@ def test_ens_compressed():
         assert np.allclose(res[k].values[0:4], ref[k])
 
 
-@pytest.mark.xfail
 def test_sat_compressed_1():
     columns = [
         'data_datetime',
@@ -639,15 +656,25 @@ def test_sat_compressed_1():
         'longitude': 171.16350000000003,
         'nonCoordinateLatitude': -44.82399,
         'nonCoordinateLongitude': 171.05569000000003,
-        'nonCoordinatePressure': 102550.0,
+        'nonCoordinatePressure': 102550.5,
         'significandOfVolumetricMixingRatio': 6018766,
+    }
+
+    expected_13_row = {
+        'data_datetime': pd.Timestamp('2015-08-21 01:59:06'),
+        'latitude': -44.77121,
+        'longitude': 171.15150000000003,
+        'nonCoordinateLatitude': -44.761320000000005,
+        'nonCoordinateLongitude': 171.04379,
+        'nonCoordinatePressure': 8556.9,
+        'significandOfVolumetricMixingRatio': 8533734,
     }
 
     res = pdbufr.read_bufr(TEST_DATA_8, columns=columns, filters={'firstOrderStatistics': 15})
 
-    assert len(res) == 4992 
-    # assert len(res) == 4224
+    assert len(res) == 128 * 12 * 3
 
     assert res.iloc[0].to_dict() == expected_first_row
     assert res.iloc[1].to_dict() == expected_second_row
     assert res.iloc[11].to_dict() == expected_12_row
+    assert res.iloc[12].to_dict() == expected_13_row
