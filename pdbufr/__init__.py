@@ -17,7 +17,7 @@
 #   Alessandro Amici - B-Open - https://bopen.eu
 #
 
-__version__ = '0.8.1.dev0'
+__version__ = '0.8.1'
 
 import collections.abc
 import itertools
