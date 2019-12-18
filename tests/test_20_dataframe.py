@@ -562,14 +562,27 @@ def test_wave_1():
         'significantWaveHeight': 1.72,
         'data_datetime': pd.Timestamp('2017-11-02 10:00:00'),
     }
+    expected_70 = {
+        'latitude': -35.700000000000003 ,
+        'longitude': 150.33333000000002,
+        'significantWaveHeight': 1.7,
+        'data_datetime': pd.Timestamp('2017-11-02 10:00:00'),
+    }
+    expected_71 = {
+        'latitude': -35.700000000000003 ,
+        'longitude': 150.33333000000002,
+        'significantWaveHeight': -1e100,
+        'data_datetime': pd.Timestamp('2017-11-02 10:00:00'),
+    }
 
     res = pdbufr.read_bufr(TEST_DATA_6, columns=columns)
-
     assert len(res) == 72
 
     assert res.iloc[0].to_dict() == expected_0
     assert res.iloc[1].to_dict() == expected_1
     assert res.iloc[2].to_dict() == expected_2
+    assert res.iloc[70].to_dict() == expected_70
+    assert res.iloc[71].to_dict() == expected_71
 
 
 def test_ens_uncompressed():
