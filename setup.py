@@ -52,7 +52,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     include_package_data=True,
     setup_requires=['pytest-runner'],
-    install_requires=['eccodes-python', 'pandas'],
+    install_requires=['eccodes', 'pandas'],
     tests_require=['pytest', 'pytest-cov', 'pytest-flakes'],
     test_suite='tests',
     zip_safe=True,
