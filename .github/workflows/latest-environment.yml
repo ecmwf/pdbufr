@@ -20,7 +20,7 @@ jobs:
       run: |
         $CONDA/bin/conda env update --file environment.in.yml --name base
         $CONDA/bin/python -m pip install -e .
-        $CONDA/bin/conda env export --no-build > environment-latest.yml
+        $CONDA/bin/conda env export --name base --no-build > environment-latest.yml
     - name: Archive environment.yml
       uses: actions/upload-artifact@v2
       with:
