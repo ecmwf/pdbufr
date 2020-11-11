@@ -4,11 +4,9 @@ on: [push]
 
 jobs:
   build-linux:
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: ubuntu-latest
     strategy:
       max-parallel: 5
-      matrix:
-        os: [ubuntu, macos]
 
     steps:
     - uses: actions/checkout@v2
@@ -20,9 +18,9 @@ jobs:
       run: |
         $CONDA/bin/conda env update --file environment.in.yml --name base
         $CONDA/bin/python -m pip install -e .
-        $CONDA/bin/conda env export --name base --no-build > environment-${{ matrix.os }}.yml
-    - name: Archive environment-${{ matrix.os }}.yml
+        $CONDA/bin/conda env export --name base --no-build > environment-linux.yml
+    - name: Archive environment-linux.yml
       uses: actions/upload-artifact@v2
       with:
-        name: environment-${{ matrix.os }}.yml
-        path: environment-${{ matrix.os }}.yml
+        name: environment-linux.yml
+        path: environment-linux.yml
