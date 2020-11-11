@@ -1,4 +1,4 @@
-name: latest-environmet
+name: environmet
 
 on: [push]
 
@@ -8,7 +8,7 @@ jobs:
     strategy:
       max-parallel: 5
       matrix:
-        os: [ubuntu]
+        os: [ubuntu, windows]
 
     steps:
     - uses: actions/checkout@v2
@@ -21,8 +21,8 @@ jobs:
         $CONDA/bin/conda env update --file environment.in.yml --name base
         $CONDA/bin/python -m pip install -e .
         $CONDA/bin/conda env export --name base --no-build > environment-latest.yml
-    - name: Archive environment-latest.yml
+    - name: Archive environment-${{ matrix.os }}.yml
       uses: actions/upload-artifact@v2
       with:
-        name: environment-latest.yml
-        path: environment-latest.yml
+        name: environment-${{ matrix.os }}.yml
+        path: environment-${{ matrix.os }}.yml
