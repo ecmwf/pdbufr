@@ -104,7 +104,7 @@ Filters match on an exact value or with one of the values in a list and all filt
     4            823   90600.0    2.567000e+02 2008-12-08 12:00:00
 
     >>> df_two.tail()
-         stationNumber   pressure  airTemperature       data_datetime
+         stationNumber  pressure  airTemperature       data_datetime
     190              9    2990.0  -1.000000e+100 2008-12-08 12:00:00
     191              9    2790.0    2.063000e+02 2008-12-08 12:00:00
     192              9    2170.0  -1.000000e+100 2008-12-08 12:00:00
