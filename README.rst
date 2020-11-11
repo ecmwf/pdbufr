@@ -17,9 +17,9 @@ Limitations:
 Installation
 ============
 
-The easiest way to install *pdbufr* binary dependencies is via Conda::
+The easiest way to install *pdbufr* dependencies is via Conda::
 
-    $ conda install -c conda-forge eccodes
+    $ conda install -c conda-forge python-eccodes pandas
 
 and *pdbufr* itself as a Python package from PyPI with::
 
@@ -47,7 +47,7 @@ https://software.ecmwf.int/wiki/display/ECC/ecCodes+installation
 You may run a simple selfcheck command to ensure that your system is set up correctly::
 
     $ python -m pdbufr selfcheck
-    Found: ecCodes v2.13.1.
+    Found: ecCodes v2.18.0.
     Your system is ready.
 
 
@@ -71,6 +71,7 @@ Filters match on a single value or on one value in a list and the are always in 
 .. code-block:: python
 
     >>> import pdbufr
+    Warning: ecCodes 2.19.0 or higher is recommended. You are running version 2.18.0
     >>> df_all = pdbufr.read_bufr('temp.bufr', columns=('stationNumber', 'latitude', 'longitude'))
     >>> df_all.head()
        stationNumber  latitude  longitude
