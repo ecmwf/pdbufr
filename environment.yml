@@ -24,8 +24,6 @@ dependencies:
   - libcxx=11.0.0
   - libedit=3.1.20191231
   - libffi=3.3
-  - libgfortran=5.0.0
-  - libgfortran5=9.3.0
   - libnetcdf=4.7.4
   - libpng=1.6.37
   - libssh2=1.9.0
