@@ -24,14 +24,16 @@ import eccodes
 
 def main(argv=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument('command')
+    parser.add_argument("command")
     args = parser.parse_args(args=argv)
-    if args.command == 'selfcheck':
+    if args.command == "selfcheck":
         print("Found: ecCodes v%s." % eccodes.codes_get_api_version())
         print("Your system is ready.")
     else:
-        raise RuntimeError("Command not recognised %r. See usage with --help." % args.command)
+        raise RuntimeError(
+            "Command not recognised %r. See usage with --help." % args.command
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

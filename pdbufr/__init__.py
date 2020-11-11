@@ -17,7 +17,7 @@
 #   Alessandro Amici - B-Open - https://bopen.eu
 #
 
-__version__ = '0.8.2.dev0'
+__version__ = "0.8.2.dev0"
 
 import collections.abc
 import itertools
@@ -52,7 +52,7 @@ class BufrMessage(collections.abc.MutableMapping):
         try:
             values = eccodes.codes_get_array(self.codes_id, item)
             if values is None:
-                values = ['unsupported_key_type']
+                values = ["unsupported_key_type"]
         except eccodes.KeyValueNotFoundError:
             raise KeyError(item)
         if len(values) == 1:
@@ -118,27 +118,31 @@ def wmo_station_id_from_bufr(observation, prefix, keys):
 
 
 COMPUTED_KEYS = [
-    (['year', 'month', 'day', 'hour', 'minute', 'second'], 'data_datetime', datetime_from_bufr),
     (
-        [
-            'typicalYear',
-            'typicalMonth',
-            'typicalDay',
-            'typicalHour',
-            'typicalMinute',
-            'typicalSecond',
-        ],
-        'typical_datetime',
+        ["year", "month", "day", "hour", "minute", "second"],
+        "data_datetime",
         datetime_from_bufr,
     ),
-    (['blockNumber', 'stationNumber'], 'WMO_station_id', wmo_station_id_from_bufr),
+    (
+        [
+            "typicalYear",
+            "typicalMonth",
+            "typicalDay",
+            "typicalHour",
+            "typicalMinute",
+            "typicalSecond",
+        ],
+        "typical_datetime",
+        datetime_from_bufr,
+    ),
+    (["blockNumber", "stationNumber"], "WMO_station_id", wmo_station_id_from_bufr),
 ]
 
 
 def iter_message_items(message, include=None):
     # type: (BufrMessage, T.Container) -> T.Generator[T.Tuple[str, str, T.Any]]
     for key in message:
-        short_key = key.rpartition('#')[2]
+        short_key = key.rpartition("#")[2]
         if include is None or short_key in include:
             yield (key, short_key, message[key])
 
@@ -162,17 +166,17 @@ def extract_subsets(message_items, subset_count, is_compressed):
     else:
         header_keys = set()
         for key, short_key, _ in message_items:
-            if key[0] != '#' or key[:3] == '#1#':
+            if key[0] != "#" or key[:3] == "#1#":
                 header_keys.add(key)
             else:
-                header_keys.discard('#1#' + short_key)
+                header_keys.discard("#1#" + short_key)
         header = [(k, s, v) for k, s, v in message_items if k in header_keys]
         first_subset = True
         subset = []
         for key, short_key, value in message_items:
             if key in header_keys:
                 continue
-            if key == 'subsetNumber':
+            if key == "subsetNumber":
                 if first_subset:
                     first_subset = False
                 else:
@@ -188,9 +192,9 @@ def add_computed(data_items, include_computed=frozenset()):
     for keys, computed_key, getter in COMPUTED_KEYS:
         if computed_key in include_computed:
             observation = {short_key: value for _, short_key, value in data_items}
-            prefix = '#1#'
+            prefix = "#1#"
             try:
-                computed_value = getter(observation, '', keys)
+                computed_value = getter(observation, "", keys)
             except Exception:
                 LOG.debug("can't compute key %r", computed_key)
                 computed_value = None
@@ -236,7 +240,7 @@ def filter_stream(file, columns, filters={}, required_columns=True):
     else:
         required_columns = frozenset(required_columns)
     compiled_filters = compile_filters(filters)
-    max_count = max(compiled_filters.get('count', [float('inf')]))
+    max_count = max(compiled_filters.get("count", [float("inf")]))
     for count in itertools.count(1):
         if count > max_count:
             LOG.debug("stopping processing after max_count: %d", max_count)
@@ -245,24 +249,26 @@ def filter_stream(file, columns, filters={}, required_columns=True):
         if message.codes_id is None:
             break
         LOG.debug("starting reading message: %d", count)
-        message_items = [('count', 'count', count)] + list(
+        message_items = [("count", "count", count)] + list(
             iter_message_items(message, include=compiled_filters)
         )
         if not match_compiled_filters(message_items, compiled_filters, required=False):
             continue
-        message['unpack'] = 1
+        message["unpack"] = 1
         included_keys = set(compiled_filters)
         included_keys |= set(columns)
         for keys, computed_key, _ in COMPUTED_KEYS:
             if computed_key in included_keys:
                 included_keys |= set(keys)
         message_items = list(iter_message_items(message, include=included_keys))
-        if 'count' in included_keys:
-            message_items += [('count', 'count', count)]
+        if "count" in included_keys:
+            message_items += [("count", "count", count)]
         for subset_items in extract_subsets(
-            message_items, message['numberOfSubsets'], message['compressedData']
+            message_items, message["numberOfSubsets"], message["compressedData"]
         ):
-            for data_items in extract_observations(subset_items, include_computed=included_keys):
+            for data_items in extract_observations(
+                subset_items, include_computed=included_keys
+            ):
                 if match_compiled_filters(data_items, compiled_filters):
                     data = {s: v for k, s, v in data_items if s in columns}
                     if required_columns.issubset(data):
