@@ -1,6 +1,8 @@
 name: environmet
 
-on: [push]
+on:
+  schedule:
+    - cron:  '0 9 * * 1'
 
 jobs:
   linux:
