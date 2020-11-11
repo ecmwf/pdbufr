@@ -1,0 +1,28 @@
+name: latest-environmet
+
+on: [push]
+
+jobs:
+  build-linux:
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      max-parallel: 5
+      matrix:
+        os: [ubuntu, macos, windows]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install package and dependencies
+      run: |
+        $CONDA/bin/conda env update --file environment.in.yml --name base
+        $CONDA/bin/python -m pip install -e .
+        $CONDA/bin/conda env export --no-build > environment.yml
+    - name: Archive environment.yml
+        uses: actions/upload-artifact@v2
+        with:
+          name: environment.yml
+          path: environment.yml
