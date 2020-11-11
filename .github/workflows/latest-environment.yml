@@ -21,7 +21,7 @@ jobs:
         $CONDA/bin/conda env update --file environment.in.yml --name base
         $CONDA/bin/python -m pip install -e .
         $CONDA/bin/conda env export --name base --no-build > environment-latest.yml
-    - name: Archive environment.yml
+    - name: Archive environment-latest.yml
       uses: actions/upload-artifact@v2
       with:
         name: environment-latest.yml
