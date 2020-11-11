@@ -1,9 +1,9 @@
-name: main
+name: unit-tests
 
 on: [push]
 
 jobs:
-  build-linux:
+  linux:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 5
