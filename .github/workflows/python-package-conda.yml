@@ -30,4 +30,4 @@ jobs:
     - name: Test with pytest
       run: |
         $CONDA/bin/conda install pytest
-        $CONDA/bin/pytest -vv .
+        $CONDA/bin/pytest -v README.rst .
