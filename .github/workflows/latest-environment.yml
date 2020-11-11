@@ -22,7 +22,7 @@ jobs:
         $CONDA/bin/python -m pip install -e .
         $CONDA/bin/conda env export --no-build > environment.yml
     - name: Archive environment.yml
-        uses: actions/upload-artifact@v2
-        with:
-          name: environment-yml
-          path: environment.yml
+      uses: actions/upload-artifact@v2
+      with:
+        name: environment-yml
+        path: environment.yml
