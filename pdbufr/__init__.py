@@ -140,7 +140,7 @@ COMPUTED_KEYS = [
 
 
 def iter_message_items(message, include=None):
-    # type: (BufrMessage, T.Container) -> T.Generator[T.Tuple[str, str, T.Any]]
+    # type: (BufrMessage, T.Container) -> T.Generator[T.Tuple[str, str, T.Any], None, None]
     for key in message:
         short_key = key.rpartition("#")[2]
         if include is None or short_key in include:
@@ -148,7 +148,7 @@ def iter_message_items(message, include=None):
 
 
 def extract_subsets(message_items, subset_count, is_compressed):
-    # type: (T.Iterable[T.Tuple[str, str, T.Any]], int, int) -> T.Generator[T.List[T.Tuple[str, str, T.Any]]]
+    # type: (T.Sequence[T.Tuple[str, str, T.Any]], int, int) -> T.Generator[T.List[T.Tuple[str, str, T.Any]], None, None]
     LOG.debug(
         "extracting subsets count %d and is_compressed %d items %d",
         subset_count,
@@ -156,7 +156,7 @@ def extract_subsets(message_items, subset_count, is_compressed):
         len(message_items),
     )
     if subset_count == 1:
-        yield message_items
+        yield list(message_items)
     elif is_compressed == 1:
         for i in range(subset_count):
             yield [
@@ -209,7 +209,7 @@ def merge_data_items(old_data_items, data_items):
 
 
 def extract_observations(subset_items, include_computed=frozenset()):
-    # type: (T.List[T.Tuple[str, str, T.Any]], T.Container) -> T.Generator[T.List[T.Tuple[str, str, T.Any]]]
+    # type: (T.List[T.Tuple[str, str, T.Any]], T.Container) -> T.Generator[T.List[T.Tuple[str, str, T.Any]], None, None]
     short_key_order = []
     old_data_items = {}
     data_items = []
@@ -233,6 +233,7 @@ def extract_observations(subset_items, include_computed=frozenset()):
 
 
 def filter_stream(file, columns, filters={}, required_columns=True):
+    # type: (T.IO, T.Sequence[str], T.Dict[str, T.Any], T.Union[bool, T.Iterable[str]]) -> T.Generator[T.Dict[str, T.Any], None, None]
     if required_columns is True:
         required_columns = frozenset(columns)
     elif required_columns is False:
