@@ -26,15 +26,15 @@ jobs:
       with:
         auto-update-conda: true
         python-version: ${{ matrix.python }}
-        activate-environment: ${{ matrix.os }}-${{ matrix.python }}${{ matrix.extras }}
-        environment-file: environment${{ matrix.extras }}.in.yml
+        activate-environment: ${{ matrix.os }}-${{ matrix.python }}
+        environment-file: environment.in.yml
     - name: Export concrete dependencies
       shell: bash -l {0}
       run: |
-        conda env export --no-build -f tests/environment-${{ matrix.os }}-${{ matrix.python }}${{ matrix.extras }}.yml
+        conda env export --no-build -f tests/environment-${{ matrix.os }}-${{ matrix.python }}.yml
         git diff
-    - name: Archive environment-${{ matrix.os }}-${{ matrix.python }}${{ matrix.extras }}.yml
+    - name: Archive environment-${{ matrix.os }}-${{ matrix.python }}.yml
       uses: actions/upload-artifact@v2
       with:
-        name: environment-${{ matrix.os }}-${{ matrix.python }}${{ matrix.extras }}.yml
-        path: tests/environment-${{ matrix.os }}-${{ matrix.python }}${{ matrix.extras }}.yml
+        name: environment-${{ matrix.os }}-${{ matrix.python }}.yml
+        path: tests/environment-${{ matrix.os }}-${{ matrix.python }}.yml
