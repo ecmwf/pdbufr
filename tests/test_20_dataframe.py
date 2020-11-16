@@ -15,12 +15,11 @@
 
 import os
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pytest
 
 import pdbufr
-
 
 SAMPLE_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "sample-data")
 TEST_DATA_1 = os.path.join(SAMPLE_DATA_FOLDER, "obs_3day.bufr")

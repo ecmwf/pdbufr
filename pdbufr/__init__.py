@@ -28,7 +28,6 @@ import eccodes
 import numpy as np
 import pandas as pd
 
-
 LOG = logging.getLogger(__name__)
 
 
