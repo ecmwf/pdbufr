@@ -1,25 +1,66 @@
-name: unit-tests
+name: on-push
 
 on: [push]
 
 jobs:
-  linux:
-    runs-on: ubuntu-latest
+  unit-tests:
+    runs-on: ${{ matrix.os }}-latest
     strategy:
       max-parallel: 5
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9, pypy3]
+        os: [ubuntu]
+        python: [3.6, 3.7, 3.8]
+        include:
+          - os: macos
+            python: 3.8
+# python-eccodes and cffi both fail
+#          - os: windows
+#            python: 3.7
+#            eccodes: 1
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+    - uses: conda-incubator/setup-miniconda@v2
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install package and dependencies
+        python-version: ${{ matrix.python }}
+        activate-environment: ${{ matrix.os }}-${{ matrix.python }}${{ matrix.extras }}
+        environment-file: tests/environment-${{ matrix.os }}-${{ matrix.python }}${{ matrix.extras }}.yml
+    - name: Test with pytest
+      shell: bash -l {0}
       run: |
-        $CONDA/bin/conda env update --file environment-linux.yml --name base
-        $CONDA/bin/python -m pip install -e .
+        conda install pytest pytest-cov
+        python -m pip install --no-deps -e .
+        pytest -v --cov=. --cov-report=xml --cov-branch .
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+
+  docs:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        python-version: 3.8
+        activate-environment: ubuntu-3.8
+        environment-file: tests/environment-ubuntu-3.8.yml
+    - name: Build documentation with Sphinx
+      shell: bash -l {0}
+      run: |
+        conda install sphinx
+        python -m pip install --no-deps -e .
+        python setup.py build_sphinx
+    - name: Test README with pytest
+      shell: bash -l {0}
+      run: |
+        conda install pytest pytest-cov
+        pytest -v --cov=. --cov-report=xml --cov-branch README.rst
+
+  code-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
     - name: Lint with flake8
       run: |
         $CONDA/bin/conda install flake8
@@ -27,7 +68,17 @@ jobs:
         $CONDA/bin/flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         $CONDA/bin/flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
+
+  code-style:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check code style with black
       run: |
-        $CONDA/bin/conda install pytest
-        $CONDA/bin/pytest -v --doctest-glob="*.rst" .
+        $CONDA/bin/conda install black
+        $CONDA/bin/black --check --line-length 99 .
+    - name: Check code style with isort
+      run: |
+        $CONDA/bin/conda install isort
+        $CONDA/bin/isort .
