@@ -2,11 +2,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - black
-  - check-manifest
+  - eccodes=>2.19.0
   - python-eccodes
   - numpy
   - pandas
-  - pytest
-  - pytest-cov
-  - pytest-flakes

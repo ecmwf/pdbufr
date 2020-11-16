@@ -1,0 +1,55 @@
+name: macos-3.8
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - attrs=20.3.0
+  - blas=1.0
+  - bzip2=1.0.8
+  - ca-certificates=2020.10.14
+  - certifi=2020.6.20
+  - cffi=1.14.3
+  - curl=7.71.1
+  - eccodes=2.19.1
+  - hdf4=4.2.13
+  - hdf5=1.10.6
+  - intel-openmp=2019.4
+  - jasper=1.900.1
+  - jpeg=9d
+  - krb5=1.18.2
+  - libaec=1.0.4
+  - libcurl=7.71.1
+  - libcxx=11.0.0
+  - libedit=3.1.20191231
+  - libffi=3.3
+  - libgfortran=5.0.0
+  - libgfortran5=9.3.0
+  - libnetcdf=4.7.4
+  - libpng=1.6.37
+  - libssh2=1.9.0
+  - llvm-openmp=10.0.0
+  - mkl=2019.4
+  - mkl-service=2.3.0
+  - mkl_fft=1.2.0
+  - mkl_random=1.1.1
+  - ncurses=6.2
+  - numpy=1.19.2
+  - numpy-base=1.19.2
+  - openssl=1.1.1h
+  - pandas=1.1.3
+  - pip=20.2.4
+  - pycparser=2.20
+  - python=3.8.5
+  - python-dateutil=2.8.1
+  - python-eccodes=2020.10.1
+  - python_abi=3.8
+  - pytz=2020.1
+  - readline=8.0
+  - setuptools=50.3.1
+  - six=1.15.0
+  - sqlite=3.33.0
+  - tk=8.6.10
+  - wheel=0.35.1
+  - xz=5.2.5
+  - zlib=1.2.11
+prefix: /usr/local/miniconda/envs/macos-3.8

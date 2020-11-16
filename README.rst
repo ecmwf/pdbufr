@@ -5,7 +5,7 @@ Features with development status **Alpha**:
 
 - extracts observations from a BUFR file as a Pandas DataFrame,
 - reads BUFR 3 and 4 files with uncompressed and compressed subsets,
-- supports all modern versions of Python 3.7, 3.6, 3.5 and PyPy3,
+- supports all modern versions of Python 3.9, 3.8, 3.7, 3.6 and PyPy3,
 - works on Linux, MacOS and Windows, the ecCodes C-library is the only binary dependency.
 
 Limitations:
@@ -17,9 +17,9 @@ Limitations:
 Installation
 ============
 
-The easiest way to install *pdbufr* binary dependencies is via Conda::
+The easiest way to install *pdbufr* dependencies is via Conda::
 
-    $ conda install -c conda-forge eccodes
+    $ conda install -c conda-forge python-eccodes pandas
 
 and *pdbufr* itself as a Python package from PyPI with::
 
@@ -47,7 +47,7 @@ https://software.ecmwf.int/wiki/display/ECC/ecCodes+installation
 You may run a simple selfcheck command to ensure that your system is set up correctly::
 
     $ python -m pdbufr selfcheck
-    Found: ecCodes v2.13.1.
+    Found: ecCodes v2.19.0.
     Your system is ready.
 
 
@@ -66,7 +66,7 @@ are interested in.
 The ``pdbufr.read_bufr`` function return a ``pandas.DataDrame`` with the requested columns.
 It accepts query filters on the BUFR message header
 that are very fast and query filters on the observation keys.
-Filters match on a single value or on one value in a list and the are always in logical and:
+Filters match on an exact value or with one of the values in a list and all filters must match:
 
 .. code-block:: python
 
@@ -91,25 +91,25 @@ Filters match on a single value or on one value in a list and the are always in 
 
     >>> df_two = pdbufr.read_bufr(
     ...     'temp.bufr',
-    ...     columns=('stationNumber', 'latitude', 'longitude', 'data_datetime', 'pressure', 'airTemperature'),
+    ...     columns=('stationNumber', 'data_datetime', 'pressure', 'airTemperature'),
     ...     filters={'stationNumber': [823, 9]},
     ... )
 
     >>> df_two.head()
-       stationNumber  latitude  longitude  pressure  airTemperature       data_datetime
-    0            823     53.75     -73.67  100000.0  -1.000000e+100 2008-12-08 12:00:00
-    1            823     53.75     -73.67   97400.0    2.567000e+02 2008-12-08 12:00:00
-    2            823     53.75     -73.67   93700.0    2.551000e+02 2008-12-08 12:00:00
-    3            823     53.75     -73.67   92500.0    2.553000e+02 2008-12-08 12:00:00
-    4            823     53.75     -73.67   90600.0    2.567000e+02 2008-12-08 12:00:00
+       stationNumber  pressure  airTemperature       data_datetime
+    0            823  100000.0  -1.000000e+100 2008-12-08 12:00:00
+    1            823   97400.0    2.567000e+02 2008-12-08 12:00:00
+    2            823   93700.0    2.551000e+02 2008-12-08 12:00:00
+    3            823   92500.0    2.553000e+02 2008-12-08 12:00:00
+    4            823   90600.0    2.567000e+02 2008-12-08 12:00:00
 
     >>> df_two.tail()
-         stationNumber  latitude  longitude  pressure  airTemperature       data_datetime
-    190              9     51.77      36.17    2990.0  -1.000000e+100 2008-12-08 12:00:00
-    191              9     51.77      36.17    2790.0    2.063000e+02 2008-12-08 12:00:00
-    192              9     51.77      36.17    2170.0  -1.000000e+100 2008-12-08 12:00:00
-    193              9     51.77      36.17    2000.0    2.031000e+02 2008-12-08 12:00:00
-    194              9     51.77      36.17    1390.0    1.979000e+02 2008-12-08 12:00:00
+         stationNumber  pressure  airTemperature       data_datetime
+    190              9    2990.0  -1.000000e+100 2008-12-08 12:00:00
+    191              9    2790.0    2.063000e+02 2008-12-08 12:00:00
+    192              9    2170.0  -1.000000e+100 2008-12-08 12:00:00
+    193              9    2000.0    2.031000e+02 2008-12-08 12:00:00
+    194              9    1390.0    1.979000e+02 2008-12-08 12:00:00
 
 
 Contributing
