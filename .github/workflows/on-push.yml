@@ -15,7 +15,7 @@ jobs:
             python: 3.8
 # python-eccodes and cffi both fail
 #          - os: windows
-#            python: 3.7
+#            python: 3.8
 
     steps:
     - uses: actions/checkout@v2
