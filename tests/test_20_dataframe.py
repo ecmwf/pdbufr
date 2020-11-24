@@ -1049,7 +1049,7 @@ def test_new_synop_data():
         "heightOfStationGroundAboveMeanSeaLevel": 91.0,
         "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 1.5,
         "airTemperature": 300.45,
-        "dewpointTemperature": 295.15000000000003
+        "dewpointTemperature": 295.15000000000003,
     }
 
     expected_second_row = {
@@ -1057,7 +1057,7 @@ def test_new_synop_data():
         "heightOfStationGroundAboveMeanSeaLevel": 748.1,
         "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 2,
         "airTemperature": 269.25,
-        "dewpointTemperature": 263.55
+        "dewpointTemperature": 263.55,
     }
 
     expected_third_row = {
@@ -1065,13 +1065,12 @@ def test_new_synop_data():
         "heightOfStationGroundAboveMeanSeaLevel": 748.1,
         "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 1.5,
         "airTemperature": 276.35,
-        "dewpointTemperature": 263.05
+        "dewpointTemperature": 263.05,
     }
 
     res = pdbufr.read_bufr(TEST_DATA_12, columns=columns)
-  
+
     assert len(res) == 3
     assert res.iloc[0].to_dict() == expected_first_row
     assert res.iloc[1].to_dict() == expected_second_row
     assert res.iloc[2].to_dict() == expected_third_row
-
