@@ -254,6 +254,7 @@ def filter_stream(file, columns, filters={}, required_columns=True):
         )
         if not match_compiled_filters(message_items, compiled_filters, required=False):
             continue
+        message["skipExtraKeyAttributes"] = 1
         message["unpack"] = 1
         included_keys = set(compiled_filters)
         included_keys |= set(columns)
