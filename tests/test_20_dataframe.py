@@ -50,6 +50,9 @@ TEST_DATA_10 = os.path.join(SAMPLE_DATA_FOLDER, "temp_small.bufr")
 # contains aircraft messages
 TEST_DATA_11 = os.path.join(SAMPLE_DATA_FOLDER, "aircraft_small.bufr")
 
+# contains new types of synop messages
+TEST_DATA_12 = os.path.join(SAMPLE_DATA_FOLDER, "syn_new.bufr")
+
 
 def test_read_bufr_one_subset_one_filters():
     res = pdbufr.read_bufr(TEST_DATA_1, columns=("latitude",))
@@ -1029,3 +1032,46 @@ def test_nested_coords():
         np.array([15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15]),
         part=True,
     )
+
+
+@pytest.mark.xfail
+def test_new_synop_data():
+    columns = (
+        "stationNumber",
+        "heightOfStationGroundAboveMeanSeaLevel",
+        "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
+        "airTemperature",
+        "dewpointTemperature",
+    )
+
+    expected_first_row = {
+        "stationNumber": 948.0,
+        "heightOfStationGroundAboveMeanSeaLevel": 91.0,
+        "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 1.5,
+        "airTemperature": 300.45,
+        "dewpointTemperature": 295.15000000000003
+    }
+
+    expected_second_row = {
+        "stationNumber": 766.0,
+        "heightOfStationGroundAboveMeanSeaLevel": 748.1,
+        "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 2,
+        "airTemperature": 269.25,
+        "dewpointTemperature": 263.55
+    }
+
+    expected_third_row = {
+        "stationNumber": 3950.0,
+        "heightOfStationGroundAboveMeanSeaLevel": 748.1,
+        "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 1.5,
+        "airTemperature": 276.35,
+        "dewpointTemperature": 263.05
+    }
+
+    res = pdbufr.read_bufr(TEST_DATA_12, columns=columns)
+  
+    assert len(res) == 3
+    assert res.iloc[0].to_dict() == expected_first_row
+    assert res.iloc[1].to_dict() == expected_second_row
+    assert res.iloc[2].to_dict() == expected_third_row
+
