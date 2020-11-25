@@ -106,10 +106,9 @@ def datetime_from_bufr(observation, prefix, datetime_keys):
     seconds = observation.get(prefix + datetime_keys[5], 0.0)
     second = int(seconds)
     nanosecond = int(seconds * 1000000000) % 1000000000
-    return pd.Timestamp(
-        *[observation[prefix + k] for k in datetime_keys[:4]] + [minute, second],
-        nanosecond=nanosecond
-    )
+    datetime_list = [observation[prefix + k] for k in datetime_keys[:4]]
+    datetime_list += [minute, second]
+    return pd.Timestamp(*datetime_list, nanosecond=nanosecond)
 
 
 def wmo_station_id_from_bufr(observation, prefix, keys):
@@ -264,12 +263,10 @@ def filter_stream(file, columns, filters={}, required_columns=True):
         message_items = list(iter_message_items(message, include=included_keys))
         if "count" in included_keys:
             message_items += [("count", "count", count)]
-        for subset_items in extract_subsets(
-            message_items, message["numberOfSubsets"], message["compressedData"]
-        ):
-            for data_items in extract_observations(
-                subset_items, include_computed=included_keys
-            ):
+        subset_count = message["numberOfSubsets"]
+        is_compressed = message["compressedData"]
+        for subset_items in extract_subsets(message_items, subset_count, is_compressed):
+            for data_items in extract_observations(subset_items, included_keys):
                 if match_compiled_filters(data_items, compiled_filters):
                     data = {s: v for k, s, v in data_items if s in columns}
                     if required_columns.issubset(data):
