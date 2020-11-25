@@ -15,12 +15,10 @@
 
 import os
 
-import pandas as pd
-import numpy as np
-
 import pdbufr
 
-TEST_DATA = "perf_sat_compressed.bufr"
+SAMPLE_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "sample-data")
+TEST_DATA = os.path.join(SAMPLE_DATA_FOLDER, "perf_sat_compressed.bufr")
 
 res = pdbufr.read_bufr(
     TEST_DATA,
