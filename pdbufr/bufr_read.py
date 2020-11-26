@@ -19,8 +19,6 @@
 
 __version__ = "0.8.2.dev0"
 
-import collections.abc
-import itertools
 import logging
 import typing as T
 
@@ -29,76 +27,6 @@ import numpy as np
 import pandas as pd
 
 LOG = logging.getLogger(__name__)
-
-
-class BufrMessage(collections.abc.MutableMapping):
-    def __init__(self, file):
-        self.codes_id = eccodes.codes_bufr_new_from_file(file)
-
-    def __del__(self):
-        if self.codes_id:
-            eccodes.codes_release(self.codes_id)
-
-    def __iter__(self):
-        iterator = eccodes.codes_bufr_keys_iterator_new(self.codes_id)
-        while eccodes.codes_bufr_keys_iterator_next(iterator):
-            yield eccodes.codes_bufr_keys_iterator_get_name(iterator)
-        eccodes.codes_bufr_keys_iterator_delete(iterator)
-
-    def __getitem__(self, item):
-        # type: (str) -> T.Any
-        """Get value of a given key as its native or specified type."""
-        try:
-            values = eccodes.codes_get_array(self.codes_id, item)
-            if values is None:
-                values = ["unsupported_key_type"]
-        except eccodes.KeyValueNotFoundError:
-            raise KeyError(item)
-        if len(values) == 1:
-            if isinstance(values, np.ndarray):
-                values = values.tolist()
-            return values[0]
-        return values
-
-    def __setitem__(self, item, value):
-        # type: (str, T.Any) -> None
-        set_array = isinstance(value, T.Sequence) and not isinstance(value, str)
-        if set_array:
-            eccodes.codes_set_array(self.codes_id, item, value)
-        else:
-            eccodes.codes_set(self.codes_id, item, value)
-
-    def __len__(self):
-        return sum(1 for _ in self)
-
-    def __delitem__(self, key):
-        raise NotImplementedError()
-
-
-def compile_filters(filters):
-    # type: (T.Mapping[str, T.Any]) -> T.Dict[str, T.FrozenSet[T.Any]]
-    compiled_filters = {}
-    for key, value in filters.items():
-        if isinstance(value, (T.Iterable, T.Iterator)) and not isinstance(value, str):
-            uniform_value = frozenset(value)
-        else:
-            uniform_value = frozenset([value])
-        compiled_filters[key] = uniform_value
-    return compiled_filters
-
-
-def match_compiled_filters(message_items, filters, required=True):
-    # type: (T.Iterable[T.Tuple[str, str, T.Any]], T.Dict[str, T.FrozenSet[T.Any]], bool) -> bool
-    seen = set()
-    for key, short_key, value in message_items:
-        if short_key in filters:
-            if value not in filters[short_key]:
-                return False
-            else:
-                seen.add(short_key)
-    if required and len(seen) != len(filters):
-        return False
-    return True
 
 
 def datetime_from_bufr(observation, prefix, datetime_keys):
@@ -138,7 +66,7 @@ COMPUTED_KEYS = [
 
 
 def iter_message_items(message, include=None):
-    # type: (BufrMessage, T.Container) -> T.Generator[T.Tuple[str, str, T.Any], None, None]
+    # type: (eccodes.BufrMessage, T.Container) -> T.Generator[T.Tuple[str, str, T.Any], None, None]
     for key in message:
         short_key = key.rpartition("#")[2]
         if include is None or short_key in include:
@@ -230,7 +158,7 @@ def extract_observations(subset_items, include_computed=frozenset()):
         yield add_computed(all_data_items, include_computed)
 
 
-def filter_stream(file, columns, filters={}, required_columns=True):
+def filter_stream(bufr_file, columns, filters={}, required_columns=True):
     # type: (T.IO, T.Sequence[str], T.Dict[str, T.Any], T.Union[bool, T.Iterable[str]]) -> T.Generator[T.Dict[str, T.Any], None, None]
     if required_columns is True:
         required_columns = frozenset(columns)
@@ -240,11 +168,10 @@ def filter_stream(file, columns, filters={}, required_columns=True):
         required_columns = frozenset(required_columns)
     compiled_filters = compile_filters(filters)
     max_count = max(compiled_filters.get("count", [float("inf")]))
-    for count in itertools.count(1):
+    for count, message in enumerate(bufr_file, 1):
         if count > max_count:
             LOG.debug("stopping processing after max_count: %d", max_count)
             break
-        message = BufrMessage(file)
         if message.codes_id is None:
             break
         LOG.debug("starting reading message: %d", count)
@@ -274,6 +201,6 @@ def filter_stream(file, columns, filters={}, required_columns=True):
 
 
 def read_bufr(path, *args, **kwargs):
-    with open(path) as file:
-        filtered_iterator = filter_stream(file, *args, **kwargs)
+    with eccodes.BufrFile(path) as bufr_file:
+        filtered_iterator = filter_stream(bufr_file, *args, **kwargs)
         return pd.DataFrame.from_records(filtered_iterator)
