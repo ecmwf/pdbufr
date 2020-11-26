@@ -9,9 +9,7 @@ class BufrFilter:
         # type: (T.Any) -> BufrFilter
         if isinstance(user_filter, slice):
             if user_filter.step is not None:
-                LOG.warning(
-                    "slice filters ignore the value of the step %r", user_filter.step
-                )
+                LOG.warning(f"slice filters ignore the step {user_filter.step}")
             self.filter = user_filter
         elif isinstance(user_filter, (T.Iterable, T.Iterator)) and not isinstance(
             user_filter, str
