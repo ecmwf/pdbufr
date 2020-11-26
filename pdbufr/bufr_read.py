@@ -26,6 +26,8 @@ import eccodes
 import numpy as np
 import pandas as pd
 
+from . import bufr_filter
+
 LOG = logging.getLogger(__name__)
 
 
@@ -166,7 +168,7 @@ def filter_stream(bufr_file, columns, filters={}, required_columns=True):
         required_columns = frozenset()
     else:
         required_columns = frozenset(required_columns)
-    compiled_filters = compile_filters(filters)
+    compiled_filters = bufr_filter.compile_filters(filters)
     max_count = max(compiled_filters.get("count", [float("inf")]))
     for count, message in enumerate(bufr_file, 1):
         if count > max_count:
@@ -178,7 +180,7 @@ def filter_stream(bufr_file, columns, filters={}, required_columns=True):
         message_items = [("count", "count", count)] + list(
             iter_message_items(message, include=compiled_filters)
         )
-        if not match_compiled_filters(message_items, compiled_filters, required=False):
+        if not bufr_filter.match_compiled_filters(message_items, compiled_filters, required=False):
             continue
         message["skipExtraKeyAttributes"] = 1
         message["unpack"] = 1
@@ -194,7 +196,7 @@ def filter_stream(bufr_file, columns, filters={}, required_columns=True):
         is_compressed = message["compressedData"]
         for subset_items in extract_subsets(message_items, subset_count, is_compressed):
             for data_items in extract_observations(subset_items, included_keys):
-                if match_compiled_filters(data_items, compiled_filters):
+                if bufr_filter.match_compiled_filters(data_items, compiled_filters):
                     data = {s: v for k, s, v in data_items if s in columns}
                     if required_columns.issubset(data):
                         yield data
