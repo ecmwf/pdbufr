@@ -168,19 +168,19 @@ def filter_stream(bufr_file, columns, filters={}, required_columns=True):
         required_columns = frozenset()
     else:
         required_columns = frozenset(required_columns)
+    max_count = filters.pop("count", float("inf"))
     compiled_filters = bufr_filter.compile_filters(filters)
-    max_count = max(compiled_filters.get("count", [float("inf")]))
     for count, message in enumerate(bufr_file, 1):
         if count > max_count:
             LOG.debug("stopping processing after max_count: %d", max_count)
-            break
-        if message.codes_id is None:
             break
         LOG.debug("starting reading message: %d", count)
         message_items = [("count", "count", count)] + list(
             iter_message_items(message, include=compiled_filters)
         )
-        if not bufr_filter.match_compiled_filters(message_items, compiled_filters, required=False):
+        if not bufr_filter.match_compiled_filters(
+            message_items, compiled_filters, required=False
+        ):
             continue
         message["skipExtraKeyAttributes"] = 1
         message["unpack"] = 1
