@@ -117,7 +117,7 @@ def extract_subsets(message_items, subset_count, is_compressed):
 
 
 def add_computed(data_items, include_computed=frozenset()):
-    # type: (T.List[T.Tuple[str, str, T.Any]], T.Container) -> T.List[T.Tuple[str, str, T.Any]]
+    # type: (T.List[T.Tuple[str, str, T.Any]], T.Container[str]) -> T.List[T.Tuple[str, str, T.Any]]
     computed_items = []
     for keys, computed_key, getter in COMPUTED_KEYS:
         if computed_key in include_computed:
@@ -139,7 +139,7 @@ def merge_data_items(old_data_items, data_items):
 
 
 def extract_observations(subset_items, include_computed=frozenset()):
-    # type: (T.List[T.Tuple[str, str, T.Any]], T.Container) -> T.Generator[T.List[T.Tuple[str, str, T.Any]], None, None]
+    # type: (T.List[T.Tuple[str, str, T.Any]], T.Container[str]) -> T.Generator[T.List[T.Tuple[str, str, T.Any]], None, None]
     short_key_order = []
     old_data_items = {}
     data_items = []
@@ -163,13 +163,14 @@ def extract_observations(subset_items, include_computed=frozenset()):
 
 
 def filter_stream(bufr_file, columns, filters={}, required_columns=True):
-    # type: (T.IO, T.Sequence[str], T.Dict[str, T.Any], T.Union[bool, T.Iterable[str]]) -> T.Generator[T.Dict[str, T.Any], None, None]
+    # type: (eccodes.BufrFile, T.Sequence[str], T.Dict[str, T.Any], T.Union[bool, T.Iterable[str]]) -> T.Generator[T.Dict[str, T.Any], None, None]
     if required_columns is True:
         required_columns = frozenset(columns)
     elif required_columns is False:
         required_columns = frozenset()
     else:
         required_columns = frozenset(required_columns)
+
     max_count = filters.pop("count", float("inf"))
     compiled_filters = bufr_filters.compile_filters(filters)
     for count, message in enumerate(bufr_file, 1):
