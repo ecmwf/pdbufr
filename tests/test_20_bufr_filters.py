@@ -1,4 +1,5 @@
 import typing as T
+
 import numpy as np
 
 from pdbufr import bufr_filters
@@ -70,7 +71,7 @@ def test_match_compiled_filters():
     message_items = [("station", "station", 233)]
     assert bufr_filters.match_compiled_filters(message_items, compile_filters) is False
 
-    message_items = [("station", "station", 234), ("airTemperature", "airTemperature", 300.0)]
+    message_items = [("station", "station", 234), ("temperature", "temperature", 300.0)]
     assert bufr_filters.match_compiled_filters(message_items, compile_filters) is False
 
     message_items += [("#1#level", "level", 1), ("height", "height", 1.5)]
