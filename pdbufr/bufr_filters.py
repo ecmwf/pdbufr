@@ -6,14 +6,13 @@ LOG = logging.getLogger(__name__)
 
 class BufrFilter:
     def __init__(self, user_filter):
-        # type: (T.Any) -> BufrFilter
+        # type: (T.Any) -> None
+        self.filter = frozenset()  # type: T.Union[slice, frozenset]
         if isinstance(user_filter, slice):
             if user_filter.step is not None:
                 LOG.warning(f"slice filters ignore the step {user_filter.step}")
             self.filter = user_filter
-        elif isinstance(user_filter, (T.Iterable, T.Iterator)) and not isinstance(
-            user_filter, str
-        ):
+        elif isinstance(user_filter, T.Iterable) and not isinstance(user_filter, str):
             self.filter = frozenset(user_filter)
         else:
             self.filter = frozenset([user_filter])

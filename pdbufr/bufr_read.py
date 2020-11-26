@@ -30,6 +30,7 @@ LOG = logging.getLogger(__name__)
 
 
 def datetime_from_bufr(observation, prefix, datetime_keys):
+    # type: (T.Dict[str, T.Any], str, T.List[str]) -> pd.Timestamp
     minute = observation.get(prefix + datetime_keys[4], 0)
     seconds = observation.get(prefix + datetime_keys[5], 0.0)
     second = int(seconds)
@@ -40,7 +41,10 @@ def datetime_from_bufr(observation, prefix, datetime_keys):
 
 
 def wmo_station_id_from_bufr(observation, prefix, keys):
-    return observation[prefix + keys[0]] * 1000 + observation[prefix + keys[1]]
+    # type: (T.Dict[str, T.Any], str, T.List[str]) -> int
+    block_number = int(observation[prefix + keys[0]])
+    station_number = int(observation[prefix + keys[1]])
+    return block_number * 1000 + station_number
 
 
 COMPUTED_KEYS = [
@@ -66,7 +70,7 @@ COMPUTED_KEYS = [
 
 
 def iter_message_items(message, include=None):
-    # type: (eccodes.BufrMessage, T.Container) -> T.Generator[T.Tuple[str, str, T.Any], None, None]
+    # type: (eccodes.BufrMessage, T.Container[str]) -> T.Generator[T.Tuple[str, str, T.Any], None, None]
     for key in message:
         short_key = key.rpartition("#")[2]
         if include is None or short_key in include:
