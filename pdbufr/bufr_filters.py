@@ -6,32 +6,28 @@ LOG = logging.getLogger(__name__)
 
 class BufrFilter:
     def __init__(self, user_filter):
+        # type: (T.Any) -> BufrFilter
         if isinstance(user_filter, slice):
             if user_filter.step is not None:
                 LOG.warning(
                     "slice filters ignore the value of the step %r", user_filter.step
                 )
-            self.compiled_filter = user_filter
+            self.filter = user_filter
         elif isinstance(user_filter, (T.Iterable, T.Iterator)) and not isinstance(
             user_filter, str
         ):
-            self.compiled_filter = frozenset(user_filter)
+            self.filter = frozenset(user_filter)
         else:
-            self.compiled_filter = frozenset([user_filter])
+            self.filter = frozenset([user_filter])
 
     def match(self, value):
-        if isinstance(self.compiled_filter, slice):
-            if (
-                self.compiled_filter.start is not None
-                and value < self.compiled_filter.start
-            ):
+        # type: (T.Any) -> bool
+        if isinstance(self.filter, slice):
+            if self.filter.start is not None and value < self.filter.start:
                 return False
-            elif (
-                self.compiled_filter.stop is not None
-                and value >= self.compiled_filter.stop
-            ):
+            elif self.filter.stop is not None and value >= self.filter.stop:
                 return False
-        elif value not in self.compiled_filter:
+        elif value not in self.filter:
             return False
         return True
 
