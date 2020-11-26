@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import os
 
 import numpy as np
@@ -182,30 +183,33 @@ def test_read_bufr_one_subsets_multiple_observations_data():
         "pressure",
         "airTemperature",
     ]
-    expected_first_row = {
-        "stationNumber": 907,
-        "data_datetime": pd.Timestamp("2008-12-08 12:00:00"),
-        "longitude": -78.08000000000001,
-        "latitude": 58.470000000000006,
-        "heightOfStation": 26,
-        "pressure": 100000.0,
-        "airTemperature": 259.7,
-    }
-    expected_second_row = {
-        "stationNumber": 823,
-        "data_datetime": pd.Timestamp("2008-12-08 12:00:00"),
-        "longitude": -73.67,
-        "latitude": 53.75000000000001,
-        "heightOfStation": 302,
-        "pressure": 100000.0,
-        "airTemperature": -1e100,
-    }
+    expected_first_rows = pd.DataFrame.from_records(
+        [
+            {
+                "stationNumber": 907,
+                "data_datetime": pd.Timestamp("2008-12-08 12:00:00"),
+                "longitude": -78.08000000000001,
+                "latitude": 58.470000000000006,
+                "heightOfStation": 26,
+                "pressure": 100000.0,
+                "airTemperature": 259.7,
+            },
+            {
+                "stationNumber": 823,
+                "data_datetime": pd.Timestamp("2008-12-08 12:00:00"),
+                "longitude": -73.67,
+                "latitude": 53.75000000000001,
+                "heightOfStation": 302,
+                "pressure": 100000.0,
+                "airTemperature": math.nan,
+            },
+        ]
+    )
 
     res = pdbufr.read_bufr(TEST_DATA_3, columns=columns, filters={"pressure": 100000})
 
     assert len(res) == 408
-    assert res.iloc[0].to_dict() == expected_first_row
-    assert res.iloc[1].to_dict() == expected_second_row
+    assert res.iloc[:2].equals(expected_first_rows[res.columns])
 
 
 def test_read_bufr_multiple_compressed_subsets_multiple_observations_filters():
@@ -258,7 +262,6 @@ def test_temp_single_station_1():
     columns = [
         "WMO_station_id",
         "stationNumber",
-        "data_datetime",
         "longitude",
         "latitude",
         "pressure",
@@ -266,139 +269,141 @@ def test_temp_single_station_1():
         "airTemperature",
     ]
 
-    ref_num = 25
+    expected_count = 25
 
-    ref = {
-        "WMO_station_id": np.full(ref_num, 71823),
-        "stationNumber": np.full(ref_num, 823),
-        "latitude": np.full(ref_num, 53.75),
-        "longitude": np.full(ref_num, -73.67),
-        "pressure": [
-            100000.0,
-            97400.0,
-            93700.0,
-            92500.0,
-            90600.0,
-            85000.0,
-            84700.0,
-            79200.0,
-            70000.0,
-            69900.0,
-            64600.0,
-            60700.0,
-            59700.0,
-            58000.0,
-            53400.0,
-            50000.0,
-            45200.0,
-            42300.0,
-            40000.0,
-            37800.0,
-            30000.0,
-            29700.0,
-            25000.0,
-            23200.0,
-            20500.0,
-        ],
-        "verticalSoundingSignificance": [
-            32,
-            68,
-            4,
-            32,
-            4,
-            32,
-            4,
-            4,
-            32,
-            4,
-            4,
-            4,
-            4,
-            4,
-            4,
-            32,
-            4,
-            4,
-            32,
-            20,
-            32,
-            4,
-            32,
-            4,
-            4,
-        ],
-        "airTemperature": [
-            -1e100,
-            256.7,
-            255.10000000000002,
-            255.3,
-            256.7,
-            253.3,
-            253.10000000000002,
-            248.9,
-            241.9,
-            241.70000000000002,
-            239.70000000000002,
-            236.3,
-            236.10000000000002,
-            234.5,
-            230.70000000000002,
-            229.3,
-            226.3,
-            223.10000000000002,
-            222.9,
-            221.3,
-            218.9,
-            218.9,
-            221.10000000000002,
-            223.10000000000002,
-            221.5,
-        ],
-    }
+    expected = pd.DataFrame.from_dict(
+        {
+            "WMO_station_id": np.full(expected_count, 71823),
+            "stationNumber": np.full(expected_count, 823),
+            "latitude": np.full(expected_count, 53.75000000000001),
+            "longitude": np.full(expected_count, -73.67),
+            "pressure": [
+                100000.0,
+                97400.0,
+                93700.0,
+                92500.0,
+                90600.0,
+                85000.0,
+                84700.0,
+                79200.0,
+                70000.0,
+                69900.0,
+                64600.0,
+                60700.0,
+                59700.0,
+                58000.0,
+                53400.0,
+                50000.0,
+                45200.0,
+                42300.0,
+                40000.0,
+                37800.0,
+                30000.0,
+                29700.0,
+                25000.0,
+                23200.0,
+                20500.0,
+            ],
+            "verticalSoundingSignificance": [
+                32,
+                68,
+                4,
+                32,
+                4,
+                32,
+                4,
+                4,
+                32,
+                4,
+                4,
+                4,
+                4,
+                4,
+                4,
+                32,
+                4,
+                4,
+                32,
+                20,
+                32,
+                4,
+                32,
+                4,
+                4,
+            ],
+            "airTemperature": [
+                math.nan,
+                256.7,
+                255.10000000000002,
+                255.3,
+                256.7,
+                253.3,
+                253.10000000000002,
+                248.9,
+                241.9,
+                241.70000000000002,
+                239.70000000000002,
+                236.3,
+                236.10000000000002,
+                234.5,
+                230.70000000000002,
+                229.3,
+                226.3,
+                223.10000000000002,
+                222.9,
+                221.3,
+                218.9,
+                218.9,
+                221.10000000000002,
+                223.10000000000002,
+                221.5,
+            ],
+        }
+    )
 
     res = pdbufr.read_bufr(TEST_DATA_3, columns=columns, filters={"stationNumber": 823})
 
-    for k in ref.keys():
-        assert np.allclose(res[k].values, ref[k])
+    assert res.equals(expected[res.columns])
 
 
 def test_temp_single_station_2():
     columns = [
         "stationNumber",
-        "data_datetime",
         "longitude",
         "latitude",
         "pressure",
         "airTemperature",
     ]
 
-    ref_num = 8
+    expected_count = 8
 
-    ref = {
-        "stationNumber": np.full(ref_num, 823),
-        "latitude": np.full(ref_num, 53.75),
-        "longitude": np.full(ref_num, -73.67),
-        "pressure": [
-            100000.0,
-            92500.0,
-            85000.0,
-            70000.0,
-            50000.0,
-            40000.0,
-            30000.0,
-            25000.0,
-        ],
-        "airTemperature": [
-            -1e100,
-            255.3,
-            253.3,
-            241.9,
-            229.3,
-            222.9,
-            218.9,
-            221.10000000000002,
-        ],
-    }
+    expected = pd.DataFrame.from_dict(
+        {
+            "stationNumber": np.full(expected_count, 823),
+            "latitude": np.full(expected_count, 53.75000000000001),
+            "longitude": np.full(expected_count, -73.67),
+            "pressure": [
+                100000.0,
+                92500.0,
+                85000.0,
+                70000.0,
+                50000.0,
+                40000.0,
+                30000.0,
+                25000.0,
+            ],
+            "airTemperature": [
+                math.nan,
+                255.3,
+                253.3,
+                241.9,
+                229.3,
+                222.9,
+                218.9,
+                221.10000000000002,
+            ],
+        }
+    )
 
     res = pdbufr.read_bufr(
         TEST_DATA_3,
@@ -406,8 +411,7 @@ def test_temp_single_station_2():
         filters={"stationNumber": 823, "verticalSoundingSignificance": 32},
     )
 
-    for k in ref.keys():
-        assert np.allclose(res[k].values, ref[k])
+    assert res.equals(expected[res.columns])
 
 
 def test_temp_single_station_3():
@@ -466,118 +470,120 @@ def test_tropicalcyclone_1():
 
 
 def test_tropicalcyclone_2():
-    columns = ["data_datetime", "longitude", "latitude", "windSpeedAt10M"]
+    columns = ["longitude", "latitude", "windSpeedAt10M"]
 
-    ref = {
-        "latitude": [
-            12.700000000000001,
-            13.0,
-            12.700000000000001,
-            -1e100,
-            12.5,
-            12.200000000000001,
-            12.5,
-            12.700000000000001,
-            12.700000000000001,
-            14.1,
-            13.6,
-            14.1,
-            14.1,
-            13.9,
-            15.3,
-            15.0,
-            14.700000000000001,
-            15.0,
-            14.4,
-            14.4,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-        ],
-        "longitude": [
-            -124.9,
-            -125.5,
-            -125.2,
-            -1e100,
-            -127.5,
-            -128.0,
-            -128.0,
-            -126.60000000000001,
-            -128.3,
-            -126.0,
-            -128.9,
-            -129.4,
-            -130.5,
-            -131.4,
-            -128.9,
-            -128.9,
-            -130.3,
-            -128.9,
-            -129.4,
-            -127.5,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-        ],
-        "windSpeedAt10M": [
-            30.400000000000002,
-            17.0,
-            16.5,
-            -1e100,
-            16.5,
-            15.4,
-            14.9,
-            12.4,
-            10.8,
-            11.8,
-            11.8,
-            12.4,
-            10.8,
-            11.3,
-            10.3,
-            11.8,
-            11.8,
-            11.8,
-            11.3,
-            11.3,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-            -1e100,
-        ],
-    }
+    expected = pd.DataFrame.from_dict(
+        {
+            "latitude": [
+                12.700000000000001,
+                13.0,
+                12.700000000000001,
+                math.nan,
+                12.5,
+                12.200000000000001,
+                12.5,
+                12.700000000000001,
+                12.700000000000001,
+                14.1,
+                13.6,
+                14.1,
+                14.1,
+                13.9,
+                15.3,
+                15.0,
+                14.700000000000001,
+                15.0,
+                14.4,
+                14.4,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+            ],
+            "longitude": [
+                -124.9,
+                -125.5,
+                -125.2,
+                math.nan,
+                -127.5,
+                -128.0,
+                -128.0,
+                -126.60000000000001,
+                -128.3,
+                -126.0,
+                -128.9,
+                -129.4,
+                -130.5,
+                -131.4,
+                -128.9,
+                -128.9,
+                -130.3,
+                -128.9,
+                -129.4,
+                -127.5,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+            ],
+            "windSpeedAt10M": [
+                30.400000000000002,
+                17.0,
+                16.5,
+                math.nan,
+                16.5,
+                15.4,
+                14.9,
+                12.4,
+                10.8,
+                11.8,
+                11.8,
+                12.4,
+                10.8,
+                11.3,
+                10.3,
+                11.8,
+                11.8,
+                11.8,
+                11.3,
+                11.3,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+            ],
+        }
+    )
 
     res = pdbufr.read_bufr(
         TEST_DATA_5,
@@ -589,51 +595,55 @@ def test_tropicalcyclone_2():
         },
     )
 
-    for k in ref.keys():
-        assert np.allclose(res[k].values, ref[k])
+    assert res.equals(expected[res.columns])
 
 
 def test_wave_1():
     columns = ["data_datetime", "longitude", "latitude", "significantWaveHeight"]
-    expected_0 = {
-        "latitude": -28.866670000000003,
-        "longitude": 153.38333,
-        "significantWaveHeight": 2.34,
-        "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
-    }
-    expected_1 = {
-        "latitude": -28.866670000000003,
-        "longitude": 153.38333,
-        "significantWaveHeight": -1e100,
-        "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
-    }
-    expected_2 = {
-        "latitude": -30.366670000000003,
-        "longitude": 153.36667,
-        "significantWaveHeight": 1.72,
-        "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
-    }
-    expected_70 = {
-        "latitude": -35.700000000000003,
-        "longitude": 150.33333000000002,
-        "significantWaveHeight": 1.7,
-        "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
-    }
-    expected_71 = {
-        "latitude": -35.700000000000003,
-        "longitude": 150.33333000000002,
-        "significantWaveHeight": -1e100,
-        "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
-    }
+    expected_0 = pd.DataFrame.from_records(
+        [
+            {
+                "latitude": -28.866670000000003,
+                "longitude": 153.38333,
+                "significantWaveHeight": 2.34,
+                "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
+            },
+            {
+                "latitude": -28.866670000000003,
+                "longitude": 153.38333,
+                "significantWaveHeight": math.nan,
+                "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
+            },
+            {
+                "latitude": -30.366670000000003,
+                "longitude": 153.36667,
+                "significantWaveHeight": 1.72,
+                "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
+            },
+        ]
+    )
+    expected_1 = pd.DataFrame.from_records(
+        [
+            {
+                "latitude": -35.7,
+                "longitude": 150.33333000000002,
+                "significantWaveHeight": 1.7,
+                "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
+            },
+            {
+                "latitude": -35.7,
+                "longitude": 150.33333000000002,
+                "significantWaveHeight": math.nan,
+                "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
+            },
+        ]
+    )
 
     res = pdbufr.read_bufr(TEST_DATA_6, columns=columns)
     assert len(res) == 72
 
-    assert res.iloc[0].to_dict() == expected_0
-    assert res.iloc[1].to_dict() == expected_1
-    assert res.iloc[2].to_dict() == expected_2
-    assert res.iloc[70].to_dict() == expected_70
-    assert res.iloc[71].to_dict() == expected_71
+    assert res.iloc[:3].equals(expected_0[res.columns])
+    assert res.iloc[70:].reset_index(drop=True).equals(expected_1[res.columns])
 
 
 def test_ens_uncompressed():

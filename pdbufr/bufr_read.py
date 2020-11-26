@@ -18,6 +18,7 @@
 #
 
 import logging
+import math
 import typing as T
 
 import eccodes
@@ -74,7 +75,10 @@ def iter_message_items(message, include=None):
     for key in message:
         short_key = key.rpartition("#")[2]
         if include is None or short_key in include:
-            yield (key, short_key, message[key])
+            value = message[key]
+            if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
+                value = math.nan
+            yield (key, short_key, value)
 
 
 def extract_subsets(message_items, subset_count, is_compressed):
@@ -89,10 +93,14 @@ def extract_subsets(message_items, subset_count, is_compressed):
         yield list(message_items)
     elif is_compressed == 1:
         for i in range(subset_count):
-            yield [
-                (k, s, v[i] if isinstance(v, (list, np.ndarray)) else v)
-                for k, s, v in message_items
-            ]
+            subset = []  # type: T.List[T.Tuple[str, str, T.Any]]
+            for k, s, v in message_items:
+                if isinstance(v, (list, np.ndarray)):
+                    v = v[i]
+                if v == eccodes.CODES_MISSING_DOUBLE:
+                    v = math.nan
+                subset.append((k, s, v))
+            yield subset
     else:
         header_keys = set()
         for key, short_key, _ in message_items:
