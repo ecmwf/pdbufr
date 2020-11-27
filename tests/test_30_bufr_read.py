@@ -762,8 +762,7 @@ def test_sat_compressed_1():
     assert res.iloc[12].to_dict() == expected_13_row
 
 
-@pytest.mark.skip
-def test_simple_key_core(path, param, key, key_value, ref, part=False):
+def assert_simple_key_core(path, param, key, key_value, ref, part=False):
     columns = [param, key]
     filters = {key: key_value}
 
@@ -783,42 +782,42 @@ def test_simple_key_core(path, param, key, key_value, ref, part=False):
 
 def test_bufr_header():
     ref = np.array([26, 302, 2835, 38, 30, 11, 567])
-    test_simple_key_core(TEST_DATA_10, "heightOfStation", "edition", 3, ref)
-    test_simple_key_core(TEST_DATA_10, "heightOfStation", "edition", 4, None)
-    test_simple_key_core(TEST_DATA_10, "heightOfStation", "edition", [3, 4], ref)
-    test_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderCentre", 98, ref)
-    test_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderCentre", 1, None)
-    # test_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderCentre", "ecmf", ref)
-    test_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderSubCentre", 0, ref)
-    test_simple_key_core(
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "edition", 3, ref)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "edition", 4, None)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "edition", [3, 4], ref)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderCentre", 98, ref)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderCentre", 1, None)
+    # assert_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderCentre", "ecmf", ref)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderSubCentre", 0, ref)
+    assert_simple_key_core(
         TEST_DATA_10, "heightOfStation", "bufrHeaderSubcentre", 1, None
     )
-    test_simple_key_core(
+    assert_simple_key_core(
         TEST_DATA_10, "heightOfStation", "masterTablesVersionNumber", 13, ref
     )
-    test_simple_key_core(
+    assert_simple_key_core(
         TEST_DATA_10, "heightOfStation", "masterTablesVersionNumber", 1, None
     )
-    test_simple_key_core(
+    assert_simple_key_core(
         TEST_DATA_10, "heightOfStation", "localTablesVersionNumber", 1, ref
     )
-    test_simple_key_core(
+    assert_simple_key_core(
         TEST_DATA_10, "heightOfStation", "localTablesVersionNumber", 2, None
     )
-    test_simple_key_core(TEST_DATA_10, "heightOfStation", "dataCategory", 2, ref)
-    test_simple_key_core(TEST_DATA_10, "heightOfStation", "dataCategory", 1, None)
-    test_simple_key_core(TEST_DATA_10, "heightOfStation", "dataSubCategory", 101, ref)
-    test_simple_key_core(TEST_DATA_10, "heightOfStation", "dataSubCategory", 1, None)
-    test_simple_key_core(TEST_DATA_10, "heightOfStation", "rdbType", 5, ref)
-    test_simple_key_core(TEST_DATA_10, "heightOfStation", "rdbType", 1, None)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "dataCategory", 2, ref)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "dataCategory", 1, None)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "dataSubCategory", 101, ref)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "dataSubCategory", 1, None)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "rdbType", 5, ref)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "rdbType", 1, None)
 
 
 def test_ident():
-    test_simple_key_core(
+    assert_simple_key_core(
         TEST_DATA_10, "airTemperature", "ident", "91348", np.array([298.4]), part=True
     )
 
-    test_simple_key_core(
+    assert_simple_key_core(
         TEST_DATA_10,
         "airTemperature",
         "blockNumber",
@@ -826,7 +825,7 @@ def test_ident():
         np.array([298.4, 301]),
         part=True,
     )
-    test_simple_key_core(
+    assert_simple_key_core(
         TEST_DATA_10,
         "airTemperature",
         "stationNumber",
@@ -834,7 +833,7 @@ def test_ident():
         np.array([298.4]),
         part=True,
     )
-    test_simple_key_core(
+    assert_simple_key_core(
         TEST_DATA_10,
         "airTemperature",
         "stationNumber",
@@ -842,7 +841,7 @@ def test_ident():
         np.array([298.4, 301]),
         part=True,
     )
-    test_simple_key_core(
+    assert_simple_key_core(
         TEST_DATA_11,
         "airTemperature",
         "ident",
@@ -851,8 +850,7 @@ def test_ident():
     )
 
 
-@pytest.mark.skip
-def test_temp_profile_core(path, param, vert_sign_value, ref_param, ref_pressure):
+def assert_temp_profile_core(path, param, vert_sign_value, ref_param, ref_pressure):
     columns = [param, "pressure", "verticalSoundingSignificance"]
     filters = {
         "blockNumber": 71,
@@ -870,21 +868,21 @@ def test_temp_profile_core(path, param, vert_sign_value, ref_param, ref_pressure
 
 
 def test_temp_profile():
-    test_temp_profile_core(
+    assert_temp_profile_core(
         TEST_DATA_10,
         "airTemperature",
         32,
         np.array([259.7, 258.1, 253.1, 241.7, 228.1, 219.1, 216.3]),
         np.array([100000, 92500, 85000, 70000, 50000, 40000, 30000]),
     )
-    test_temp_profile_core(
+    assert_temp_profile_core(
         TEST_DATA_10,
         "dewpointTemperature",
         32,
         np.array([258.3, 256.2, 251, 238.3, 220.1, 213.1, 204.3]),
         np.array([100000, 92500, 85000, 70000, 50000, 40000, 30000]),
     )
-    test_temp_profile_core(
+    assert_temp_profile_core(
         TEST_DATA_10,
         "airTemperature",
         4,
@@ -929,14 +927,13 @@ def test_temp_profile():
             ]
         ),
     )
-    test_temp_profile_core(
+    assert_temp_profile_core(
         TEST_DATA_10, "airTemperature", 68, np.array([258.3]), np.array([100300])
     )
-    test_temp_profile_core(TEST_DATA_10, "airTemperature", 0, None, None)
+    assert_temp_profile_core(TEST_DATA_10, "airTemperature", 0, None, None)
 
 
-@pytest.mark.skip
-def test_nested_coords_core(
+def assert_nested_coords_core(
     path,
     param,
     coord_key_1,
@@ -972,7 +969,7 @@ def test_nested_coords_core(
 
 def test_nested_coords():
     # uncompressed
-    test_nested_coords_core(
+    assert_nested_coords_core(
         TEST_DATA_7,
         "airTemperatureAt2M",
         "ensembleMemberNumber",
@@ -982,7 +979,7 @@ def test_nested_coords():
         np.array([291.3]),
         np.array([4]),
     )
-    test_nested_coords_core(
+    assert_nested_coords_core(
         TEST_DATA_7,
         "airTemperatureAt2M",
         "ensembleMemberNumber",
@@ -994,7 +991,7 @@ def test_nested_coords():
     )
 
     # compressed
-    test_nested_coords_core(
+    assert_nested_coords_core(
         TEST_DATA_9,
         "cape",
         "ensembleMemberNumber",
@@ -1004,7 +1001,7 @@ def test_nested_coords():
         np.array([0.4]),
         np.array([4]),
     )
-    test_nested_coords_core(
+    assert_nested_coords_core(
         TEST_DATA_9,
         "cape",
         "ensembleMemberNumber",
@@ -1015,7 +1012,7 @@ def test_nested_coords():
         np.array([4, 4, 4]),
     )
 
-    test_nested_coords_core(
+    assert_nested_coords_core(
         TEST_DATA_8,
         "significandOfVolumetricMixingRatio",
         "firstOrderStatistics",
