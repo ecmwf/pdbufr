@@ -14,6 +14,8 @@ class BufrFilter:
             self.filter = user_filter
         elif isinstance(user_filter, T.Iterable) and not isinstance(user_filter, str):
             self.filter = frozenset(user_filter)
+        elif isinstance(user_filter, T.Callable):
+            self.filter = user_filter
         else:
             self.filter = frozenset([user_filter])
 
@@ -24,6 +26,8 @@ class BufrFilter:
                 return False
             elif self.filter.stop is not None and value >= self.filter.stop:
                 return False
+        elif isinstance(self.filter, T.Callable):
+            return bool(self.filter(value))
         elif value not in self.filter:
             return False
         return True

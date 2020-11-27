@@ -14,7 +14,7 @@ def test_BufrFilter_value():
     assert bufr_filters.BufrFilter(1).match(float("inf")) is False
 
 
-def test_BufrFilter_iterators():
+def test_BufrFilter_iterator():
     assert bufr_filters.BufrFilter([1, 2]).match(1) is True
     assert bufr_filters.BufrFilter((1, 2)).match(True) is True
     assert bufr_filters.BufrFilter({1, 2}).match(1.0) is True
@@ -23,7 +23,7 @@ def test_BufrFilter_iterators():
     assert bufr_filters.BufrFilter({1, 2}).match(float("inf")) is False
 
 
-def test_BufrFilter_slices():
+def test_BufrFilter_slice():
     assert bufr_filters.BufrFilter(slice(1, None)).match(float("inf")) is True
     assert bufr_filters.BufrFilter(slice(None, 2)).match(True) is True
     assert bufr_filters.BufrFilter(slice(0.1, 1.1)).match(1.0) is True
@@ -34,7 +34,7 @@ def test_BufrFilter_slices():
     assert bufr_filters.BufrFilter(slice(1000.0)).match(float("inf")) is False
 
 
-def test_BufrFilter_ranges():
+def test_BufrFilter_range():
     assert bufr_filters.BufrFilter(range(1, 3)).match(1) is True
     assert bufr_filters.BufrFilter(range(1, 3)).match(True) is True
     assert bufr_filters.BufrFilter(range(1, 3)).match(1.0) is True
@@ -45,6 +45,15 @@ def test_BufrFilter_ranges():
     assert bufr_filters.BufrFilter(range(1, 3)).match(3) is False
 
     assert bufr_filters.BufrFilter(np.arange(1, 3, 0.5)).match(1.5) is True
+
+
+def test_BufrFilter_callable():
+    assert bufr_filters.BufrFilter(lambda x: x > 0).match(1) is True
+    assert bufr_filters.BufrFilter(lambda x: x > 0).match(True) is True
+    assert bufr_filters.BufrFilter(lambda x: x > 0).match(1.0) is True
+
+    assert bufr_filters.BufrFilter(lambda x: x > 0).match(0) is False
+    assert bufr_filters.BufrFilter(lambda x: x > 0).match(-1) is False
 
 
 def test_compile_filters():
