@@ -24,7 +24,7 @@ class BufrFilter:
         if isinstance(self.filter, slice):
             if self.filter.start is not None and value < self.filter.start:
                 return False
-            elif self.filter.stop is not None and value >= self.filter.stop:
+            elif self.filter.stop is not None and value > self.filter.stop:
                 return False
         elif isinstance(self.filter, T.Callable):
             return bool(self.filter(value))

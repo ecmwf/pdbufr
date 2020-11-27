@@ -25,8 +25,8 @@ def test_BufrFilter_iterator():
 
 def test_BufrFilter_slice():
     assert bufr_filters.BufrFilter(slice(1, None)).match(float("inf")) is True
-    assert bufr_filters.BufrFilter(slice(None, 2)).match(True) is True
-    assert bufr_filters.BufrFilter(slice(0.1, 1.1)).match(1.0) is True
+    assert bufr_filters.BufrFilter(slice(None, 1)).match(True) is True
+    assert bufr_filters.BufrFilter(slice(1.0, 2.1)).match(1.0) is True
 
     assert bufr_filters.BufrFilter(slice(0.1, 1.1, 0.1)).match(1.0) is True
 
