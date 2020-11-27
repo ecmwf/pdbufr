@@ -213,7 +213,17 @@ def filter_stream(bufr_file, columns, filters={}, required_columns=True):
                         yield data
 
 
-def read_bufr(path, *args, **kwargs):
+def read_bufr(path, columns, filters={}, required_columns=True):
+    # type: (str, T.Sequence[str], T.Dict[str, T.Any], T.Union[bool, T.Sequence[str]]) -> pd.DataFrame
+    """
+    Read observations from a BUFR file into DataFrame.
+
+    :param path: The path to the BUFR file
+    :param columns: A list of BUFR keys to return in the DataFrame for every observation
+    :param filters: A dictionary of BUFR key / filter definition to fitler the observations to return
+    :param required_columns: The list BUFR keys that are required for all observations.
+        `True` means all `columns` are required
+    """
     with eccodes.BufrFile(path) as bufr_file:
-        filtered_iterator = filter_stream(bufr_file, *args, **kwargs)
+        filtered_iterator = filter_stream(bufr_file, columns, filters, required_columns)
         return pd.DataFrame.from_records(filtered_iterator)

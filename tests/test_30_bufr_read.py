@@ -788,7 +788,9 @@ def test_bufr_header():
     assert_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderCentre", 98, ref)
     assert_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderCentre", 1, None)
     # assert_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderCentre", "ecmf", ref)
-    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderSubCentre", 0, ref)
+    assert_simple_key_core(
+        TEST_DATA_10, "heightOfStation", "bufrHeaderSubCentre", 0, ref
+    )
     assert_simple_key_core(
         TEST_DATA_10, "heightOfStation", "bufrHeaderSubcentre", 1, None
     )
