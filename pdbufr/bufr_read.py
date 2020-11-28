@@ -82,7 +82,7 @@ def iter_message_items(message, include=None):
 
 
 def extract_subsets(message_items, subset_count, is_compressed):
-    # type: (T.Sequence[T.Tuple[str, str, T.Any]], int, int) -> T.Generator[T.List[T.Tuple[str, str, T.Any]], None, None]
+    # type: (T.List[T.Tuple[str, str, T.Any]], int, int) -> T.Generator[T.List[T.Tuple[str, str, T.Any]], None, None]
     LOG.debug(
         "extracting subsets count %d and is_compressed %d items %d",
         subset_count,
@@ -90,7 +90,7 @@ def extract_subsets(message_items, subset_count, is_compressed):
         len(message_items),
     )
     if subset_count == 1:
-        yield list(message_items)
+        yield message_items
     elif is_compressed == 1:
         for i in range(subset_count):
             subset = []  # type: T.List[T.Tuple[str, str, T.Any]]
@@ -171,7 +171,7 @@ def extract_observations(subset_items, include_computed=frozenset()):
 
 
 def filter_stream(bufr_file, columns, filters={}, required_columns=True):
-    # type: (eccodes.BufrFile, T.Sequence[str], T.Dict[str, T.Any], T.Union[bool, T.Iterable[str]]) -> T.Generator[T.Dict[str, T.Any], None, None]
+    # type: (T.Iterable[T.MutableMapping[str, T.Any]], T.Sequence[str], T.Dict[str, T.Any], T.Union[bool, T.Iterable[str]]) -> T.Generator[T.Dict[str, T.Any], None, None]
     if required_columns is True:
         required_columns = frozenset(columns)
     elif required_columns is False:
@@ -222,7 +222,7 @@ def read_bufr(path, columns, filters={}, required_columns=True):
     :param columns: A list of BUFR keys to return in the DataFrame for every observation
     :param filters: A dictionary of BUFR key / filter definition to fitler the observations to return
     :param required_columns: The list BUFR keys that are required for all observations.
-        `True` means all `columns` are required
+        ``True`` means all ``columns`` are required
     """
     with eccodes.BufrFile(path) as bufr_file:
         filtered_iterator = filter_stream(bufr_file, columns, filters, required_columns)
