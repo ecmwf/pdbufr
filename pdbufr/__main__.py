@@ -18,11 +18,13 @@
 #
 
 import argparse
+import typing as T
 
 import eccodes
 
 
 def main(argv=None):
+    # type: (T.Optional[T.List[str]]) -> None
     parser = argparse.ArgumentParser()
     parser.add_argument("command")
     args = parser.parse_args(args=argv)

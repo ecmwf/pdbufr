@@ -71,11 +71,11 @@ COMPUTED_KEYS = [
 
 
 def cached_message_keys(message, keys_cache, subset_count=None):
-    # type: (T.Mapping[str, T.Any], T.MutableMapping[str, T.Any], int) -> T.List[str]
+    # type: (T.Mapping[str, T.Any], T.MutableMapping[T.Tuple[T.Hashable, ...], T.List[str]], T.Optional[int]) -> T.List[str]
     cache_key = (
         message["edition"],
         message["masterTableNumber"],
-    )
+    )  # type: T.Tuple[T.Hashable, ...]
     if subset_count is not None:
         descriptors = message["unexpandedDescriptors"]
         if isinstance(descriptors, int):
@@ -172,6 +172,7 @@ def add_computed(data_items, include_computed=frozenset()):
 
 
 def merge_data_items(old_data_items, data_items):
+    # type: (T.Dict[str, T.Any], T.List[T.Tuple[str, str, T.Any]]) -> T.List[T.Tuple[str, str, T.Any]]
     for _, short_name, _ in data_items:
         old_data_items.pop(short_name, None)
     return data_items + list(old_data_items.values())
@@ -207,12 +208,14 @@ def filter_stream(bufr_file, columns, filters={}, required_columns=True):
         required_columns = frozenset(columns)
     elif required_columns is False:
         required_columns = frozenset()
-    else:
+    elif isinstance(required_columns, T.Iterable):
         required_columns = frozenset(required_columns)
+    else:
+        raise ValueError("required_columns must be a bool or an iterable")
 
     max_count = filters.pop("count", float("inf"))
     compiled_filters = bufr_filters.compile_filters(filters)
-    keys_cache = {}
+    keys_cache = {}  # type: T.Dict[T.Tuple[T.Hashable, ...], T.List[str]]
     for count, message in enumerate(bufr_file, 1):
         if count > max_count:
             LOG.debug("stopping processing after max_count: %d", max_count)
