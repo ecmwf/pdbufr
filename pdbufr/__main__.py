@@ -20,7 +20,7 @@
 import argparse
 import typing as T
 
-import eccodes
+from . import bufr_read
 
 
 def main(argv=None):
@@ -29,7 +29,7 @@ def main(argv=None):
     parser.add_argument("command")
     args = parser.parse_args(args=argv)
     if args.command == "selfcheck":
-        print("Found: ecCodes v%s." % eccodes.codes_get_api_version())
+        print("Found: ecCodes v%s." % bufr_read.eccodes.codes_get_api_version())
         print("Your system is ready.")
     else:
         raise RuntimeError(
