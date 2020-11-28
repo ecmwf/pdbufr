@@ -1,0 +1,10 @@
+[tool.pytest.ini_options]
+norecursedirs = [
+    "build",
+    "docs",
+    ".tox",
+]
+
+[tool.coverage.run]
+branch = true
+omit = ["setup.py"]
