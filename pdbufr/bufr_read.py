@@ -70,9 +70,40 @@ COMPUTED_KEYS = [
 ]
 
 
-def iter_message_items(message, include=None):
-    # type: (eccodes.BufrMessage, T.Container[str]) -> T.Generator[T.Tuple[str, str, T.Any], None, None]
-    for key in message:
+def cached_message_keys(message, keys_cache, subset_count=None):
+    # type: (T.Mapping[str, T.Any], T.MutableMapping[str, T.Any], int) -> T.List[str]
+    cache_key = (
+        message["edition"],
+        message["masterTableNumber"],
+    )
+    if subset_count is not None:
+        descriptors = message["unexpandedDescriptors"]
+        if isinstance(descriptors, int):
+            descriptors = (descriptors, None)
+        else:
+            descriptors = tuple(descriptors) + (None,)
+
+        try:
+            delayed_descriptors = message["delayedDescriptorReplicationFactor"]
+        except:
+            delayed_descriptors = []
+
+        if isinstance(delayed_descriptors, int):
+            delayed_descriptors = (delayed_descriptors,)
+        else:
+            delayed_descriptors = tuple(delayed_descriptors)
+
+        cache_key += (subset_count,) + descriptors + delayed_descriptors
+
+    if cache_key not in keys_cache:
+        keys_cache[cache_key] = list(message)
+
+    return keys_cache[cache_key]
+
+
+def filter_message_items(message, include, message_keys):
+    # type: (T.Mapping[str, T.Any], T.Container[str], T.Iterable[str]) -> T.Generator[T.Tuple[str, str, T.Any], None, None]
+    for key in message_keys:
         short_key = key.rpartition("#")[2]
         if include is None or short_key in include:
             value = message[key]
@@ -181,16 +212,20 @@ def filter_stream(bufr_file, columns, filters={}, required_columns=True):
 
     max_count = filters.pop("count", float("inf"))
     compiled_filters = bufr_filters.compile_filters(filters)
+    keys_cache = {}
     for count, message in enumerate(bufr_file, 1):
         if count > max_count:
             LOG.debug("stopping processing after max_count: %d", max_count)
             break
         LOG.debug("starting reading message: %d", count)
-        message_items = [("count", "count", count)] + list(
-            iter_message_items(message, include=compiled_filters)
+        header_keys = cached_message_keys(message, keys_cache)
+        header_items = list(
+            filter_message_items(message, compiled_filters, header_keys)
         )
+        if "count" in compiled_filters:
+            header_items += [("count", "count", count)]
         if not bufr_filters.match_compiled_filters(
-            message_items, compiled_filters, required=False
+            header_items, compiled_filters, required=False
         ):
             continue
         message["skipExtraKeyAttributes"] = 1
@@ -200,11 +235,12 @@ def filter_stream(bufr_file, columns, filters={}, required_columns=True):
         for keys, computed_key, _ in COMPUTED_KEYS:
             if computed_key in included_keys:
                 included_keys |= set(keys)
-        message_items = list(iter_message_items(message, include=included_keys))
-        if "count" in included_keys:
-            message_items += [("count", "count", count)]
         subset_count = message["numberOfSubsets"]
         is_compressed = message["compressedData"]
+        message_keys = cached_message_keys(message, keys_cache, subset_count)
+        message_items = list(filter_message_items(message, included_keys, message_keys))
+        if "count" in included_keys:
+            message_items += [("count", "count", count)]
         for subset_items in extract_subsets(message_items, subset_count, is_compressed):
             for data_items in extract_observations(subset_items, included_keys):
                 if bufr_filters.match_compiled_filters(data_items, compiled_filters):
