@@ -7,14 +7,16 @@ LOG = logging.getLogger(__name__)
 class BufrFilter:
     def __init__(self, user_filter):
         # type: (T.Any) -> None
-        self.filter = frozenset()  # type: T.Union[slice, T.FrozenSet[T.Any]]
+
+        self.filter: T.Union[slice, T.FrozenSet[T.Any], T.Callable[[T.Any], bool]]
+
         if isinstance(user_filter, slice):
             if user_filter.step is not None:
                 LOG.warning(f"slice filters ignore the step {user_filter.step}")
             self.filter = user_filter
         elif isinstance(user_filter, T.Iterable) and not isinstance(user_filter, str):
             self.filter = frozenset(user_filter)
-        elif isinstance(user_filter, T.Callable):
+        elif callable(user_filter):
             self.filter = user_filter
         else:
             self.filter = frozenset([user_filter])
@@ -26,7 +28,7 @@ class BufrFilter:
                 return False
             elif self.filter.stop is not None and value > self.filter.stop:
                 return False
-        elif isinstance(self.filter, T.Callable):
+        elif callable(self.filter):
             return bool(self.filter(value))
         elif value not in self.filter:
             return False
