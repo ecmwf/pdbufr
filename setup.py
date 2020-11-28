@@ -18,7 +18,6 @@
 #   Alessandro Amici - B-Open - https://bopen.eu
 #
 
-import io
 import os
 import re
 
@@ -28,7 +27,7 @@ import setuptools  # type: ignore
 def read(path):
     # type: (str) -> str
     file_path = os.path.join(os.path.dirname(__file__), *path.split("/"))
-    return io.open(file_path, encoding="utf-8").read()
+    return open(file_path).read()
 
 
 # single-sourcing the package version using method 1 of:
@@ -55,7 +54,6 @@ setuptools.setup(
     include_package_data=True,
     install_requires=["eccodes", "pandas"],
     extras_require={
-        "xarray": ["xarray>=0.12.0"],
         "tests": ["flake8", "pytest", "pytest-cov"],
     },
     zip_safe=True,
