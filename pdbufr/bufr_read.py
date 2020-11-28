@@ -85,7 +85,7 @@ def cached_message_keys(message, keys_cache, subset_count=None):
 
         try:
             delayed_descriptors = message["delayedDescriptorReplicationFactor"]
-        except:
+        except (KeyError, eccodes.KeyValueNotFoundError):
             delayed_descriptors = []
 
         if isinstance(delayed_descriptors, int):
@@ -203,18 +203,25 @@ def extract_observations(subset_items, include_computed=frozenset()):
 
 
 def filter_stream(bufr_file, columns, filters={}, required_columns=True):
-    # type: (T.Iterable[T.MutableMapping[str, T.Any]], T.Sequence[str], T.Dict[str, T.Any], T.Union[bool, T.Iterable[str]]) -> T.Generator[T.Dict[str, T.Any], None, None]
+    # type: (T.Iterable[T.MutableMapping[str, T.Any]], T.Sequence[str], T.MutableMapping[str, T.Any], T.Union[bool, T.Iterable[str]]) -> T.Generator[T.Dict[str, T.Any], None, None]
     if required_columns is True:
-        required_columns = frozenset(columns)
+        required_columns = set(columns)
     elif required_columns is False:
-        required_columns = frozenset()
+        required_columns = set()
     elif isinstance(required_columns, T.Iterable):
-        required_columns = frozenset(required_columns)
+        required_columns = set(required_columns)
     else:
         raise ValueError("required_columns must be a bool or an iterable")
 
     max_count = filters.pop("count", float("inf"))
+
     compiled_filters = bufr_filters.compile_filters(filters)
+    included_keys = set(compiled_filters)
+    included_keys |= set(columns)
+    for keys, computed_key, _ in COMPUTED_KEYS:
+        if computed_key in included_keys:
+            included_keys |= set(keys)
+
     keys_cache = {}  # type: T.Dict[T.Tuple[T.Hashable, ...], T.List[str]]
     for count, message in enumerate(bufr_file, 1):
         if count > max_count:
@@ -231,13 +238,10 @@ def filter_stream(bufr_file, columns, filters={}, required_columns=True):
             header_items, compiled_filters, required=False
         ):
             continue
+
         message["skipExtraKeyAttributes"] = 1
         message["unpack"] = 1
-        included_keys = set(compiled_filters)
-        included_keys |= set(columns)
-        for keys, computed_key, _ in COMPUTED_KEYS:
-            if computed_key in included_keys:
-                included_keys |= set(keys)
+
         subset_count = message["numberOfSubsets"]
         is_compressed = message["compressedData"]
         message_keys = cached_message_keys(message, keys_cache, subset_count)

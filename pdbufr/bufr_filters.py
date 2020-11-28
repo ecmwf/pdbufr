@@ -8,18 +8,18 @@ class BufrFilter:
     def __init__(self, user_filter):
         # type: (T.Any) -> None
 
-        self.filter: T.Union[slice, T.FrozenSet[T.Any], T.Callable[[T.Any], bool]]
+        self.filter: T.Union[slice, T.Set[T.Any], T.Callable[[T.Any], bool]]
 
         if isinstance(user_filter, slice):
             if user_filter.step is not None:
                 LOG.warning(f"slice filters ignore the step {user_filter.step}")
             self.filter = user_filter
         elif isinstance(user_filter, T.Iterable) and not isinstance(user_filter, str):
-            self.filter = frozenset(user_filter)
+            self.filter = set(user_filter)
         elif callable(user_filter):
             self.filter = user_filter
         else:
-            self.filter = frozenset([user_filter])
+            self.filter = {user_filter}
 
     def match(self, value):
         # type: (T.Any) -> bool
