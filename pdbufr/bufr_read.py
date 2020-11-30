@@ -19,6 +19,7 @@
 
 import logging
 import math
+import os
 import typing as T
 
 import eccodes  # type: ignore
@@ -70,12 +71,15 @@ COMPUTED_KEYS = [
 ]
 
 
-def cached_message_keys(message, keys_cache, subset_count=None):
-    # type: (T.Mapping[str, T.Any], T.MutableMapping[T.Tuple[T.Hashable, ...], T.List[str]], T.Optional[int]) -> T.List[str]
-    cache_key = (
+def cached_message_keys(
+    message: T.Mapping[str, T.Any],
+    keys_cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[str]],
+    subset_count: T.Optional[int] = None,
+) -> T.List[str]:
+    cache_key: T.Tuple[T.Hashable, ...] = (
         message["edition"],
         message["masterTableNumber"],
-    )  # type: T.Tuple[T.Hashable, ...]
+    )
     if subset_count is not None:
         descriptors = message["unexpandedDescriptors"]
         if isinstance(descriptors, int):
@@ -101,8 +105,11 @@ def cached_message_keys(message, keys_cache, subset_count=None):
     return keys_cache[cache_key]
 
 
-def filter_message_items(message, include, message_keys):
-    # type: (T.Mapping[str, T.Any], T.Container[str], T.Iterable[str]) -> T.Generator[T.Tuple[str, str, T.Any], None, None]
+def filter_message_items(
+    message: T.Mapping[str, T.Any],
+    include: T.Container[str],
+    message_keys: T.List[str],
+) -> T.Iterator[T.Tuple[str, str, T.Any]]:
     for key in message_keys:
         short_key = key.rpartition("#")[2]
         if include is None or short_key in include:
@@ -112,8 +119,11 @@ def filter_message_items(message, include, message_keys):
             yield (key, short_key, value)
 
 
-def extract_subsets(message_items, subset_count, is_compressed):
-    # type: (T.List[T.Tuple[str, str, T.Any]], int, int) -> T.Generator[T.List[T.Tuple[str, str, T.Any]], None, None]
+def extract_subsets(
+    message_items: T.List[T.Tuple[str, str, T.Any]],
+    subset_count: int,
+    is_compressed: int,
+) -> T.Iterator[T.List[T.Tuple[str, str, T.Any]]]:
     LOG.debug(
         "extracting subsets count %d and is_compressed %d items %d",
         subset_count,
@@ -155,8 +165,10 @@ def extract_subsets(message_items, subset_count, is_compressed):
         yield header + subset
 
 
-def add_computed(data_items, include_computed=frozenset()):
-    # type: (T.List[T.Tuple[str, str, T.Any]], T.Container[str]) -> T.List[T.Tuple[str, str, T.Any]]
+def add_computed(
+    data_items: T.List[T.Tuple[str, str, T.Any]],
+    include_computed: T.Container[str] = frozenset(),
+) -> T.List[T.Tuple[str, str, T.Any]]:
     computed_items = []
     for keys, computed_key, getter in COMPUTED_KEYS:
         if computed_key in include_computed:
@@ -179,7 +191,7 @@ def merge_data_items(old_data_items, data_items):
 
 
 def extract_observations(subset_items, include_computed=frozenset()):
-    # type: (T.List[T.Tuple[str, str, T.Any]], T.Container[str]) -> T.Generator[T.List[T.Tuple[str, str, T.Any]], None, None]
+    # type: (T.List[T.Tuple[str, str, T.Any]], T.Container[str]) -> T.Iterator[T.List[T.Tuple[str, str, T.Any]]]
     short_key_order = []  # type: T.List[str]
     old_data_items = {}  # type: T.Dict[str, T.Tuple[str, str, T.Any]]
     data_items = []  # type: T.List[T.Tuple[str, str, T.Any]]
@@ -202,8 +214,21 @@ def extract_observations(subset_items, include_computed=frozenset()):
         yield add_computed(all_data_items, include_computed)
 
 
-def filter_stream(bufr_file, columns, filters={}, required_columns=True):
-    # type: (T.Iterable[T.MutableMapping[str, T.Any]], T.Sequence[str], T.MutableMapping[str, T.Any], T.Union[bool, T.Iterable[str]]) -> T.Generator[T.Dict[str, T.Any], None, None]
+def filter_stream(
+    bufr_file: T.Iterable[T.MutableMapping[str, T.Any]],
+    columns: T.Iterable[str],
+    filters: T.Mapping[str, T.Any] = {},
+    required_columns: T.Union[bool, T.Iterable[str]] = True,
+) -> T.Iterator[T.Dict[str, T.Any]]:
+    """
+    Iterate over selected observations from a eccodes.BurfFile.
+
+    :param bufr_file: the eccodes.BurfFile object
+    :param columns: A list of BUFR keys to return in the DataFrame for every observation
+    :param filters: A dictionary of BUFR key / filter definition to filter the observations to return
+    :param required_columns: The list BUFR keys that are required for all observations.
+        ``True`` means all ``columns`` are required
+    """
     if required_columns is True:
         required_columns = set(columns)
     elif required_columns is False:
@@ -212,6 +237,8 @@ def filter_stream(bufr_file, columns, filters={}, required_columns=True):
         required_columns = set(required_columns)
     else:
         raise ValueError("required_columns must be a bool or an iterable")
+    columns = list(columns)
+    filters = dict(filters)
 
     max_count = filters.pop("count", float("inf"))
 
@@ -222,7 +249,7 @@ def filter_stream(bufr_file, columns, filters={}, required_columns=True):
         if computed_key in included_keys:
             included_keys |= set(keys)
 
-    keys_cache = {}  # type: T.Dict[T.Tuple[T.Hashable, ...], T.List[str]]
+    keys_cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[str]] = {}
     for count, message in enumerate(bufr_file, 1):
         if count > max_count:
             LOG.debug("stopping processing after max_count: %d", max_count)
@@ -256,14 +283,18 @@ def filter_stream(bufr_file, columns, filters={}, required_columns=True):
                         yield data
 
 
-def read_bufr(path, columns, filters={}, required_columns=True):
-    # type: (str, T.Sequence[str], T.Dict[str, T.Any], T.Union[bool, T.Sequence[str]]) -> pd.DataFrame
+def read_bufr(
+    path: T.Union[str, bytes, 'os.PathLike[T.Any]'],
+    columns: T.Iterable[str],
+    filters: T.Mapping[str, T.Any] = {},
+    required_columns: T.Union[bool, T.Iterable[str]] = True,
+) -> pd.DataFrame:
     """
-    Read observations from a BUFR file into DataFrame.
+    Read selected observations from a BUFR file into DataFrame.
 
     :param path: The path to the BUFR file
     :param columns: A list of BUFR keys to return in the DataFrame for every observation
-    :param filters: A dictionary of BUFR key / filter definition to fitler the observations to return
+    :param filters: A dictionary of BUFR key / filter definition to filter the observations to return
     :param required_columns: The list BUFR keys that are required for all observations.
         ``True`` means all ``columns`` are required
     """

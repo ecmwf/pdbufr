@@ -15,9 +15,10 @@
 
 import math
 import os
+import typing as T
 
-import numpy as np
-import pandas as pd
+import numpy as np  # type: ignore
+import pandas as pd  # type: ignore
 import pytest
 
 import pdbufr
@@ -763,6 +764,7 @@ def test_sat_compressed_1():
 
 
 def assert_simple_key_core(path, param, key, key_value, ref, part=False):
+    # type: (str, str, str, T.Any, T.Any, bool) -> None
     columns = [param, key]
     filters = {key: key_value}
 
@@ -853,6 +855,7 @@ def test_ident():
 
 
 def assert_temp_profile_core(path, param, vert_sign_value, ref_param, ref_pressure):
+    # type: (str, str, T.Any, T.Any, T.Any) -> None
     columns = [param, "pressure", "verticalSoundingSignificance"]
     filters = {
         "blockNumber": 71,
@@ -936,16 +939,16 @@ def test_temp_profile():
 
 
 def assert_nested_coords_core(
-    path,
-    param,
-    coord_key_1,
-    coord_value_1,
-    coord_key_2,
-    coord_value_2,
-    ref_param,
-    ref_level,
-    part=False,
-):
+    path: str,
+    param: str,
+    coord_key_1: str,
+    coord_value_1: T.Any,
+    coord_key_2: str,
+    coord_value_2: T.Any,
+    ref_param: str,
+    ref_level: T.Any,
+    part: bool = False,
+) -> None:
     columns = [param, coord_key_1]
     if coord_value_2 == "_ANY_":
         columns.append(coord_key_2)

@@ -1,6 +1,6 @@
 import typing as T
 
-import numpy as np
+import numpy as np  # type: ignore
 
 from pdbufr import bufr_filters
 
@@ -77,7 +77,7 @@ def test_match_compiled_filters():
         "height": bufr_filters.BufrFilter(slice(1.5, 2.1)),
     }
 
-    message_items = [("station", "station", 233)]
+    message_items: T.List[T.Tuple[str, str, T.Any]] = [("station", "station", 233)]
     assert bufr_filters.match_compiled_filters(message_items, compile_filters) is False
 
     message_items = [("station", "station", 234), ("temperature", "temperature", 300.0)]

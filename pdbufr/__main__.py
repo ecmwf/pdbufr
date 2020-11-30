@@ -23,8 +23,7 @@ import typing as T
 from . import bufr_read
 
 
-def main(argv=None):
-    # type: (T.Optional[T.List[str]]) -> None
+def main(argv: T.Optional[T.List[str]] = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("command")
     args = parser.parse_args(args=argv)

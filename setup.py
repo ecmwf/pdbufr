@@ -24,16 +24,14 @@ import re
 import setuptools  # type: ignore
 
 
-def read(path):
-    # type: (str) -> str
+def read(path: str) -> str:
     file_path = os.path.join(os.path.dirname(__file__), *path.split("/"))
     return open(file_path).read()
 
 
 # single-sourcing the package version using method 1 of:
 #   https://packaging.python.org/guides/single-sourcing-package-version/
-def parse_version_from(path):
-    # type: (str) -> str
+def parse_version_from(path: str) -> str:
     version_file = read(path)
     version_match = re.search('^__version__ = "(.*)"', version_file, re.M)
     if version_match is None or len(version_match.groups()) > 1:
@@ -53,9 +51,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     include_package_data=True,
     install_requires=["eccodes", "pandas"],
-    extras_require={
-        "tests": ["flake8", "pytest", "pytest-cov"],
-    },
+    extras_require={"tests": ["flake8", "pytest", "pytest-cov"]},
     zip_safe=True,
     keywords="eccodes bufr pandas",
     classifiers=[

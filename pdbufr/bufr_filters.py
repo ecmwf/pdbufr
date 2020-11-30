@@ -5,9 +5,7 @@ LOG = logging.getLogger(__name__)
 
 
 class BufrFilter:
-    def __init__(self, user_filter):
-        # type: (T.Any) -> None
-
+    def __init__(self, user_filter: T.Any) -> None:
         self.filter: T.Union[slice, T.Set[T.Any], T.Callable[[T.Any], bool]]
 
         if isinstance(user_filter, slice):
@@ -21,8 +19,7 @@ class BufrFilter:
         else:
             self.filter = {user_filter}
 
-    def match(self, value):
-        # type: (T.Any) -> bool
+    def match(self, value: T.Any) -> bool:
         if isinstance(self.filter, slice):
             if self.filter.start is not None and value < self.filter.start:
                 return False
@@ -35,13 +32,15 @@ class BufrFilter:
         return True
 
 
-def compile_filters(filters):
-    # type: (T.Mapping[str, T.Any]) -> T.Dict[str, BufrFilter]
+def compile_filters(filters: T.Dict[str, T.Any]) -> T.Dict[str, BufrFilter]:
     return {key: BufrFilter(user_filter) for key, user_filter in filters.items()}
 
 
-def match_compiled_filters(message_items, compiled_filters, required=True):
-    # type: (T.Iterable[T.Tuple[str, str, T.Any]], T.Dict[str, BufrFilter], bool) -> bool
+def match_compiled_filters(
+    message_items: T.Iterable[T.Tuple[str, str, T.Any]],
+    compiled_filters: T.Dict[str, BufrFilter],
+    required: bool = True,
+) -> bool:
     seen = set()
     for key, short_key, value in message_items:
         if short_key in compiled_filters:
