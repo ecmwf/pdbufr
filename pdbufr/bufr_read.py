@@ -134,7 +134,7 @@ def extract_subsets(
         yield message_items
     elif is_compressed == 1:
         for i in range(subset_count):
-            subset = []  # type: T.List[T.Tuple[str, str, T.Any]]
+            subset: T.List[T.Tuple[str, str, T.Any]] = []
             for k, s, v in message_items:
                 if isinstance(v, (list, np.ndarray)):
                     v = v[i]
@@ -192,9 +192,9 @@ def merge_data_items(old_data_items, data_items):
 
 def extract_observations(subset_items, include_computed=frozenset()):
     # type: (T.List[T.Tuple[str, str, T.Any]], T.Container[str]) -> T.Iterator[T.List[T.Tuple[str, str, T.Any]]]
-    short_key_order = []  # type: T.List[str]
-    old_data_items = {}  # type: T.Dict[str, T.Tuple[str, str, T.Any]]
-    data_items = []  # type: T.List[T.Tuple[str, str, T.Any]]
+    short_key_order: T.List[str] = []
+    old_data_items: T.Dict[str, T.Tuple[str, str, T.Any]] = {}
+    data_items: T.List[T.Tuple[str, str, T.Any]] = []
     short_key_index_seen = -1
     for key, short_key, value in subset_items:
         try:
