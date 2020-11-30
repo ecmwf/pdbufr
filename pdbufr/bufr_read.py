@@ -284,7 +284,7 @@ def filter_stream(
 
 
 def read_bufr(
-    path: T.Union[str, bytes, 'os.PathLike[T.Any]'],
+    path: T.Union[str, bytes, "os.PathLike[T.Any]"],
     columns: T.Iterable[str],
     filters: T.Mapping[str, T.Any] = {},
     required_columns: T.Union[bool, T.Iterable[str]] = True,
