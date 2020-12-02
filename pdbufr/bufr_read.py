@@ -33,12 +33,12 @@ LOG = logging.getLogger(__name__)
 
 def datetime_from_bufr(observation, prefix, datetime_keys):
     # type: (T.Dict[str, T.Any], str, T.List[str]) -> pd.Timestamp
-    minute = observation.get(prefix + datetime_keys[4], 0)
+    hours = observation.get(prefix + datetime_keys[3], 0)
+    minutes = observation.get(prefix + datetime_keys[4], 0)
     seconds = observation.get(prefix + datetime_keys[5], 0.0)
-    second = int(seconds)
     nanosecond = int(seconds * 1000000000) % 1000000000
-    datetime_list = [observation[prefix + k] for k in datetime_keys[:4]]
-    datetime_list += [minute, second]
+    datetime_list = [observation[prefix + k] for k in datetime_keys[:3]]
+    datetime_list += [hours, minutes, int(seconds)]
     return pd.Timestamp(*datetime_list, nanosecond=nanosecond)
 
 
