@@ -13,12 +13,12 @@ class BufrKey:
 
     @classmethod
     def from_level_key(cls, level: int, key: str) -> "BufrKey":
-        rank_text, sep, short_key = key.rpartition("#")
+        rank_text, sep, name = key.rpartition("#")
         if sep == "#":
             rank = int(rank_text[1:])
         else:
             rank = 0
-        return cls(level, rank, short_key)
+        return cls(level, rank, name)
 
     @property
     def key(self) -> str:
@@ -32,43 +32,74 @@ class BufrKey:
 IS_KEY_COORD = {"subsetNumber": True}
 
 
-def message_structure(
-    message: T.Mapping[str, T.Any],
-    code_source: T.Optional[T.Mapping[str, T.Any]] = None,
-) -> T.Iterator[T.Tuple[int, str]]:
-    if code_source is None:
-        code_source = message
-
+def message_structure(message: T.Mapping[str, T.Any],) -> T.Iterator[T.Tuple[int, str]]:
     level = 0
     coords: T.Dict[str, int] = collections.OrderedDict()
     for key in message:
-        short_key = key.rpartition("#")[2]
+        name = key.rpartition("#")[2]
 
-        if short_key in IS_KEY_COORD:
-            is_coord = IS_KEY_COORD[short_key]
+        if name in IS_KEY_COORD:
+            is_coord = IS_KEY_COORD[name]
         else:
             try:
-                code = code_source[key + "->code"]
+                code = message[key + "->code"]
                 is_coord = int(code[:3]) < 10
             except (KeyError, eccodes.KeyValueNotFoundError):
                 is_coord = False
 
-        while is_coord and short_key in coords:
+        while is_coord and name in coords:
             _, level = coords.popitem()  # OrderedDict.popitem uses LIFO order
 
         yield (level, key)
 
         if is_coord:
-            coords[short_key] = level
+            coords[name] = level
             level += 1
 
 
 def filtered_bufr_keys(
-    message: T.Mapping[str, T.Any],
-    include: T.Optional[T.Container[str]] = None,
-    code_source: T.Optional[T.Mapping[str, T.Any]] = None,
+    message: T.Mapping[str, T.Any], include: T.Optional[T.Container[str]] = None,
 ) -> T.Iterator[BufrKey]:
-    for level, key in message_structure(message, code_source):
+    for level, key in message_structure(message):
         bufr_key = BufrKey.from_level_key(level, key)
         if include is None or bufr_key.name in include or bufr_key.key in include:
             yield bufr_key
+
+
+def make_message_uid(message: T.Mapping[str, T.Any]) -> T.Tuple[T.Optional[int], ...]:
+    message_uid: T.Tuple[T.Optional[int], ...]
+
+    message_uid = (
+        message["edition"],
+        message["masterTableNumber"],
+        message["numberOfSubsets"],
+    )
+
+    descriptors: T.Union[int, T.List[int]] = message["unexpandedDescriptors"]
+    if isinstance(descriptors, int):
+        message_uid += (descriptors, None)
+    else:
+        message_uid += tuple(descriptors) + (None,)
+
+    try:
+        delayed_descriptors = message["delayedDescriptorReplicationFactor"]
+    except (KeyError, eccodes.KeyValueNotFoundError):
+        delayed_descriptors = []
+
+    if isinstance(delayed_descriptors, int):
+        message_uid += (delayed_descriptors,)
+    else:
+        message_uid += tuple(delayed_descriptors)
+
+    return message_uid
+
+
+def cached_filtered_bufr_keys(
+    message: T.Mapping[str, T.Any],
+    cache: T.Dict[T.Tuple[T.Optional[int], ...], T.List[BufrKey]],
+    include: T.Optional[T.Container[str]] = None,
+) -> T.List[BufrKey]:
+    message_uid = make_message_uid(message)
+    if message_uid not in cache:
+        cache[message_uid] = list(filtered_bufr_keys(message, include))
+    return cache[message_uid]
