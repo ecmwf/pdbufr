@@ -90,13 +90,13 @@ def test_filtered_bufr_keys() -> None:
 
     assert list(res)[:-2] == expected_obj
 
-    res = bufr_structure.filtered_bufr_keys(message, include={"edition"})
+    res = bufr_structure.filtered_bufr_keys(message, include=("edition",))
 
     assert list(res) == [bufr_structure.BufrKey.from_level_key(0, "edition")]
 
 
 def test_cached_filtered_bufr_keys() -> None:
-    cache: T.Dict[T.Tuple[T.Optional[int], ...], T.List[T.Any]] = {}
+    cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[T.Any]] = {}
     message = {
         "edition": 3,
         "masterTableNumber": 0,
@@ -121,16 +121,21 @@ def test_cached_filtered_bufr_keys() -> None:
     assert len(cache) == 1
     assert res1 is res2
 
-    message["unexpandedDescriptors"] = 321212
-
-    res3 = bufr_structure.cached_filtered_bufr_keys(message, cache)
+    res = bufr_structure.cached_filtered_bufr_keys(message, cache, include=("edition",))
 
     assert len(cache) == 2
-    assert res3 == expected_obj
+    assert res == [bufr_structure.BufrKey(0, 0, "edition")]
+
+    message["unexpandedDescriptors"] = 321212
+
+    res = bufr_structure.cached_filtered_bufr_keys(message, cache)
+
+    assert len(cache) == 3
+    assert res == expected_obj
 
     message["delayedDescriptorReplicationFactor"] = 1
 
-    res4 = bufr_structure.cached_filtered_bufr_keys(message, cache)
+    res = bufr_structure.cached_filtered_bufr_keys(message, cache)
 
-    assert len(cache) == 3
-    assert len(res4) == 5
+    assert len(cache) == 4
+    assert len(res) == 5
