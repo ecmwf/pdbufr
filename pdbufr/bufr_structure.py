@@ -2,17 +2,17 @@ import collections
 import typing as T
 
 import attr
-import eccodes
+import eccodes  # type: ignore
 
 
-@attr.attrs(auto_attribs=True, slots=True)
+@attr.attrs(auto_attribs=True, slots=True, frozen=True)
 class BufrKey:
     level: int
     rank: int
-    short_key: str
+    name: str
 
     @classmethod
-    def from_level_key(cls, level: int, key: str):
+    def from_level_key(cls, level: int, key: str) -> "BufrKey":
         rank_text, sep, short_key = key.rpartition("#")
         if sep == "#":
             rank = int(rank_text[1:])
@@ -26,13 +26,13 @@ class BufrKey:
             prefix = f"#{self.rank}#"
         else:
             prefix = ""
-        return prefix + self.short_key
+        return prefix + self.name
 
 
 IS_KEY_COORD = {"subsetNumber": True}
 
 
-def iter_message_structure(
+def message_structure(
     message: T.Mapping[str, T.Any],
     code_source: T.Optional[T.Mapping[str, T.Any]] = None,
 ) -> T.Iterator[T.Tuple[int, str]]:
@@ -61,3 +61,14 @@ def iter_message_structure(
         if is_coord:
             coords[short_key] = level
             level += 1
+
+
+def filtered_bufr_keys(
+    message: T.Mapping[str, T.Any],
+    include: T.Optional[T.Container[str]] = None,
+    code_source: T.Optional[T.Mapping[str, T.Any]] = None,
+) -> T.Iterator[BufrKey]:
+    for level, key in message_structure(message, code_source):
+        bufr_key = BufrKey.from_level_key(level, key)
+        if include is None or bufr_key.name in include or bufr_key.key in include:
+            yield bufr_key
