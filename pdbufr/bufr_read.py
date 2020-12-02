@@ -107,7 +107,7 @@ def cached_message_keys(
 
 def filter_message_items(
     message: T.Mapping[str, T.Any],
-    include: T.Container[str],
+    include: T.Optional[T.Container[str]],
     message_keys: T.List[str],
 ) -> T.Iterator[T.Tuple[str, str, T.Any]]:
     for key in message_keys:
@@ -257,7 +257,7 @@ def filter_stream(
         LOG.debug("starting reading message: %d", count)
         header_keys = cached_message_keys(message, keys_cache)
         header_items = list(
-            filter_message_items(message, compiled_filters, header_keys)
+            filter_message_items(message, set(compiled_filters), header_keys)
         )
         if "count" in compiled_filters:
             header_items += [("count", "count", count)]
