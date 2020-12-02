@@ -59,7 +59,7 @@ def test_message_structure() -> None:
     assert list(res)[:-2] == expected
 
 
-def test_filtered_bufr_keys() -> None:
+def test_filtered_keys() -> None:
     message = {
         "edition": 1,
         "#1#year": 2020,
@@ -86,16 +86,16 @@ def test_filtered_bufr_keys() -> None:
     ]
     expected_obj = [bufr_structure.BufrKey.from_level_key(*i) for i in expected]
 
-    res = bufr_structure.filtered_bufr_keys(message)
+    res = bufr_structure.filtered_keys(message)
 
     assert list(res)[:-2] == expected_obj
 
-    res = bufr_structure.filtered_bufr_keys(message, include=("edition",))
+    res = bufr_structure.filtered_keys(message, include=("edition",))
 
     assert list(res) == [bufr_structure.BufrKey.from_level_key(0, "edition")]
 
 
-def test_cached_filtered_bufr_keys() -> None:
+def test_cached_filtered_keys() -> None:
     cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[T.Any]] = {}
     message = {
         "edition": 3,
@@ -111,31 +111,31 @@ def test_cached_filtered_bufr_keys() -> None:
     ]
     expected_obj = [bufr_structure.BufrKey.from_level_key(*i) for i in expected]
 
-    res1 = bufr_structure.cached_filtered_bufr_keys(message, cache)
+    res1 = bufr_structure.cached_filtered_keys(message, cache)
 
     assert len(cache) == 1
     assert res1 == expected_obj
 
-    res2 = bufr_structure.cached_filtered_bufr_keys(message, cache)
+    res2 = bufr_structure.cached_filtered_keys(message, cache)
 
     assert len(cache) == 1
     assert res1 is res2
 
-    res = bufr_structure.cached_filtered_bufr_keys(message, cache, include=("edition",))
+    res = bufr_structure.cached_filtered_keys(message, cache, include=("edition",))
 
     assert len(cache) == 2
     assert res == [bufr_structure.BufrKey(0, 0, "edition")]
 
     message["unexpandedDescriptors"] = 321212
 
-    res = bufr_structure.cached_filtered_bufr_keys(message, cache)
+    res = bufr_structure.cached_filtered_keys(message, cache)
 
     assert len(cache) == 3
     assert res == expected_obj
 
     message["delayedDescriptorReplicationFactor"] = 1
 
-    res = bufr_structure.cached_filtered_bufr_keys(message, cache)
+    res = bufr_structure.cached_filtered_keys(message, cache)
 
     assert len(cache) == 4
     assert len(res) == 5

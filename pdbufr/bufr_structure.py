@@ -57,7 +57,7 @@ def message_structure(message: T.Mapping[str, T.Any],) -> T.Iterator[T.Tuple[int
             level += 1
 
 
-def filtered_bufr_keys(
+def filtered_keys(
     message: T.Mapping[str, T.Any], include: T.Tuple[str, ...] = (),
 ) -> T.Iterator[BufrKey]:
     for level, key in message_structure(message):
@@ -94,7 +94,7 @@ def make_message_uid(message: T.Mapping[str, T.Any]) -> T.Tuple[T.Optional[int],
     return message_uid
 
 
-def cached_filtered_bufr_keys(
+def cached_filtered_keys(
     message: T.Mapping[str, T.Any],
     cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[BufrKey]],
     include: T.Tuple[str, ...] = (),
@@ -102,5 +102,5 @@ def cached_filtered_bufr_keys(
     message_uid = make_message_uid(message)
     filtered_message_uid: T.Tuple[T.Hashable, ...] = message_uid + include
     if filtered_message_uid not in cache:
-        cache[filtered_message_uid] = list(filtered_bufr_keys(message, include))
+        cache[filtered_message_uid] = list(filtered_keys(message, include))
     return cache[filtered_message_uid]
