@@ -112,7 +112,7 @@ def filter_message_items(
 ) -> T.Iterator[T.Tuple[str, str, T.Any]]:
     for key in message_keys:
         short_key = key.rpartition("#")[2]
-        if include is None or short_key in include:
+        if include is None or short_key in include or short_key == "subsetNumber":
             value = message[key]
             if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
                 value = math.nan
@@ -122,7 +122,7 @@ def filter_message_items(
 def extract_subsets(
     message_items: T.List[T.Tuple[str, str, T.Any]],
     subset_count: int,
-    is_compressed: int,
+    is_compressed: bool,
 ) -> T.Iterator[T.List[T.Tuple[str, str, T.Any]]]:
     LOG.debug(
         "extracting subsets count %d and is_compressed %d items %d",
@@ -132,7 +132,7 @@ def extract_subsets(
     )
     if subset_count == 1:
         yield message_items
-    elif is_compressed == 1:
+    elif is_compressed is True:
         for i in range(subset_count):
             subset: T.List[T.Tuple[str, str, T.Any]] = []
             for k, s, v in message_items:
@@ -145,7 +145,7 @@ def extract_subsets(
     else:
         header_keys = set()
         for key, short_key, _ in message_items:
-            if key[0] != "#" or key[:3] == "#1#":
+            if (key[0] != "#" or key[:3] == "#1#") and key != "subsetNumber":
                 header_keys.add(key)
             else:
                 header_keys.discard("#1#" + short_key)
@@ -161,7 +161,8 @@ def extract_subsets(
                 else:
                     yield header + subset
                     subset = []
-            subset.append((key, short_key, value))
+            if key != "subsetNumber":
+                subset.append((key, short_key, value))
         yield header + subset
 
 
@@ -270,7 +271,7 @@ def filter_stream(
         message["unpack"] = 1
 
         subset_count = message["numberOfSubsets"]
-        is_compressed = message["compressedData"]
+        is_compressed = bool(message["compressedData"])
         message_keys = cached_message_keys(message, keys_cache, subset_count)
         message_items = list(filter_message_items(message, included_keys, message_keys))
         if "count" in included_keys:
