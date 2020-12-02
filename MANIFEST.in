@@ -4,3 +4,4 @@ include LICENSE
 include Makefile
 recursive-include tests *.bufr
 recursive-include tests *.py
+recursive-include tests *.yml
