@@ -160,13 +160,13 @@ def test_extract_observations_simple() -> None:
 
     res = bufr_structure.extract_observations(message, filtered_keys, filters)
 
-    assert list(res) == expected
+    assert [{k.name: v for k, v in i} for i in res] == expected
 
     filters = {"pressure": bufr_filters.BufrFilter(slice(95, 100))}
 
     res = bufr_structure.extract_observations(message, filtered_keys, filters)
 
-    assert list(res) == expected[:1]
+    assert [{k.name: v for k, v in i} for i in res] == expected[:1]
 
 
 def test_extract_observations_compelx() -> None:
@@ -192,7 +192,7 @@ def test_extract_observations_compelx() -> None:
 
     res = bufr_structure.extract_observations(message, filtered_keys, filters)
 
-    assert list(res) == expected
+    assert [{k.name: v for k, v in i} for i in res] == expected
 
     filters = {"latitude": bufr_filters.BufrFilter(slice(None))}
     expected = [
@@ -209,4 +209,4 @@ def test_extract_observations_compelx() -> None:
 
     res = bufr_structure.extract_observations(message, filtered_keys, filters)
 
-    assert list(res) == expected
+    assert [{k.name: v for k, v in i} for i in res] == expected

@@ -99,12 +99,13 @@ def make_message_uid(message: T.Mapping[str, T.Any]) -> T.Tuple[T.Optional[int],
 def cached_filtered_keys(
     message: T.Mapping[str, T.Any],
     cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[BufrKey]],
-    include: T.Tuple[str, ...] = (),
+    include: T.Iterable[str] = (),
 ) -> T.List[BufrKey]:
     message_uid = make_message_uid(message)
-    filtered_message_uid: T.Tuple[T.Hashable, ...] = message_uid + include
+    include_uid = tuple(sorted(include))
+    filtered_message_uid: T.Tuple[T.Hashable, ...] = message_uid + include_uid
     if filtered_message_uid not in cache:
-        cache[filtered_message_uid] = list(filtered_keys(message, include))
+        cache[filtered_message_uid] = list(filtered_keys(message, include_uid))
     return cache[filtered_message_uid]
 
 
@@ -114,11 +115,21 @@ def extract_observations(
     filters: T.Dict[str, bufr_filters.BufrFilter],
 ) -> T.Iterator[T.List[T.Tuple[BufrKey, T.Any]]]:
     current_items: T.List[T.Tuple[BufrKey, T.Any]] = []
-    current_level = -1
     current_matches = 0
     for bufr_key in filtered_keys:
         level = bufr_key.level
-        if current_matches == len(filters) and level < current_level:
+        # TODO: make into a function
+        if (
+            current_matches == len(filters)
+            and len(current_items)
+            and (
+                level < current_items[-1][0].level
+                or (
+                    bufr_key.name in filters
+                    and bufr_key.name == current_items[-1][0].name
+                )
+            )
+        ):
             # copy the content of current_items
             yield list(current_items)
 
@@ -132,15 +143,13 @@ def extract_observations(
                 assert current_matches >= 0
 
         value = message[bufr_key.key]
-        if value == eccodes.CODES_MISSING_DOUBLE:
+        if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
             value = None
 
         current_items.append((bufr_key, value))
 
         if bufr_key.name in filters and filters[bufr_key.name].match(value):
             current_matches += 1
-
-        current_level = level
 
     # yield the last observation
     if current_matches == len(filters):
