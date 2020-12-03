@@ -1,23 +1,30 @@
 import logging
 import typing as T
 
+import attr
+
 LOG = logging.getLogger(__name__)
 
 
+@attr.attrs(auto_attribs=True, frozen=True)
 class BufrFilter:
-    def __init__(self, user_filter: T.Any) -> None:
-        self.filter: T.Union[slice, T.Set[T.Any], T.Callable[[T.Any], bool]]
+    filter: T.Union[slice, T.Set[T.Any], T.Callable[[T.Any], bool]]
+
+    @classmethod
+    def from_user(cls, user_filter: T.Any) -> "BufrFilter":
+        filter: T.Union[slice, T.Set[T.Any], T.Callable[[T.Any], bool]]
 
         if isinstance(user_filter, slice):
             if user_filter.step is not None:
                 LOG.warning(f"slice filters ignore the step {user_filter.step}")
-            self.filter = user_filter
+            filter = user_filter
         elif isinstance(user_filter, T.Iterable) and not isinstance(user_filter, str):
-            self.filter = set(user_filter)
+            filter = set(user_filter)
         elif callable(user_filter):
-            self.filter = user_filter
+            filter = user_filter
         else:
-            self.filter = {user_filter}
+            filter = {user_filter}
+        return cls(filter)
 
     def match(self, value: T.Any) -> bool:
         if isinstance(self.filter, slice):
@@ -33,7 +40,7 @@ class BufrFilter:
 
 
 def compile_filters(filters: T.Dict[str, T.Any]) -> T.Dict[str, BufrFilter]:
-    return {key: BufrFilter(user_filter) for key, user_filter in filters.items()}
+    return {key: BufrFilter.from_user(filter) for key, filter in filters.items()}
 
 
 def match_compiled_filters(
