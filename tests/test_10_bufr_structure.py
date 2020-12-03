@@ -1,7 +1,8 @@
-import collections
 import typing as T
 
-from pdbufr import bufr_structure
+import eccodes  # type: ignore
+
+from pdbufr import bufr_filters, bufr_structure
 
 
 def test_BufrKey() -> None:
@@ -139,3 +140,73 @@ def test_cached_filtered_keys() -> None:
 
     assert len(cache) == 4
     assert len(res) == 5
+
+
+def test_extract_observations_simple() -> None:
+    message = {
+        "#1#pressure": 100,
+        "#1#temperature": 300.0,
+        "#2#pressure": 90,
+        "#2#temperature": eccodes.CODES_MISSING_DOUBLE,
+        "#1#pressure->code": "005002",
+        "#2#pressure->code": "005002",
+    }
+    filtered_keys = list(bufr_structure.filtered_keys(message))[:-2]
+    filters = {"pressure": bufr_filters.BufrFilter(slice(100))}
+    expected = [
+        {"pressure": 100, "temperature": 300.0},
+        {"pressure": 90, "temperature": None},
+    ]
+
+    res = bufr_structure.extract_observations(message, filtered_keys, filters)
+
+    assert list(res) == expected
+
+    filters = {"pressure": bufr_filters.BufrFilter(slice(95, 100))}
+
+    res = bufr_structure.extract_observations(message, filtered_keys, filters)
+
+    assert list(res) == expected[:1]
+
+
+def test_extract_observations_compelx() -> None:
+    message = {
+        "#1#latitude": 42,
+        "#1#pressure": 100,
+        "#1#temperature": 300.0,
+        "#2#pressure": 90,
+        "#2#temperature": eccodes.CODES_MISSING_DOUBLE,
+        "#2#latitude": 43,
+        "#3#temperature": 290.0,
+        "#1#latitude->code": "005002",
+        "#1#pressure->code": "005002",
+        "#2#latitude->code": "005002",
+        "#2#pressure->code": "005002",
+    }
+    filtered_keys = list(bufr_structure.filtered_keys(message))[:-2]
+    filters = {"pressure": bufr_filters.BufrFilter(slice(100))}
+    expected = [
+        {"latitude": 42, "pressure": 100, "temperature": 300.0},
+        {"latitude": 42, "pressure": 90, "temperature": None},
+    ]
+
+    res = bufr_structure.extract_observations(message, filtered_keys, filters)
+
+    assert list(res) == expected
+
+    filters = {"latitude": bufr_filters.BufrFilter(slice(None))}
+    expected = [
+        {"latitude": 42, "pressure": 100, "temperature": 300.0},
+        {"latitude": 42, "pressure": 90, "temperature": None},
+        {
+            "latitude": 43,
+            "temperature": 290.0,
+            # these are an artifact of testing with dicts
+            "latitude->code": "005002",
+            "pressure->code": "005002",
+        },
+    ]
+
+    res = bufr_structure.extract_observations(message, filtered_keys, filters)
+
+    assert list(res) == expected
