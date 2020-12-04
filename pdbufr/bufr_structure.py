@@ -31,7 +31,7 @@ class BufrKey:
         return prefix + self.name
 
 
-IS_KEY_COORD = {"subsetNumber": True}
+IS_KEY_COORD = {"subsetNumber": True, "operator": False}
 
 
 def message_structure(message: T.Mapping[str, T.Any],) -> T.Iterator[T.Tuple[int, str]]:
@@ -117,7 +117,7 @@ def extract_observations(
 ) -> T.Iterator[T.Dict[str, T.Any]]:
     current_observation: T.Dict[str, T.Any]
     current_observation = collections.OrderedDict(base_observation)
-    current_level: int = 0
+    current_levels: T.List[int] = [0]
     failed_match_level: T.Optional[int] = None
 
     for bufr_key in filtered_keys:
@@ -129,17 +129,18 @@ def extract_observations(
 
         # TODO: make into a function
         if all(name in current_observation for name in filters) and (
-            level < current_level
-            or (level == current_level and name in current_observation)
+            level < current_levels[-1]
+            or (level == current_levels[-1] and name in current_observation)
         ):
             # copy the content of current_items
             yield dict(current_observation)
 
         while len(current_observation) and (
-            level < current_level
-            or (level == current_level and name in current_observation)
+            level < current_levels[-1]
+            or (level == current_levels[-1] and name in current_observation)
         ):
             current_observation.popitem()  # OrderedDict.popitem uses LIFO order
+            current_levels.pop()
 
         value = message[bufr_key.key]
         if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
@@ -153,7 +154,7 @@ def extract_observations(
                 continue
 
         current_observation[name] = value
-        current_level = level
+        current_levels.append(level)
 
     # yield the last observation
     if all(name in current_observation for name in filters):
