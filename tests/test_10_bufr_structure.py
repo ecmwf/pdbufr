@@ -214,7 +214,6 @@ def test_extract_observations_complex() -> None:
         "#2#pressure->code": "005002",
     }
     filtered_keys = list(bufr_structure.filter_keys(message))[:-2]
-    filters = {}
     expected = [
         {"latitude": 42, "pressure": 100, "temperature": 300.0},
         {"latitude": 42, "pressure": 90, "temperature": None},
@@ -227,7 +226,7 @@ def test_extract_observations_complex() -> None:
         },
     ]
 
-    res = bufr_structure.extract_observations(message, filtered_keys, filters)
+    res = bufr_structure.extract_observations(message, filtered_keys, {})
 
     assert list(res) == expected
 
