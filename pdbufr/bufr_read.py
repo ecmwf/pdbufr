@@ -284,8 +284,8 @@ def filter_stream(
                         yield data
 
 
-# uncomment to test the new engine based on bufr_structure
-# from .bufr_structure import filter_stream
+# switch to the new engine based on bufr_structure
+from .bufr_structure import filter_stream
 
 
 def read_bufr(
