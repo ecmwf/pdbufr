@@ -44,7 +44,9 @@ def compile_filters(filters: T.Dict[str, T.Any]) -> T.Dict[str, BufrFilter]:
 
 
 def is_match(
-    message: T.Mapping[str, T.Any], compiled_filters: T.Dict[str, BufrFilter], required: bool = True
+    message: T.Mapping[str, T.Any],
+    compiled_filters: T.Dict[str, BufrFilter],
+    required: bool = True,
 ) -> bool:
     matches = 0
     for k in message:

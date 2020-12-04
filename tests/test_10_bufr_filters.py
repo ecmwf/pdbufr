@@ -77,10 +77,10 @@ def test_is_match():
         "height": bufr_filters.BufrFilter(slice(1.5, 2.1)),
     }
 
-    message: T.Dict[ str, T.Any] = {"station": 233}
+    message: T.Dict[str, T.Any] = {"station": 233}
     assert bufr_filters.is_match(message, compile_filters) is False
 
-    message = {"station": 234, "temperature":  300.0}
+    message = {"station": 234, "temperature": 300.0}
     assert bufr_filters.is_match(message, compile_filters) is False
 
     message.update({"level": 1, "height": 1.5})
