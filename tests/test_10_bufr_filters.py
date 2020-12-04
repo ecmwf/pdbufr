@@ -70,18 +70,18 @@ def test_compile_filters():
     assert all(isinstance(r, bufr_filters.BufrFilter) for r in res.values())
 
 
-def test_match_compiled_filters():
+def test_is_match():
     compile_filters = {
-        "station": bufr_filters.BufrFilter.from_user(234),
-        "level": bufr_filters.BufrFilter.from_user(range(1, 12)),
-        "height": bufr_filters.BufrFilter.from_user(slice(1.5, 2.1)),
+        "station": bufr_filters.BufrFilter({234}),
+        "level": bufr_filters.BufrFilter(range(1, 12)),
+        "height": bufr_filters.BufrFilter(slice(1.5, 2.1)),
     }
 
-    message_items: T.List[T.Tuple[str, str, T.Any]] = [("station", "station", 233)]
-    assert bufr_filters.match_compiled_filters(message_items, compile_filters) is False
+    message: T.Dict[ str, T.Any] = {"station": 233}
+    assert bufr_filters.is_match(message, compile_filters) is False
 
-    message_items = [("station", "station", 234), ("temperature", "temperature", 300.0)]
-    assert bufr_filters.match_compiled_filters(message_items, compile_filters) is False
+    message = {"station": 234, "temperature":  300.0}
+    assert bufr_filters.is_match(message, compile_filters) is False
 
-    message_items += [("#1#level", "level", 1), ("height", "height", 1.5)]
-    assert bufr_filters.match_compiled_filters(message_items, compile_filters) is True
+    message.update({"level": 1, "height": 1.5})
+    assert bufr_filters.is_match(message, compile_filters) is True

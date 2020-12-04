@@ -43,6 +43,22 @@ def compile_filters(filters: T.Dict[str, T.Any]) -> T.Dict[str, BufrFilter]:
     return {key: BufrFilter.from_user(filter) for key, filter in filters.items()}
 
 
+def is_match(
+    message: T.Mapping[str, T.Any], compiled_filters: T.Dict[str, BufrFilter], required: bool = True
+) -> bool:
+    matches = 0
+    for k in message:
+        if k not in compiled_filters:
+            continue
+        if compiled_filters[k].match(message[k]):
+            matches += 1
+        else:
+            return False
+    if required and matches < len(compiled_filters):
+        return False
+    return True
+
+
 def match_compiled_filters(
     message_items: T.Iterable[T.Tuple[str, str, T.Any]],
     compiled_filters: T.Dict[str, BufrFilter],
