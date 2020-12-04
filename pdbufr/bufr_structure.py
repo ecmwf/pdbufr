@@ -60,7 +60,7 @@ def message_structure(message: T.Mapping[str, T.Any],) -> T.Iterator[T.Tuple[int
 
 
 def filter_keys(
-    message: T.Mapping[str, T.Any], include: T.Tuple[str, ...] = (),
+    message: T.Mapping[str, T.Any], include: T.Container[str] = (),
 ) -> T.Iterator[BufrKey]:
     for level, key in message_structure(message):
         bufr_key = BufrKey.from_level_key(level, key)
@@ -193,7 +193,12 @@ def filter_stream(
 
     keys_cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[BufrKey]] = {}
     for count, message in enumerate(bufr_file, 1):
-        if "count" in filters and not compiled_filters["count"].match(count):
+        # TODO: if `count` is greater than the maximum possible count `break`
+        if "count" in compiled_filters and not compiled_filters["count"].match(count):
+            continue
+
+        # test header key for failed matches before unpacking
+        if not bufr_filters.is_match(message, compiled_filters, required=False):
             continue
 
         if message["compressedData"]:
