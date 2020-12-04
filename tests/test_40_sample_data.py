@@ -19,7 +19,6 @@ import typing as T
 
 import numpy as np  # type: ignore
 import pandas as pd  # type: ignore
-import pytest
 
 import pdbufr
 
@@ -458,7 +457,7 @@ def test_tropicalcyclone_1():
         filters={"stormIdentifier": "70E", "ensembleMemberNumber": 4},
     )
 
-    assert len(res) == 67
+    assert len(res) == 34
 
     res = pdbufr.read_bufr(
         TEST_DATA_5,
@@ -1046,7 +1045,6 @@ def test_nested_coords():
     )
 
 
-@pytest.mark.xfail
 def test_new_synop_data():
     columns = (
         "stationNumber",
