@@ -1073,8 +1073,8 @@ def test_new_synop_data():
     }
 
     expected_third_row = {
-        "stationNumber": 3950.0,
-        "heightOfStationGroundAboveMeanSeaLevel": 748.1,
+        "stationNumber": 257.0,
+        "heightOfStationGroundAboveMeanSeaLevel": 3950.0,
         "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 1.5,
         "airTemperature": 276.35,
         "dewpointTemperature": 263.05,
