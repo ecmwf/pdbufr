@@ -3,6 +3,7 @@ import typing as T
 
 import attr
 import eccodes  # type: ignore
+import numpy as np  # type: ignore
 
 from . import bufr_filters, bufr_read
 
@@ -115,50 +116,64 @@ def extract_observations(
     filters: T.Dict[str, bufr_filters.BufrFilter] = {},
     base_observation: T.Dict[str, T.Any] = {},
 ) -> T.Iterator[T.Dict[str, T.Any]]:
-    current_observation: T.Dict[str, T.Any]
-    current_observation = collections.OrderedDict(base_observation)
-    current_levels: T.List[int] = [0]
-    failed_match_level: T.Optional[int] = None
+    value_cache = {}
+    try:
+        is_compressed = bool(message["compressedData"])
+    except (KeyError, eccodes.KeyValueNotFoundError):
+        is_compressed = False
+    if is_compressed:
+        subset_count = message["numberOfSubsets"]
+    else:
+        subset_count = 1
 
-    for bufr_key in filtered_keys:
-        level = bufr_key.level
-        name = bufr_key.name
+    for subset in range(subset_count):
+        current_observation: T.Dict[str, T.Any]
+        current_observation = collections.OrderedDict(base_observation)
+        current_levels: T.List[int] = [0]
+        failed_match_level: T.Optional[int] = None
+        for bufr_key in filtered_keys:
+            level = bufr_key.level
+            name = bufr_key.name
 
-        if failed_match_level is not None and level > failed_match_level:
-            continue
-
-        # TODO: make into a function
-        if all(name in current_observation for name in filters) and (
-            level < current_levels[-1]
-            or (level == current_levels[-1] and name in current_observation)
-        ):
-            # copy the content of current_items
-            yield dict(current_observation)
-
-        while len(current_observation) and (
-            level < current_levels[-1]
-            or (level == current_levels[-1] and name in current_observation)
-        ):
-            current_observation.popitem()  # OrderedDict.popitem uses LIFO order
-            current_levels.pop()
-
-        value = message[bufr_key.key]
-        if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
-            value = None
-
-        if name in filters:
-            if filters[name].match(value):
-                failed_match_level = None
-            else:
-                failed_match_level = level
+            if failed_match_level is not None and level > failed_match_level:
                 continue
 
-        current_observation[name] = value
-        current_levels.append(level)
+            # TODO: make into a function
+            if all(name in current_observation for name in filters) and (
+                level < current_levels[-1]
+                or (level == current_levels[-1] and name in current_observation)
+            ):
+                # copy the content of current_items
+                yield dict(current_observation)
 
-    # yield the last observation
-    if all(name in current_observation for name in filters):
-        yield dict(current_observation)
+            while len(current_observation) and (
+                level < current_levels[-1]
+                or (level == current_levels[-1] and name in current_observation)
+            ):
+                current_observation.popitem()  # OrderedDict.popitem uses LIFO order
+                current_levels.pop()
+
+            if bufr_key.key not in value_cache:
+                value_cache[bufr_key.key] = message[bufr_key.key]
+            value = value_cache[bufr_key.key]
+            if isinstance(value, np.ndarray) and value.size == subset_count:
+                value = value[subset]
+            if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
+                value = None
+
+            if name in filters:
+                if filters[name].match(value):
+                    failed_match_level = None
+                else:
+                    failed_match_level = level
+                    continue
+
+            current_observation[name] = value
+            current_levels.append(level)
+
+        # yield the last observation
+        if all(name in current_observation for name in filters):
+            yield dict(current_observation)
 
 
 def add_computed_keys(
@@ -215,9 +230,6 @@ def filter_stream(
         # test header key for failed matches before unpacking
         if not bufr_filters.is_match(message, compiled_filters, required=False):
             continue
-
-        if message["compressedData"]:
-            raise ValueError("Compressed BUFR messages are unsupported")
 
         message["skipExtraKeyAttributes"] = 1
         message["unpack"] = 1
