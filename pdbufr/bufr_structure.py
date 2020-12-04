@@ -4,8 +4,7 @@ import typing as T
 import attr
 import eccodes  # type: ignore
 
-from . import bufr_filters
-from . import bufr_read
+from . import bufr_filters, bufr_read
 
 
 @attr.attrs(auto_attribs=True, frozen=True)
