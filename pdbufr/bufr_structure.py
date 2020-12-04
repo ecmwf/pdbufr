@@ -159,3 +159,57 @@ def extract_observations(
     # yield the last observation
     if all(name in current_observation for name in filters):
         yield dict(current_observation)
+
+
+def filter_stream(
+    bufr_file: T.Iterable[T.MutableMapping[str, T.Any]],
+    columns: T.Iterable[str],
+    filters: T.Mapping[str, T.Any] = {},
+    required_columns: T.Union[bool, T.Iterable[str]] = True,
+) -> T.Iterator[T.Dict[str, T.Any]]:
+    """
+    Iterate over selected observations from a eccodes.BurfFile.
+
+    :param bufr_file: the eccodes.BurfFile object
+    :param columns: A list of BUFR keys to return in the DataFrame for every observation
+    :param filters: A dictionary of BUFR key / filter definition to filter the observations to return
+    :param required_columns: The list BUFR keys that are required for all observations.
+        ``True`` means all ``columns`` are required
+    """
+    if required_columns is True:
+        required_columns = set(columns)
+    elif required_columns is False:
+        required_columns = set()
+    elif isinstance(required_columns, T.Iterable):
+        required_columns = set(required_columns)
+    else:
+        raise ValueError("required_columns must be a bool or an iterable")
+    columns = list(columns)
+    filters = dict(filters)
+
+    compiled_filters = bufr_filters.compile_filters(filters)
+    included_keys = set(compiled_filters)
+    included_keys |= set(columns)
+
+    keys_cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[BufrKey]] = {}
+    for count, message in enumerate(bufr_file, 1):
+        if "count" in filters and not compiled_filters["count"].match(count):
+            continue
+
+        if message["compressedData"]:
+            raise ValueError("Compressed BUFR messages are unsupported")
+
+        message["skipExtraKeyAttributes"] = 1
+        message["unpack"] = 1
+
+        filtered_keys = cached_filtered_keys(message, keys_cache, included_keys)
+        if "count" in included_keys:
+            observaton = {"count": count}
+        else:
+            observaton = {}
+        for observation in extract_observations(
+            message, filtered_keys, compiled_filters, observaton,
+        ):
+            data = {k: v for k, v in observation.items() if k in columns}
+            if required_columns.issubset(data):
+                yield data
