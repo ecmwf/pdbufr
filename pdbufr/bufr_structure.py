@@ -5,6 +5,7 @@ import attr
 import eccodes  # type: ignore
 
 from . import bufr_filters
+from . import bufr_read
 
 
 @attr.attrs(auto_attribs=True, frozen=True)
@@ -161,6 +162,18 @@ def extract_observations(
         yield dict(current_observation)
 
 
+def add_computed_keys(
+    observation: T.Dict[str, T.Any], included_keys: T.Container[str]
+) -> T.Dict[str, T.Any]:
+    augmented_observation = observation.copy()
+    for keys, computed_key, getter in bufr_read.COMPUTED_KEYS:
+        if computed_key not in included_keys:
+            continue
+        computed_value = getter(observation, "", keys)
+        augmented_observation[computed_key] = computed_value
+    return augmented_observation
+
+
 def filter_stream(
     bufr_file: T.Iterable[T.MutableMapping[str, T.Any]],
     columns: T.Iterable[str],
@@ -190,6 +203,9 @@ def filter_stream(
     compiled_filters = bufr_filters.compile_filters(filters)
     included_keys = set(compiled_filters)
     included_keys |= set(columns)
+    for keys, computed_key, _ in bufr_read.COMPUTED_KEYS:
+        if computed_key in included_keys:
+            included_keys |= set(keys)
 
     keys_cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[BufrKey]] = {}
     for count, message in enumerate(bufr_file, 1):
@@ -215,6 +231,7 @@ def filter_stream(
         for observation in extract_observations(
             message, filtered_keys, compiled_filters, observaton,
         ):
-            data = {k: v for k, v in observation.items() if k in columns}
+            augmented_observation = add_computed_keys(observation, included_keys)
+            data = {k: v for k, v in augmented_observation.items() if k in columns}
             if required_columns.issubset(data):
                 yield data
