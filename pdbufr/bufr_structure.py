@@ -59,7 +59,7 @@ def message_structure(message: T.Mapping[str, T.Any],) -> T.Iterator[T.Tuple[int
             level += 1
 
 
-def filtered_keys(
+def filter_keys(
     message: T.Mapping[str, T.Any], include: T.Tuple[str, ...] = (),
 ) -> T.Iterator[BufrKey]:
     for level, key in message_structure(message):
@@ -96,7 +96,7 @@ def make_message_uid(message: T.Mapping[str, T.Any]) -> T.Tuple[T.Optional[int],
     return message_uid
 
 
-def cached_filtered_keys(
+def filter_keys_cached(
     message: T.Mapping[str, T.Any],
     cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[BufrKey]],
     include: T.Iterable[str] = (),
@@ -105,7 +105,7 @@ def cached_filtered_keys(
     include_uid = tuple(sorted(include))
     filtered_message_uid: T.Tuple[T.Hashable, ...] = message_uid + include_uid
     if filtered_message_uid not in cache:
-        cache[filtered_message_uid] = list(filtered_keys(message, include_uid))
+        cache[filtered_message_uid] = list(filter_keys(message, include_uid))
     return cache[filtered_message_uid]
 
 
@@ -202,7 +202,7 @@ def filter_stream(
         message["skipExtraKeyAttributes"] = 1
         message["unpack"] = 1
 
-        filtered_keys = cached_filtered_keys(message, keys_cache, included_keys)
+        filtered_keys = filter_keys_cached(message, keys_cache, included_keys)
         if "count" in included_keys:
             observaton = {"count": count}
         else:
