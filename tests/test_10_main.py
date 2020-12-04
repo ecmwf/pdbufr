@@ -18,7 +18,7 @@ import pytest
 from pdbufr import __main__
 
 
-def test_main():
+def test_main() -> None:
     __main__.main(argv=["selfcheck"])
 
     with pytest.raises(RuntimeError):
