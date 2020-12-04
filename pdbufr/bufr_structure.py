@@ -112,45 +112,49 @@ def cached_filtered_keys(
 def extract_observations(
     message: T.Mapping[str, T.Any],
     filtered_keys: T.List[BufrKey],
-    filters: T.Dict[str, bufr_filters.BufrFilter],
-) -> T.Iterator[T.List[T.Tuple[BufrKey, T.Any]]]:
-    current_items: T.List[T.Tuple[BufrKey, T.Any]] = []
-    current_matches = 0
+    filters: T.Dict[str, bufr_filters.BufrFilter] = {},
+    base_observation: T.Dict[str, T.Any] = {},
+) -> T.Iterator[T.Dict[str, T.Any]]:
+    current_observation: T.Dict[str, T.Any]
+    current_observation = collections.OrderedDict(base_observation)
+    current_level: int = 0
+    failed_match_level: T.Optional[int] = None
+
     for bufr_key in filtered_keys:
         level = bufr_key.level
+        name = bufr_key.name
+
+        if failed_match_level is not None and level > failed_match_level:
+            continue
+
         # TODO: make into a function
-        if (
-            current_matches == len(filters)
-            and len(current_items)
-            and (
-                level < current_items[-1][0].level
-                or (
-                    bufr_key.name in filters
-                    and bufr_key.name == current_items[-1][0].name
-                )
-            )
+        if all(name in current_observation for name in filters) and (
+            level < current_level
+            or (level == current_level and name in current_observation)
         ):
             # copy the content of current_items
-            yield list(current_items)
+            yield dict(current_observation)
 
-        while len(current_items) and (
-            level < current_items[-1][0].level
-            or (bufr_key.name in filters and bufr_key.name == current_items[-1][0].name)
+        while len(current_observation) and (
+            level < current_level
+            or (level == current_level and name in current_observation)
         ):
-            bk, _ = current_items.pop()
-            if bk.name in filters:
-                current_matches -= 1
-                assert current_matches >= 0
+            current_observation.popitem()  # OrderedDict.popitem uses LIFO order
 
         value = message[bufr_key.key]
         if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
             value = None
 
-        current_items.append((bufr_key, value))
+        if name in filters:
+            if filters[name].match(value):
+                failed_match_level = None
+            else:
+                failed_match_level = level
+                continue
 
-        if bufr_key.name in filters and filters[bufr_key.name].match(value):
-            current_matches += 1
+        current_observation[name] = value
+        current_level = level
 
     # yield the last observation
-    if current_matches == len(filters):
-        yield current_items
+    if all(name in current_observation for name in filters):
+        yield dict(current_observation)

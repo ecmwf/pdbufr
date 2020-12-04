@@ -152,24 +152,54 @@ def test_extract_observations_simple() -> None:
         "#2#pressure->code": "005002",
     }
     filtered_keys = list(bufr_structure.filtered_keys(message))[:-2]
-    filters = {"pressure": bufr_filters.BufrFilter(slice(100))}
     expected = [
         {"pressure": 100, "temperature": 300.0},
         {"pressure": 90, "temperature": None},
     ]
 
+    res = bufr_structure.extract_observations(message, filtered_keys)
+
+    assert list(res) == expected
+
+    filters = {"pressure": bufr_filters.BufrFilter(slice(95, None))}
+
     res = bufr_structure.extract_observations(message, filtered_keys, filters)
 
-    assert [{k.name: v for k, v in i} for i in res] == expected
+    assert list(res) == expected[:1]
+
+
+def test_extract_observations_medium() -> None:
+    message = {
+        "#1#pressure": 100,
+        "#1#temperature": 300.0,
+        "#2#pressure": 90,
+        "#2#temperature": eccodes.CODES_MISSING_DOUBLE,
+        "#1#pressure->code": "005002",
+        "#2#pressure->code": "005002",
+    }
+    filtered_keys = list(bufr_structure.filtered_keys(message))[:-2]
+    filters = {"count": bufr_filters.BufrFilter({1})}
+    expected = [
+        {"count": 1, "pressure": 100, "temperature": 300.0},
+        {"count": 1, "pressure": 90, "temperature": None},
+    ]
+
+    res = bufr_structure.extract_observations(
+        message, filtered_keys, filters, {"count": 1}
+    )
+
+    assert list(res) == expected
 
     filters = {"pressure": bufr_filters.BufrFilter(slice(95, 100))}
 
-    res = bufr_structure.extract_observations(message, filtered_keys, filters)
+    res = bufr_structure.extract_observations(
+        message, filtered_keys, filters, {"count": 1}
+    )
 
-    assert [{k.name: v for k, v in i} for i in res] == expected[:1]
+    assert list(res) == expected[:1]
 
 
-def test_extract_observations_compelx() -> None:
+def test_extract_observations_complex() -> None:
     message = {
         "#1#latitude": 42,
         "#1#pressure": 100,
@@ -184,15 +214,22 @@ def test_extract_observations_compelx() -> None:
         "#2#pressure->code": "005002",
     }
     filtered_keys = list(bufr_structure.filtered_keys(message))[:-2]
-    filters = {"pressure": bufr_filters.BufrFilter(slice(100))}
+    filters = {}
     expected = [
         {"latitude": 42, "pressure": 100, "temperature": 300.0},
         {"latitude": 42, "pressure": 90, "temperature": None},
+        {
+            "latitude": 43,
+            "temperature": 290.0,
+            # these are an artifact of testing with dicts
+            "latitude->code": "005002",
+            "pressure->code": "005002",
+        },
     ]
 
     res = bufr_structure.extract_observations(message, filtered_keys, filters)
 
-    assert [{k.name: v for k, v in i} for i in res] == expected
+    assert list(res) == expected
 
     filters = {"latitude": bufr_filters.BufrFilter(slice(None))}
     expected = [
@@ -209,4 +246,4 @@ def test_extract_observations_compelx() -> None:
 
     res = bufr_structure.extract_observations(message, filtered_keys, filters)
 
-    assert [{k.name: v for k, v in i} for i in res] == expected
+    assert list(res) == expected
