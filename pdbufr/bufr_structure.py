@@ -193,15 +193,17 @@ def filter_stream(
     columns: T.Iterable[str],
     filters: T.Mapping[str, T.Any] = {},
     required_columns: T.Union[bool, T.Iterable[str]] = True,
+    prefilter_headers=False,
 ) -> T.Iterator[T.Dict[str, T.Any]]:
     """
     Iterate over selected observations from a eccodes.BurfFile.
 
     :param bufr_file: the eccodes.BurfFile object
-    :param columns: A list of BUFR keys to return in the DataFrame for every observation
-    :param filters: A dictionary of BUFR key / filter definition to filter the observations to return
-    :param required_columns: The list BUFR keys that are required for all observations.
-        ``True`` means all ``columns`` are required
+    :param columns: a list of BUFR keys to return in the DataFrame for every observation
+    :param filters: a dictionary of BUFR key / filter definition to filter the observations to return
+    :param required_columns: the list of BUFR keys that are required for all observations.
+        ``True`` means all ``columns`` are required (default ``True``)
+    :param prefilter_headers: filter the header keys before unpacking the data section (default ``False``)
     """
     if required_columns is True:
         required_columns = set(columns)
@@ -227,20 +229,21 @@ def filter_stream(
         if "count" in compiled_filters and not compiled_filters["count"].match(count):
             continue
 
-        # test header key for failed matches before unpacking
-        if not bufr_filters.is_match(message, compiled_filters, required=False):
-            continue
+        if prefilter_headers:
+            # test header keys for failed matches before unpacking
+            if bufr_filters.is_match(message, compiled_filters, required=False):
+                continue
 
         message["skipExtraKeyAttributes"] = 1
         message["unpack"] = 1
 
         filtered_keys = filter_keys_cached(message, keys_cache, included_keys)
         if "count" in included_keys:
-            observaton = {"count": count}
+            observation = {"count": count}
         else:
-            observaton = {}
+            observation = {}
         for observation in extract_observations(
-            message, filtered_keys, compiled_filters, observaton,
+            message, filtered_keys, compiled_filters, observation,
         ):
             augmented_observation = add_computed_keys(observation, included_keys)
             data = {k: v for k, v in augmented_observation.items() if k in columns}
