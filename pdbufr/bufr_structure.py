@@ -193,7 +193,7 @@ def filter_stream(
     columns: T.Iterable[str],
     filters: T.Mapping[str, T.Any] = {},
     required_columns: T.Union[bool, T.Iterable[str]] = True,
-    prefilter_headers=False,
+    prefilter_headers: bool = False,
 ) -> T.Iterator[T.Dict[str, T.Any]]:
     """
     Iterate over selected observations from a eccodes.BurfFile.
