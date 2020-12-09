@@ -7,6 +7,6 @@ try:
 
     __all__ += ["read_bufr"]
 except ModuleNotFoundError:
-    pass
+    pass  # pragma: no cover
 
 __version__ = "0.8.3.dev0"
