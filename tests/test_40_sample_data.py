@@ -55,7 +55,7 @@ TEST_DATA_11 = os.path.join(SAMPLE_DATA_FOLDER, "aircraft_small.bufr")
 TEST_DATA_12 = os.path.join(SAMPLE_DATA_FOLDER, "syn_new.bufr")
 
 
-def test_read_bufr_one_subset_one_filters():
+def test_read_bufr_one_subset_one_filters() -> None:
     res = pdbufr.read_bufr(TEST_DATA_1, columns=("latitude",))
 
     assert isinstance(res, pd.DataFrame)
@@ -85,7 +85,7 @@ def test_read_bufr_one_subset_one_filters():
     assert len(res) == 2
 
 
-def test_read_bufr_one_subset_one_observation_data():
+def test_read_bufr_one_subset_one_observation_data() -> None:
     columns = (
         "count",
         "stationNumber",
@@ -115,7 +115,7 @@ def test_read_bufr_one_subset_one_observation_data():
     assert res.iloc[0].to_dict() == expected_first_row
 
 
-def test_read_bufr_multiple_uncompressed_subsets_one_observation():
+def test_read_bufr_multiple_uncompressed_subsets_one_observation() -> None:
     res = pdbufr.read_bufr(TEST_DATA_2, columns=("latitude",))
 
     assert isinstance(res, pd.DataFrame)
@@ -159,7 +159,7 @@ def test_read_bufr_multiple_uncompressed_subsets_one_observation():
     assert res.iloc[0].to_dict() == expected_first_row
 
 
-def test_read_bufr_one_subsets_multiple_observations_filters():
+def test_read_bufr_one_subsets_multiple_observations_filters() -> None:
     res = pdbufr.read_bufr(
         TEST_DATA_3, columns=("latitude",), filters={"stationNumber": 907}
     )
@@ -173,7 +173,7 @@ def test_read_bufr_one_subsets_multiple_observations_filters():
     assert len(res) == 425
 
 
-def test_read_bufr_one_subsets_multiple_observations_data():
+def test_read_bufr_one_subsets_multiple_observations_data() -> None:
     columns = [
         "stationNumber",
         "data_datetime",
@@ -212,7 +212,7 @@ def test_read_bufr_one_subsets_multiple_observations_data():
     assert res.iloc[:2].equals(expected_first_rows[res.columns])
 
 
-def test_read_bufr_multiple_compressed_subsets_multiple_observations_filters():
+def test_read_bufr_multiple_compressed_subsets_multiple_observations_filters() -> None:
     res = pdbufr.read_bufr(
         TEST_DATA_4, columns=("latitude",), filters={"hour": 11, "minute": 48}
     )
@@ -226,7 +226,7 @@ def test_read_bufr_multiple_compressed_subsets_multiple_observations_filters():
     assert len(res) == 616
 
 
-def test_read_bufr_multiple_compressed_subsets_multiple_observations_data():
+def test_read_bufr_multiple_compressed_subsets_multiple_observations_data() -> None:
     columns = [
         "data_datetime",
         "longitude",
@@ -258,7 +258,7 @@ def test_read_bufr_multiple_compressed_subsets_multiple_observations_data():
     assert res.iloc[0].to_dict() == expected_first_row
 
 
-def test_temp_single_station_1():
+def test_temp_single_station_1() -> None:
     columns = [
         "WMO_station_id",
         "stationNumber",
@@ -366,7 +366,7 @@ def test_temp_single_station_1():
     assert_frame_equal(res, expected[res.columns])
 
 
-def test_temp_single_station_2():
+def test_temp_single_station_2() -> None:
     columns = [
         "stationNumber",
         "longitude",
@@ -414,7 +414,7 @@ def test_temp_single_station_2():
     assert_frame_equal(res, expected[res.columns])
 
 
-def test_temp_single_station_3():
+def test_temp_single_station_3() -> None:
     columns = [
         "stationNumber",
         "data_datetime",
@@ -452,7 +452,7 @@ def test_temp_single_station_3():
     assert_frame_equal(res, ref)
 
 
-def test_tropicalcyclone_1():
+def test_tropicalcyclone_1() -> None:
     columns = ["data_datetime", "longitude", "latitude", "windSpeedAt10M"]
 
     expected = pd.DataFrame.from_dict(
@@ -488,7 +488,7 @@ def test_tropicalcyclone_1():
     assert_frame_equal(res[0:4], expected[0:4])
 
 
-def test_tropicalcyclone_2():
+def test_tropicalcyclone_2() -> None:
     columns = ["longitude", "latitude", "windSpeedAt10M"]
 
     expected = pd.DataFrame.from_dict(
@@ -617,7 +617,7 @@ def test_tropicalcyclone_2():
     assert_frame_equal(res, expected)
 
 
-def test_wave_1():
+def test_wave_1() -> None:
     columns = ["data_datetime", "longitude", "latitude", "significantWaveHeight"]
     expected_0 = pd.DataFrame.from_records(
         [
@@ -666,7 +666,7 @@ def test_wave_1():
     assert_frame_equal(res_end, expected_1)
 
 
-def test_ens_uncompressed():
+def test_ens_uncompressed() -> None:
     columns = [
         "longitude",
         "latitude",
@@ -690,7 +690,7 @@ def test_ens_uncompressed():
     assert_frame_equal(res[:2], ref[res.columns])
 
 
-def test_ens_compressed():
+def test_ens_compressed() -> None:
     columns = ["longitude", "latitude", "ensembleMemberNumber", "timePeriod", "cape"]
 
     res = pdbufr.read_bufr(
@@ -712,7 +712,7 @@ def test_ens_compressed():
     assert_frame_equal(res, ref[res.columns])
 
 
-def test_sat_compressed_1():
+def test_sat_compressed_1() -> None:
     columns = [
         "data_datetime",
         "latitude",
@@ -798,7 +798,7 @@ def assert_simple_key_core(path, param, key, key_value, ref, part=False):
         assert len(res) == ref_cnt
 
 
-def test_bufr_header():
+def test_bufr_header() -> None:
     ref = np.array([26, 302, 2835, 38, 30, 11, 567])
     assert_simple_key_core(TEST_DATA_10, "heightOfStation", "edition", 3, ref)
     assert_simple_key_core(TEST_DATA_10, "heightOfStation", "edition", 4, None)
@@ -832,7 +832,7 @@ def test_bufr_header():
     assert_simple_key_core(TEST_DATA_10, "heightOfStation", "rdbType", 1, None)
 
 
-def test_ident():
+def test_ident() -> None:
     assert_simple_key_core(
         TEST_DATA_10, "airTemperature", "ident", "91348", np.array([298.4]), part=True
     )
@@ -888,7 +888,7 @@ def assert_temp_profile_core(path, param, vert_sign_value, ref_param, ref_pressu
         np.allclose(res["pressure"], ref_pressure)
 
 
-def test_temp_profile():
+def test_temp_profile() -> None:
     assert_temp_profile_core(
         TEST_DATA_10,
         "airTemperature",
@@ -988,7 +988,7 @@ def assert_nested_coords_core(
         assert len(res) == ref_cnt
 
 
-def test_nested_coords():
+def test_nested_coords() -> None:
     # uncompressed
     assert_nested_coords_core(
         TEST_DATA_7,
@@ -1062,7 +1062,7 @@ def test_nested_coords():
     )
 
 
-def test_new_synop_data():
+def test_new_synop_data() -> None:
     columns_1 = (
         "stationNumber",
         "heightOfStationGroundAboveMeanSeaLevel",
