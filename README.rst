@@ -129,6 +129,7 @@ Lead developer:
 Main contributors:
 
 - `Sandor Kertesz <https://github.com/sandorkertesz>`_ - `ECMWF <https://ecmwf.int>`_
+- `Iain Russell <https://github.com/iainrussell>`_ - ECMWF
 
 See also the list of `contributors <https://github.com/ecmwf/pdbufr/contributors>`_ who participated in this project.
 

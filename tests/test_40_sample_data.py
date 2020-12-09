@@ -13,13 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import math
 import os
 import typing as T
 
 import numpy as np  # type: ignore
 import pandas as pd  # type: ignore
-from pandas.util.testing import assert_frame_equal  # type: ignore
+from pandas.testing import assert_frame_equal  # type: ignore
 
 import pdbufr
 
@@ -202,7 +201,7 @@ def test_read_bufr_one_subsets_multiple_observations_data():
                 "latitude": 53.75000000000001,
                 "heightOfStation": 302,
                 "pressure": 100000.0,
-                "airTemperature": math.nan,
+                "airTemperature": None,
             },
         ]
     )
@@ -333,7 +332,7 @@ def test_temp_single_station_1():
                 4,
             ],
             "airTemperature": [
-                math.nan,
+                None,
                 256.7,
                 255.10000000000002,
                 255.3,
@@ -394,7 +393,7 @@ def test_temp_single_station_2():
                 25000.0,
             ],
             "airTemperature": [
-                math.nan,
+                None,
                 255.3,
                 253.3,
                 241.9,
@@ -436,7 +435,7 @@ def test_temp_single_station_3():
         "data_datetime": [
             pd.Timestamp("2008-12-08 12:00:00"),
             pd.Timestamp("2008-12-08 12:00:00"),
-            ],
+        ],
     }
     ref = pd.DataFrame.from_dict(ref)
 
@@ -458,33 +457,17 @@ def test_tropicalcyclone_1():
 
     expected = pd.DataFrame.from_dict(
         {
-            "latitude": [
-                math.nan,
-                11.3,
-                12.7,
-                10.2,
-            ],
-            "longitude": [
-                math.nan,
-                -126.0,
-                -124.9,
-                -126,
-            ],
+            "latitude": [None, 11.3, 12.7, 10.2,],
+            "longitude": [None, -126.0, -124.9, -126,],
             "data_datetime": [
                 pd.Timestamp("2015-11-18 00:00:00"),
                 pd.Timestamp("2015-11-18 00:00:00"),
                 pd.Timestamp("2015-11-18 00:00:00"),
-                pd.Timestamp("2015-11-18 00:00:00")
+                pd.Timestamp("2015-11-18 00:00:00"),
             ],
-            "windSpeedAt10M": [
-                math.nan,
-                math.nan,
-                30.4,
-                math.nan,
-            ],
+            "windSpeedAt10M": [None, None, 30.4, None,],
         }
     )
-
 
     res = pdbufr.read_bufr(
         TEST_DATA_5,
@@ -514,7 +497,7 @@ def test_tropicalcyclone_2():
                 12.7,
                 13.0,
                 12.7,
-                math.nan,
+                None,
                 12.5,
                 12.2,
                 12.5,
@@ -531,26 +514,26 @@ def test_tropicalcyclone_2():
                 15.0,
                 14.4,
                 14.4,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
             ],
             "longitude": [
                 -124.9,
                 -125.5,
                 -125.2,
-                math.nan,
+                None,
                 -127.5,
                 -128.0,
                 -128.0,
@@ -567,26 +550,26 @@ def test_tropicalcyclone_2():
                 -128.9,
                 -129.4,
                 -127.5,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
             ],
             "windSpeedAt10M": [
                 30.4,
                 17.0,
                 16.5,
-                math.nan,
+                None,
                 16.5,
                 15.4,
                 14.9,
@@ -603,20 +586,20 @@ def test_tropicalcyclone_2():
                 11.8,
                 11.3,
                 11.3,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
-                math.nan,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
             ],
         }
     )
@@ -647,7 +630,7 @@ def test_wave_1():
             {
                 "latitude": -28.86667,
                 "longitude": 153.3833,
-                "significantWaveHeight": math.nan,
+                "significantWaveHeight": None,
                 "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
             },
             {
@@ -669,7 +652,7 @@ def test_wave_1():
             {
                 "latitude": -35.7,
                 "longitude": 150.3333,
-                "significantWaveHeight": math.nan,
+                "significantWaveHeight": None,
                 "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
             },
         ]
@@ -718,12 +701,7 @@ def test_ens_compressed():
 
     ref = {
         "latitude": [51.52, 51.52, 51.52, 51.52],
-        "longitude": [
-            0.97,
-            0.97,
-            0.97,
-            0.97,
-        ],
+        "longitude": [0.97, 0.97, 0.97, 0.97,],
         "ensembleMemberNumber": [2, 2, 5, 5],
         "timePeriod": [0, 24, 0, 24],
         "cape": [41.9, 0, 14.4, 0],
@@ -789,7 +767,6 @@ def test_sat_compressed_1():
     ref_2 = pd.DataFrame(expected_second_row, index=[1])
     ref_12 = pd.DataFrame(expected_12_row, index=[11])
     ref_13 = pd.DataFrame(expected_13_row, index=[12])
-
 
     res = pdbufr.read_bufr(
         TEST_DATA_8, columns=columns, filters={"firstOrderStatistics": 15}
