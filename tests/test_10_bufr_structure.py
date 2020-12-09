@@ -246,3 +246,28 @@ def test_extract_observations_complex() -> None:
     res = bufr_structure.extract_observations(message, filtered_keys, filters)
 
     assert list(res) == expected
+
+
+def test_extract_observations_subsets_simple() -> None:
+    message = {
+        "compressedData": 1,
+        "numberOfSubsets": 2,
+        "#1#pressure": [100, 90],
+        "#1#temperature": [300.0, eccodes.CODES_MISSING_DOUBLE],
+        "#1#pressure->code": "005002",
+    }
+    filtered_keys = list(bufr_structure.filter_keys(message))[:-1]
+    expected = [
+        {"compressedData": 1, "numberOfSubsets": 2, "pressure": 100, "temperature": 300.0},
+        {"compressedData": 1, "numberOfSubsets": 2, "pressure": 90, "temperature": None},
+    ]
+
+    res = bufr_structure.extract_observations(message, filtered_keys)
+
+    assert list(res) == expected
+
+    filters = {"pressure": bufr_filters.BufrFilter(slice(95, None))}
+
+    res = bufr_structure.extract_observations(message, filtered_keys, filters)
+
+    assert list(res) == expected[:1]
