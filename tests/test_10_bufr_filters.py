@@ -14,6 +14,8 @@ def test_BufrFilter_value() -> None:
     assert bufr_filters.BufrFilter.from_user(1).match(float("inf")) is False
     assert bufr_filters.BufrFilter.from_user(1).match(None) is False
 
+    assert bufr_filters.BufrFilter.from_user(1).max() == 1
+
 
 def test_BufrFilter_iterator() -> None:
     assert bufr_filters.BufrFilter.from_user([1, 2]).match(1) is True
@@ -22,6 +24,8 @@ def test_BufrFilter_iterator() -> None:
 
     assert bufr_filters.BufrFilter.from_user([1, 2]).match(False) is False
     assert bufr_filters.BufrFilter.from_user({1, 2}).match(float("inf")) is False
+
+    assert bufr_filters.BufrFilter.from_user({1, 2}).max() == 2
 
 
 def test_BufrFilter_slice() -> None:
@@ -33,6 +37,9 @@ def test_BufrFilter_slice() -> None:
 
     assert bufr_filters.BufrFilter.from_user(slice(1, None)).match(False) is False
     assert bufr_filters.BufrFilter.from_user(slice(1000.0)).match(float("inf")) is False
+
+    assert bufr_filters.BufrFilter.from_user(slice(1, None)).max() is None
+    assert bufr_filters.BufrFilter.from_user(slice(None, 1)).max() == 1
 
 
 def test_BufrFilter_range() -> None:
@@ -55,6 +62,8 @@ def test_BufrFilter_callable() -> None:
 
     assert bufr_filters.BufrFilter.from_user(lambda x: x > 0).match(0) is False
     assert bufr_filters.BufrFilter.from_user(lambda x: x > 0).match(-1) is False
+
+    assert bufr_filters.BufrFilter.from_user(lambda x: x > 0).max() is None
 
 
 def test_compile_filters() -> None:

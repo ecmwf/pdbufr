@@ -40,6 +40,14 @@ class BufrFilter:
             return False
         return True
 
+    def max(self):
+        if isinstance(self.filter, slice):
+            return self.filter.stop
+        elif callable(self.filter):
+            return None
+        else:
+            return max(self.filter)
+
 
 def compile_filters(filters: T.Dict[str, T.Any]) -> T.Dict[str, BufrFilter]:
     return {key: BufrFilter.from_user(filter) for key, filter in filters.items()}

@@ -223,9 +223,13 @@ def filter_stream(
         if computed_key in included_keys:
             included_keys |= set(keys)
 
+    if "count" in compiled_filters:
+        max_count = compiled_filters["count"].max()
+    else:
+        max_count = None
+
     keys_cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[BufrKey]] = {}
     for count, message in enumerate(bufr_file, 1):
-        # TODO: if `count` is greater than the maximum possible count `break`
         if "count" in compiled_filters and not compiled_filters["count"].match(count):
             continue
 
@@ -249,3 +253,7 @@ def filter_stream(
             data = {k: v for k, v in augmented_observation.items() if k in columns}
             if required_columns.issubset(data):
                 yield data
+
+        # optimisation: skip decoding messages above max_count
+        if max_count is not None and count >= max_count:
+            break
