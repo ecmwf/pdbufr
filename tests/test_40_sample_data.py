@@ -19,7 +19,6 @@ import typing as T
 
 import numpy as np  # type: ignore
 import pandas as pd  # type: ignore
-import pytest
 
 import pdbufr
 
@@ -449,7 +448,6 @@ def test_temp_single_station_3():
         assert np.allclose(res[k].values, ref[k])
 
 
-@pytest.mark.xfail
 def test_tropicalcyclone_1():
     columns = ["data_datetime", "longitude", "latitude", "windSpeedAt10M"]
 
@@ -1047,7 +1045,6 @@ def test_nested_coords():
     )
 
 
-@pytest.mark.xfail
 def test_new_synop_data():
     columns = (
         "stationNumber",
@@ -1095,11 +1092,13 @@ def test_new_synop_data():
         "airTemperature",
         "dewpointTemperature",
         "windDirection",
-        "windSpeed"
+        "windSpeed",
     )
     filters = {
         "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": slice(1, 20),
     }
-    res = pdbufr.read_bufr(TEST_DATA_12, columns=columns, filters=filters, required_columns=False)
+    res = pdbufr.read_bufr(
+        TEST_DATA_12, columns=columns, filters=filters, required_columns=False
+    )
 
     assert len(res) == 14
