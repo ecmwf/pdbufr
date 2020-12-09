@@ -253,7 +253,7 @@ def stream_bufr(
     elif isinstance(required_columns, T.Iterable):
         required_columns = set(required_columns)
     else:
-        raise ValueError("required_columns must be a bool or an iterable")
+        raise TypeError("required_columns must be a bool or an iterable")
     columns = list(columns)
     filters = dict(filters)
 
@@ -276,7 +276,7 @@ def stream_bufr(
 
         if prefilter_headers:
             # test header keys for failed matches before unpacking
-            if bufr_filters.is_match(message, compiled_filters, required=False):
+            if not bufr_filters.is_match(message, compiled_filters, required=False):
                 continue
 
         message["skipExtraKeyAttributes"] = 1
