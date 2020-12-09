@@ -1,6 +1,7 @@
 import typing as T
 
 import eccodes  # type: ignore
+import numpy as np  # type: ignore
 
 from pdbufr import bufr_filters, bufr_structure
 
@@ -252,14 +253,24 @@ def test_extract_observations_subsets_simple() -> None:
     message = {
         "compressedData": 1,
         "numberOfSubsets": 2,
-        "#1#pressure": [100, 90],
-        "#1#temperature": [300.0, eccodes.CODES_MISSING_DOUBLE],
+        "#1#pressure": np.array([100, 90]),
+        "#1#temperature": np.array([300.0, eccodes.CODES_MISSING_DOUBLE]),
         "#1#pressure->code": "005002",
     }
     filtered_keys = list(bufr_structure.filter_keys(message))[:-1]
     expected = [
-        {"compressedData": 1, "numberOfSubsets": 2, "pressure": 100, "temperature": 300.0},
-        {"compressedData": 1, "numberOfSubsets": 2, "pressure": 90, "temperature": None},
+        {
+            "compressedData": 1,
+            "numberOfSubsets": 2,
+            "pressure": 100,
+            "temperature": 300.0,
+        },
+        {
+            "compressedData": 1,
+            "numberOfSubsets": 2,
+            "pressure": 90,
+            "temperature": None,
+        },
     ]
 
     res = bufr_structure.extract_observations(message, filtered_keys)

@@ -156,7 +156,7 @@ def extract_observations(
             if bufr_key.key not in value_cache:
                 value_cache[bufr_key.key] = message[bufr_key.key]
             value = value_cache[bufr_key.key]
-            if isinstance(value, T.Sequence) and len(value) == subset_count:
+            if isinstance(value, np.ndarray) and len(value) == subset_count:
                 value = value[subset]
             if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
                 value = None
