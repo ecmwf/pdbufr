@@ -6,7 +6,7 @@ try:
     from .bufr_read import read_bufr
 
     __all__ += ["read_bufr"]
-except ModuleNotFoundError:
-    pass  # pragma: no cover
+except ModuleNotFoundError:  # pragma: no cover
+    pass
 
 __version__ = "0.9.0.dev0"
