@@ -26,7 +26,7 @@ import eccodes  # type: ignore
 import numpy as np  # type: ignore
 import pandas as pd  # type: ignore
 
-from . import bufr_filters
+from . import bufr_filters, bufr_structure
 
 LOG = logging.getLogger(__name__)
 
@@ -284,10 +284,6 @@ def filter_stream(
                         yield data
 
 
-# switch to the new engine based on bufr_structure
-from .bufr_structure import filter_stream
-
-
 def read_bufr(
     path: T.Union[str, bytes, "os.PathLike[T.Any]"],
     columns: T.Iterable[str],
@@ -304,5 +300,7 @@ def read_bufr(
         ``True`` means all ``columns`` are required
     """
     with eccodes.BufrFile(path) as bufr_file:
-        filtered_iterator = filter_stream(bufr_file, columns, filters, required_columns)
-        return pd.DataFrame.from_records(filtered_iterator)
+        observations = bufr_structure.filter_stream(
+            bufr_file, columns, filters, required_columns
+        )
+        return pd.DataFrame.from_records(observations)
