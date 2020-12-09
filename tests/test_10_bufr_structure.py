@@ -143,6 +143,22 @@ def test_filter_keys_cached() -> None:
     assert len(res) == 5
 
 
+def test_datetime_from_bufr() -> None:
+    obs = {"Y": 2020, "M": 3, "D": 18}
+
+    res = bufr_structure.datetime_from_bufr(obs, "", ["Y", "M", "D", "h", "m", "s"])
+
+    assert str(res) == "2020-03-18 00:00:00"
+
+
+def test_wmo_station_id_from_bufr() -> None:
+    res = bufr_structure.wmo_station_id_from_bufr(
+        {"b": "01", "s": "20"}, "", ["b", "s"]
+    )
+
+    assert res == 1020
+
+
 def test_extract_observations_simple() -> None:
     message = {
         "#1#pressure": 100,
@@ -282,3 +298,7 @@ def test_extract_observations_subsets_simple() -> None:
     res = bufr_structure.extract_observations(message, filtered_keys, filters)
 
     assert list(res) == expected[:1]
+
+
+def test_stream_bufr() -> None:
+    bufr_structure.stream_bufr
