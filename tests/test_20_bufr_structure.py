@@ -342,7 +342,7 @@ def test_stream_bufr() -> None:
     assert len(res) == 1
 
     with pytest.raises(TypeError):
-        list(bufr_structure.stream_bufr(messages, columns, required_columns=len))
+        list(bufr_structure.stream_bufr(messages, columns, required_columns=len))  # type: ignore
 
     res = list(bufr_structure.stream_bufr(messages, columns, filters={"count": 1}))
 
