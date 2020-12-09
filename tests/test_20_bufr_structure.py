@@ -2,6 +2,7 @@ import typing as T
 
 import eccodes  # type: ignore
 import numpy as np  # type: ignore
+import pytest
 
 from pdbufr import bufr_filters, bufr_structure
 
@@ -143,6 +144,22 @@ def test_filter_keys_cached() -> None:
     assert len(res) == 5
 
 
+def test_datetime_from_bufr() -> None:
+    obs = {"Y": 2020, "M": 3, "D": 18}
+
+    res = bufr_structure.datetime_from_bufr(obs, "", ["Y", "M", "D", "h", "m", "s"])
+
+    assert str(res) == "2020-03-18 00:00:00"
+
+
+def test_wmo_station_id_from_bufr() -> None:
+    res = bufr_structure.wmo_station_id_from_bufr(
+        {"b": "01", "s": "20"}, "", ["b", "s"]
+    )
+
+    assert res == 1020
+
+
 def test_extract_observations_simple() -> None:
     message = {
         "#1#pressure": 100,
@@ -282,3 +299,73 @@ def test_extract_observations_subsets_simple() -> None:
     res = bufr_structure.extract_observations(message, filtered_keys, filters)
 
     assert list(res) == expected[:1]
+
+
+def test_stream_bufr() -> None:
+    messages = [
+        {
+            "edition": 3,
+            "masterTableNumber": 0,
+            "numberOfSubsets": 1,
+            "unexpandedDescriptors": 0,
+            "blockNumber": 1,
+            "stationNumber": 128,
+        },
+        {
+            "edition": 4,
+            "masterTableNumber": 1,
+            "numberOfSubsets": 1,
+            "unexpandedDescriptors": 1,
+            "stationNumber": 129,
+        },
+    ]
+    columns = ["edition"]
+    expected = [{"edition": 3}, {"edition": 4}]
+    res = list(bufr_structure.stream_bufr(messages, columns))
+
+    assert len(res) == 2
+    assert res == expected
+
+    res = list(bufr_structure.stream_bufr(messages, columns, required_columns=False))
+
+    assert len(res) == 2
+    assert res == expected
+
+    res = list(
+        bufr_structure.stream_bufr(
+            messages,
+            ["blockNumber", "WMO_station_id"],
+            required_columns=["blockNumber"],
+        )
+    )
+
+    assert len(res) == 1
+
+    with pytest.raises(TypeError):
+        list(bufr_structure.stream_bufr(messages, columns, required_columns=len))  # type: ignore
+
+    res = list(bufr_structure.stream_bufr(messages, columns, filters={"count": 1}))
+
+    assert len(res) == 1
+    assert res == expected[:1]
+
+    res = list(bufr_structure.stream_bufr(messages, columns, filters={"count": 2}))
+
+    assert len(res) == 1
+    assert res == expected[1:]
+
+    res = list(
+        bufr_structure.stream_bufr(
+            messages, columns, filters={"edition": 3}, prefilter_headers=True
+        )
+    )
+
+    assert len(res) == 1
+    assert res == expected[:1]
+
+    expected_2 = [{"WMO_station_id": 1128}]
+
+    res = list(bufr_structure.stream_bufr(messages, ["WMO_station_id"],))
+
+    assert len(res) == 1
+    assert res == expected_2

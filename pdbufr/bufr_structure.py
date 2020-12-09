@@ -1,11 +1,12 @@
 import collections
+import datetime
 import typing as T
 
 import attr
 import eccodes  # type: ignore
 import numpy as np  # type: ignore
 
-from . import bufr_filters, bufr_read
+from . import bufr_filters
 
 
 @attr.attrs(auto_attribs=True, frozen=True)
@@ -110,6 +111,46 @@ def filter_keys_cached(
     return cache[filtered_message_uid]
 
 
+def datetime_from_bufr(observation, prefix, datetime_keys):
+    # type: (T.Dict[str, T.Any], str, T.List[str]) -> datetime.datetime
+    hours = observation.get(prefix + datetime_keys[3], 0)
+    minutes = observation.get(prefix + datetime_keys[4], 0)
+    seconds = observation.get(prefix + datetime_keys[5], 0.0)
+    microseconds = int(seconds * 1_000_000) % 1_000_000
+    datetime_list = [observation[prefix + k] for k in datetime_keys[:3]]
+    datetime_list += [hours, minutes, int(seconds), microseconds]
+    return datetime.datetime(*datetime_list)
+
+
+def wmo_station_id_from_bufr(observation, prefix, keys):
+    # type: (T.Dict[str, T.Any], str, T.List[str]) -> int
+    block_number = int(observation[prefix + keys[0]])
+    station_number = int(observation[prefix + keys[1]])
+    return block_number * 1000 + station_number
+
+
+COMPUTED_KEYS = [
+    (
+        ["year", "month", "day", "hour", "minute", "second"],
+        "data_datetime",
+        datetime_from_bufr,
+    ),
+    (
+        [
+            "typicalYear",
+            "typicalMonth",
+            "typicalDay",
+            "typicalHour",
+            "typicalMinute",
+            "typicalSecond",
+        ],
+        "typical_datetime",
+        datetime_from_bufr,
+    ),
+    (["blockNumber", "stationNumber"], "WMO_station_id", wmo_station_id_from_bufr),
+]
+
+
 def extract_observations(
     message: T.Mapping[str, T.Any],
     filtered_keys: T.List[BufrKey],
@@ -180,15 +221,18 @@ def add_computed_keys(
     observation: T.Dict[str, T.Any], included_keys: T.Container[str]
 ) -> T.Dict[str, T.Any]:
     augmented_observation = observation.copy()
-    for keys, computed_key, getter in bufr_read.COMPUTED_KEYS:
+    for keys, computed_key, getter in COMPUTED_KEYS:
         if computed_key not in included_keys:
             continue
-        computed_value = getter(observation, "", keys)
-        augmented_observation[computed_key] = computed_value
+        try:
+            computed_value = getter(observation, "", keys)
+            augmented_observation[computed_key] = computed_value
+        except Exception:
+            pass
     return augmented_observation
 
 
-def filter_stream(
+def stream_bufr(
     bufr_file: T.Iterable[T.MutableMapping[str, T.Any]],
     columns: T.Iterable[str],
     filters: T.Mapping[str, T.Any] = {},
@@ -212,14 +256,14 @@ def filter_stream(
     elif isinstance(required_columns, T.Iterable):
         required_columns = set(required_columns)
     else:
-        raise ValueError("required_columns must be a bool or an iterable")
+        raise TypeError("required_columns must be a bool or an iterable")
     columns = list(columns)
     filters = dict(filters)
 
     compiled_filters = bufr_filters.compile_filters(filters)
     included_keys = set(compiled_filters)
     included_keys |= set(columns)
-    for keys, computed_key, _ in bufr_read.COMPUTED_KEYS:
+    for keys, computed_key, _ in COMPUTED_KEYS:
         if computed_key in included_keys:
             included_keys |= set(keys)
 
@@ -235,7 +279,7 @@ def filter_stream(
 
         if prefilter_headers:
             # test header keys for failed matches before unpacking
-            if bufr_filters.is_match(message, compiled_filters, required=False):
+            if not bufr_filters.is_match(message, compiled_filters, required=False):
                 continue
 
         message["skipExtraKeyAttributes"] = 1
