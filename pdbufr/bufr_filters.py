@@ -20,6 +20,8 @@ class BufrFilter:
             self.filter = {user_filter}
 
     def match(self, value: T.Any) -> bool:
+        if value is None:
+            return False
         if isinstance(self.filter, slice):
             if self.filter.start is not None and value < self.filter.start:
                 return False
