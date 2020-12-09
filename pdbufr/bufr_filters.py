@@ -69,20 +69,3 @@ def is_match(
     if required and matches < len(compiled_filters):
         return False
     return True
-
-
-def match_compiled_filters(
-    message_items: T.Iterable[T.Tuple[str, str, T.Any]],
-    compiled_filters: T.Dict[str, BufrFilter],
-    required: bool = True,
-) -> bool:
-    seen = set()
-    for key, short_key, value in message_items:
-        if short_key in compiled_filters:
-            if not compiled_filters[short_key].match(value):
-                return False
-            else:
-                seen.add(short_key)
-    if required and len(seen) != len(compiled_filters):
-        return False
-    return True
