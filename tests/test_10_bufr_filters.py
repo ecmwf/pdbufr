@@ -12,6 +12,7 @@ def test_BufrFilter_value() -> None:
 
     assert bufr_filters.BufrFilter.from_user(1).match(False) is False
     assert bufr_filters.BufrFilter.from_user(1).match(float("inf")) is False
+    assert bufr_filters.BufrFilter.from_user(1).match(None) is False
 
 
 def test_BufrFilter_iterator() -> None:
