@@ -118,8 +118,8 @@ def datetime_from_bufr(observation, prefix, datetime_keys):
     seconds = observation.get(prefix + datetime_keys[5], 0.0)
     microseconds = int(seconds * 1_000_000) % 1_000_000
     datetime_list = [observation[prefix + k] for k in datetime_keys[:3]]
-    datetime_list += [hours, minutes, int(seconds)]
-    return datetime.datetime(*datetime_list, microsecond=microseconds)
+    datetime_list += [hours, minutes, int(seconds), microseconds]
+    return datetime.datetime(*datetime_list)
 
 
 def wmo_station_id_from_bufr(observation, prefix, keys):
