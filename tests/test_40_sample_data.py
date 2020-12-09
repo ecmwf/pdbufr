@@ -19,6 +19,7 @@ import typing as T
 
 import numpy as np  # type: ignore
 import pandas as pd  # type: ignore
+from pandas.util.testing import assert_frame_equal
 
 import pdbufr
 
@@ -99,7 +100,7 @@ def test_read_bufr_one_subset_one_observation_data():
     )
     expected_first_row = {
         "count": 1,
-        "stationNumber": 894.0,
+        "stationNumber": 894,
         "data_datetime": pd.Timestamp("2017-04-25 12:00:00"),
         "latitude": 49.43000000000001,
         "longitude": -2.6,
@@ -363,7 +364,7 @@ def test_temp_single_station_1():
 
     res = pdbufr.read_bufr(TEST_DATA_3, columns=columns, filters={"stationNumber": 823})
 
-    assert res.equals(expected[res.columns])
+    assert_frame_equal(res, expected[res.columns])
 
 
 def test_temp_single_station_2():
@@ -411,7 +412,7 @@ def test_temp_single_station_2():
         filters={"stationNumber": 823, "verticalSoundingSignificance": 32},
     )
 
-    assert res.equals(expected[res.columns])
+    assert_frame_equal(res, expected[res.columns])
 
 
 def test_temp_single_station_3():
@@ -432,7 +433,12 @@ def test_temp_single_station_3():
         "longitude": np.full(ref_num, -73.67),
         "pressure": [92500.0, 40000.0],
         "airTemperature": [255.3, 222.9],
+        "data_datetime": [
+            pd.Timestamp("2008-12-08 12:00:00"),
+            pd.Timestamp("2008-12-08 12:00:00"),
+            ],
     }
+    ref = pd.DataFrame.from_dict(ref)
 
     res = pdbufr.read_bufr(
         TEST_DATA_3,
@@ -444,12 +450,41 @@ def test_temp_single_station_3():
         },
     )
 
-    for k in ref.keys():
-        assert np.allclose(res[k].values, ref[k])
+    assert_frame_equal(res, ref)
 
 
 def test_tropicalcyclone_1():
     columns = ["data_datetime", "longitude", "latitude", "windSpeedAt10M"]
+
+    expected = pd.DataFrame.from_dict(
+        {
+            "latitude": [
+                math.nan,
+                11.3,
+                12.7,
+                10.2,
+            ],
+            "longitude": [
+                math.nan,
+                -126.0,
+                -124.9,
+                -126,
+            ],
+            "data_datetime": [
+                pd.Timestamp("2015-11-18 00:00:00"),
+                pd.Timestamp("2015-11-18 00:00:00"),
+                pd.Timestamp("2015-11-18 00:00:00"),
+                pd.Timestamp("2015-11-18 00:00:00")
+            ],
+            "windSpeedAt10M": [
+                math.nan,
+                math.nan,
+                30.4,
+                math.nan,
+            ],
+        }
+    )
+
 
     res = pdbufr.read_bufr(
         TEST_DATA_5,
@@ -467,6 +502,7 @@ def test_tropicalcyclone_1():
     )
 
     assert len(res) == 69
+    assert_frame_equal(res[0:4], expected[0:4])
 
 
 def test_tropicalcyclone_2():
@@ -475,15 +511,15 @@ def test_tropicalcyclone_2():
     expected = pd.DataFrame.from_dict(
         {
             "latitude": [
-                12.700000000000001,
+                12.7,
                 13.0,
-                12.700000000000001,
+                12.7,
                 math.nan,
                 12.5,
-                12.200000000000001,
+                12.2,
                 12.5,
-                12.700000000000001,
-                12.700000000000001,
+                12.7,
+                12.7,
                 14.1,
                 13.6,
                 14.1,
@@ -491,7 +527,7 @@ def test_tropicalcyclone_2():
                 13.9,
                 15.3,
                 15.0,
-                14.700000000000001,
+                14.7,
                 15.0,
                 14.4,
                 14.4,
@@ -518,7 +554,7 @@ def test_tropicalcyclone_2():
                 -127.5,
                 -128.0,
                 -128.0,
-                -126.60000000000001,
+                -126.6,
                 -128.3,
                 -126.0,
                 -128.9,
@@ -547,7 +583,7 @@ def test_tropicalcyclone_2():
                 math.nan,
             ],
             "windSpeedAt10M": [
-                30.400000000000002,
+                30.4,
                 17.0,
                 16.5,
                 math.nan,
@@ -595,7 +631,7 @@ def test_tropicalcyclone_2():
         },
     )
 
-    assert res.equals(expected[res.columns])
+    assert_frame_equal(res, expected)
 
 
 def test_wave_1():
@@ -603,19 +639,19 @@ def test_wave_1():
     expected_0 = pd.DataFrame.from_records(
         [
             {
-                "latitude": -28.866670000000003,
-                "longitude": 153.38333,
+                "latitude": -28.86667,
+                "longitude": 153.3833,
                 "significantWaveHeight": 2.34,
                 "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
             },
             {
-                "latitude": -28.866670000000003,
-                "longitude": 153.38333,
+                "latitude": -28.86667,
+                "longitude": 153.3833,
                 "significantWaveHeight": math.nan,
                 "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
             },
             {
-                "latitude": -30.366670000000003,
+                "latitude": -30.36667,
                 "longitude": 153.36667,
                 "significantWaveHeight": 1.72,
                 "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
@@ -626,13 +662,13 @@ def test_wave_1():
         [
             {
                 "latitude": -35.7,
-                "longitude": 150.33333000000002,
+                "longitude": 150.33333,
                 "significantWaveHeight": 1.7,
                 "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
             },
             {
                 "latitude": -35.7,
-                "longitude": 150.33333000000002,
+                "longitude": 150.3333,
                 "significantWaveHeight": math.nan,
                 "data_datetime": pd.Timestamp("2017-11-02 10:00:00"),
             },
@@ -640,10 +676,11 @@ def test_wave_1():
     )
 
     res = pdbufr.read_bufr(TEST_DATA_6, columns=columns)
-    assert len(res) == 72
+    res_end = res[70:].reset_index(drop=True)
 
-    assert res.iloc[:3].equals(expected_0[res.columns])
-    assert res.iloc[70:].reset_index(drop=True).equals(expected_1[res.columns])
+    assert len(res) == 72
+    assert_frame_equal(res[:3], expected_0)
+    assert_frame_equal(res_end, expected_1)
 
 
 def test_ens_uncompressed():
@@ -659,16 +696,15 @@ def test_ens_uncompressed():
 
     ref = {
         "latitude": [51.52, 51.52],
-        "longitude": [0.9700000000000001, 0.9700000000000001],
+        "longitude": [0.97, 0.97],
         "ensembleMemberNumber": [0, 0],
         "timePeriod": [0, 6],
         "airTemperatureAt2M": [292.7, 291.6],
     }
+    ref = pd.DataFrame.from_dict(ref)
 
     assert len(res) == 3111
-
-    for k in ref.keys():
-        assert np.allclose(res[k].values[0:2], ref[k])
+    assert_frame_equal(res[:2], ref[res.columns])
 
 
 def test_ens_compressed():
@@ -683,20 +719,19 @@ def test_ens_compressed():
     ref = {
         "latitude": [51.52, 51.52, 51.52, 51.52],
         "longitude": [
-            0.9700000000000001,
-            0.9700000000000001,
-            0.9700000000000001,
-            0.9700000000000001,
+            0.97,
+            0.97,
+            0.97,
+            0.97,
         ],
         "ensembleMemberNumber": [2, 2, 5, 5],
         "timePeriod": [0, 24, 0, 24],
         "cape": [41.9, 0, 14.4, 0],
     }
+    ref = pd.DataFrame.from_dict(ref)
 
     assert len(res) == 4
-
-    for k in ref.keys():
-        assert np.allclose(res[k].values[0:4], ref[k])
+    assert_frame_equal(res, ref[res.columns])
 
 
 def test_sat_compressed_1():
@@ -712,30 +747,30 @@ def test_sat_compressed_1():
 
     expected_first_row = {
         "data_datetime": pd.Timestamp("2015-08-21 01:59:05"),
-        "latitude": -44.833890000000004,
-        "longitude": 171.16350000000003,
+        "latitude": -44.83389,
+        "longitude": 171.1635,
         "nonCoordinateLatitude": -44.82399,
-        "nonCoordinateLongitude": 171.05569000000003,
+        "nonCoordinateLongitude": 171.05569,
         "nonCoordinatePressure": 8555.0,
         "significandOfVolumetricMixingRatio": 8531573,
     }
 
     expected_second_row = {
         "data_datetime": pd.Timestamp("2015-08-21 01:59:05"),
-        "latitude": -44.833890000000004,
-        "longitude": 171.16350000000003,
+        "latitude": -44.83389,
+        "longitude": 171.1635,
         "nonCoordinateLatitude": -44.82399,
-        "nonCoordinateLongitude": 171.05569000000003,
-        "nonCoordinatePressure": 17100.100000000002,
+        "nonCoordinateLongitude": 171.05569,
+        "nonCoordinatePressure": 17100.1,
         "significandOfVolumetricMixingRatio": 8486850,
     }
 
     expected_12_row = {
         "data_datetime": pd.Timestamp("2015-08-21 01:59:05"),
-        "latitude": -44.833890000000004,
-        "longitude": 171.16350000000003,
+        "latitude": -44.83389,
+        "longitude": 171.1635,
         "nonCoordinateLatitude": -44.82399,
-        "nonCoordinateLongitude": 171.05569000000003,
+        "nonCoordinateLongitude": 171.05569,
         "nonCoordinatePressure": 102550.5,
         "significandOfVolumetricMixingRatio": 6018766,
     }
@@ -743,23 +778,28 @@ def test_sat_compressed_1():
     expected_13_row = {
         "data_datetime": pd.Timestamp("2015-08-21 01:59:06"),
         "latitude": -44.77121,
-        "longitude": 171.15150000000003,
-        "nonCoordinateLatitude": -44.761320000000005,
+        "longitude": 171.1515,
+        "nonCoordinateLatitude": -44.76132,
         "nonCoordinateLongitude": 171.04379,
         "nonCoordinatePressure": 8556.9,
         "significandOfVolumetricMixingRatio": 8533734,
     }
+
+    ref_1 = pd.DataFrame(expected_first_row, index=[0])
+    ref_2 = pd.DataFrame(expected_second_row, index=[1])
+    ref_12 = pd.DataFrame(expected_12_row, index=[11])
+    ref_13 = pd.DataFrame(expected_13_row, index=[12])
+
 
     res = pdbufr.read_bufr(
         TEST_DATA_8, columns=columns, filters={"firstOrderStatistics": 15}
     )
 
     assert len(res) == 128 * 12 * 3
-
-    assert res.iloc[0].to_dict() == expected_first_row
-    assert res.iloc[1].to_dict() == expected_second_row
-    assert res.iloc[11].to_dict() == expected_12_row
-    assert res.iloc[12].to_dict() == expected_13_row
+    assert_frame_equal(res[0:1], ref_1[res.columns])
+    assert_frame_equal(res[1:2], ref_2[res.columns])
+    assert_frame_equal(res[11:12], ref_12[res.columns])
+    assert_frame_equal(res[12:13], ref_13[res.columns])
 
 
 def assert_simple_key_core(path, param, key, key_value, ref, part=False):
@@ -1055,15 +1095,15 @@ def test_new_synop_data():
     )
 
     expected_first_row = {
-        "stationNumber": 948.0,
+        "stationNumber": 948,
         "heightOfStationGroundAboveMeanSeaLevel": 91.0,
         "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 1.5,
         "airTemperature": 300.45,
-        "dewpointTemperature": 295.15000000000003,
+        "dewpointTemperature": 295.15,
     }
 
     expected_second_row = {
-        "stationNumber": 766.0,
+        "stationNumber": 766,
         "heightOfStationGroundAboveMeanSeaLevel": 748.1,
         "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 2,
         "airTemperature": 269.25,
@@ -1071,19 +1111,19 @@ def test_new_synop_data():
     }
 
     expected_third_row = {
-        "stationNumber": 257.0,
+        "stationNumber": 257,
         "heightOfStationGroundAboveMeanSeaLevel": 3950.0,
         "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 1.5,
         "airTemperature": 276.35,
         "dewpointTemperature": 263.05,
     }
 
+    ref = pd.DataFrame([expected_first_row, expected_second_row, expected_third_row])
+
     res = pdbufr.read_bufr(TEST_DATA_12, columns=columns)
 
     assert len(res) == 3
-    assert res.iloc[0].to_dict() == expected_first_row
-    assert res.iloc[1].to_dict() == expected_second_row
-    assert res.iloc[2].to_dict() == expected_third_row
+    assert_frame_equal(res, ref[res.columns])
 
     columns = (
         "stationNumber",
