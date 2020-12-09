@@ -1084,3 +1084,19 @@ def test_new_synop_data():
     assert res.iloc[0].to_dict() == expected_first_row
     assert res.iloc[1].to_dict() == expected_second_row
     assert res.iloc[2].to_dict() == expected_third_row
+
+    columns = (
+        "stationNumber",
+        "heightOfStationGroundAboveMeanSeaLevel",
+        "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
+        "airTemperature",
+        "dewpointTemperature",
+        "windDirection",
+        "windSpeed"
+    )
+    filters = {
+        "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": slice(1, 20),
+    }
+    res = pdbufr.read_bufr(TEST_DATA_12, columns=columns, filters=filters, required_columns=False)
+
+    assert len(res) == 14
