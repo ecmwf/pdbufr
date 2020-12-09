@@ -457,15 +457,15 @@ def test_tropicalcyclone_1():
 
     expected = pd.DataFrame.from_dict(
         {
-            "latitude": [None, 11.3, 12.7, 10.2,],
-            "longitude": [None, -126.0, -124.9, -126,],
+            "latitude": [None, 11.3, 12.7, 10.2],
+            "longitude": [None, -126.0, -124.9, -126],
             "data_datetime": [
                 pd.Timestamp("2015-11-18 00:00:00"),
                 pd.Timestamp("2015-11-18 00:00:00"),
                 pd.Timestamp("2015-11-18 00:00:00"),
                 pd.Timestamp("2015-11-18 00:00:00"),
             ],
-            "windSpeedAt10M": [None, None, 30.4, None,],
+            "windSpeedAt10M": [None, None, 30.4, None],
         }
     )
 
@@ -701,7 +701,7 @@ def test_ens_compressed():
 
     ref = {
         "latitude": [51.52, 51.52, 51.52, 51.52],
-        "longitude": [0.97, 0.97, 0.97, 0.97,],
+        "longitude": [0.97, 0.97, 0.97, 0.97],
         "ensembleMemberNumber": [2, 2, 5, 5],
         "timePeriod": [0, 24, 0, 24],
         "cape": [41.9, 0, 14.4, 0],

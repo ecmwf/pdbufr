@@ -316,7 +316,6 @@ def test_stream_bufr() -> None:
             "masterTableNumber": 1,
             "numberOfSubsets": 1,
             "unexpandedDescriptors": 1,
-            "blockNumber": 1,
             "stationNumber": 129,
         },
     ]
@@ -332,9 +331,15 @@ def test_stream_bufr() -> None:
     assert len(res) == 2
     assert res == expected
 
-    res = list(bufr_structure.stream_bufr(messages, columns, required_columns="masterTableNumber"))
+    res = list(
+        bufr_structure.stream_bufr(
+            messages,
+            ["blockNumber", "WMO_station_id"],
+            required_columns=["blockNumber"],
+        )
+    )
 
-    assert len(res) == 0
+    assert len(res) == 1
 
     with pytest.raises(TypeError):
         list(bufr_structure.stream_bufr(messages, columns, required_columns=len))
@@ -349,14 +354,18 @@ def test_stream_bufr() -> None:
     assert len(res) == 1
     assert res == expected[1:]
 
-    res = list(bufr_structure.stream_bufr(messages, columns, filters={"edition": 3}, prefilter_headers=True))
+    res = list(
+        bufr_structure.stream_bufr(
+            messages, columns, filters={"edition": 3}, prefilter_headers=True
+        )
+    )
 
     assert len(res) == 1
     assert res == expected[:1]
 
-    expected_2 = [{"WMO_station_id": 1128}, {"WMO_station_id": 1129}]
+    expected_2 = [{"WMO_station_id": 1128}]
 
     res = list(bufr_structure.stream_bufr(messages, ["WMO_station_id"],))
 
-    assert len(res) == 2
+    assert len(res) == 1
     assert res == expected_2

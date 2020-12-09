@@ -6,7 +6,7 @@ import attr
 import eccodes  # type: ignore
 import numpy as np  # type: ignore
 
-from . import bufr_filters, bufr_read
+from . import bufr_filters
 
 
 @attr.attrs(auto_attribs=True, frozen=True)
@@ -112,7 +112,7 @@ def filter_keys_cached(
 
 
 def datetime_from_bufr(observation, prefix, datetime_keys):
-    # type: (T.Dict[str, T.Any], str, T.List[str]) -> pd.Timestamp
+    # type: (T.Dict[str, T.Any], str, T.List[str]) -> datetime.datetime
     hours = observation.get(prefix + datetime_keys[3], 0)
     minutes = observation.get(prefix + datetime_keys[4], 0)
     seconds = observation.get(prefix + datetime_keys[5], 0.0)
@@ -224,8 +224,11 @@ def add_computed_keys(
     for keys, computed_key, getter in COMPUTED_KEYS:
         if computed_key not in included_keys:
             continue
-        computed_value = getter(observation, "", keys)
-        augmented_observation[computed_key] = computed_value
+        try:
+            computed_value = getter(observation, "", keys)
+            augmented_observation[computed_key] = computed_value
+        except Exception:
+            pass
     return augmented_observation
 
 
