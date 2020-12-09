@@ -19,7 +19,7 @@ import typing as T
 
 import numpy as np  # type: ignore
 import pandas as pd  # type: ignore
-from pandas.util.testing import assert_frame_equal
+from pandas.util.testing import assert_frame_equal  # type: ignore
 
 import pdbufr
 
@@ -1086,7 +1086,7 @@ def test_nested_coords():
 
 
 def test_new_synop_data():
-    columns = (
+    columns_1 = (
         "stationNumber",
         "heightOfStationGroundAboveMeanSeaLevel",
         "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
@@ -1120,12 +1120,12 @@ def test_new_synop_data():
 
     ref = pd.DataFrame([expected_first_row, expected_second_row, expected_third_row])
 
-    res = pdbufr.read_bufr(TEST_DATA_12, columns=columns)
+    res = pdbufr.read_bufr(TEST_DATA_12, columns=columns_1)
 
     assert len(res) == 3
     assert_frame_equal(res, ref[res.columns])
 
-    columns = (
+    columns_2 = (
         "stationNumber",
         "heightOfStationGroundAboveMeanSeaLevel",
         "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
@@ -1138,7 +1138,7 @@ def test_new_synop_data():
         "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": slice(1, 20),
     }
     res = pdbufr.read_bufr(
-        TEST_DATA_12, columns=columns, filters=filters, required_columns=False
+        TEST_DATA_12, columns=columns_2, filters=filters, required_columns=False
     )
 
     assert len(res) == 14

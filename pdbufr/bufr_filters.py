@@ -40,7 +40,7 @@ class BufrFilter:
             return False
         return True
 
-    def max(self):
+    def max(self) -> T.Any:
         if isinstance(self.filter, slice):
             return self.filter.stop
         elif callable(self.filter):
