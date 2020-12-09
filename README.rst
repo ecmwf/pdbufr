@@ -1,18 +1,17 @@
 
 Pandas reader for the BUFR format using ecCodes.
 
-Features with development status **Alpha**:
+Features with development status **Beta**:
 
 - extracts observations from a BUFR file as a Pandas DataFrame,
 - reads BUFR 3 and 4 files with uncompressed and compressed subsets,
 - supports all modern versions of Python 3.9, 3.8, 3.7, 3.6 and PyPy3,
-- works on Linux, MacOS and Windows, the ecCodes C-library is the only binary dependency.
+- works on Linux, MacOS and Windows, the ecCodes C-library is the only binary dependency,
+- sports a rich filtering engine.
 
 Limitations:
 
-- no special handling of nodata values (yet),
-- no conda-forge package (yet),
-- filters only match exact values.
+- no conda-forge package (yet).
 
 Installation
 ============
