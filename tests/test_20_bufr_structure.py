@@ -2,6 +2,7 @@ import typing as T
 
 import eccodes  # type: ignore
 import numpy as np  # type: ignore
+import pytest
 
 from pdbufr import bufr_filters, bufr_structure
 
@@ -301,4 +302,61 @@ def test_extract_observations_subsets_simple() -> None:
 
 
 def test_stream_bufr() -> None:
-    bufr_structure.stream_bufr
+    messages = [
+        {
+            "edition": 3,
+            "masterTableNumber": 0,
+            "numberOfSubsets": 1,
+            "unexpandedDescriptors": 0,
+            "blockNumber": 1,
+            "stationNumber": 128,
+        },
+        {
+            "edition": 4,
+            "masterTableNumber": 1,
+            "numberOfSubsets": 1,
+            "unexpandedDescriptors": 1,
+            "blockNumber": 1,
+            "stationNumber": 129,
+        },
+    ]
+    columns = ["edition"]
+    expected = [{"edition": 3}, {"edition": 4}]
+    res = list(bufr_structure.stream_bufr(messages, columns))
+
+    assert len(res) == 2
+    assert res == expected
+
+    res = list(bufr_structure.stream_bufr(messages, columns, required_columns=False))
+
+    assert len(res) == 2
+    assert res == expected
+
+    res = list(bufr_structure.stream_bufr(messages, columns, required_columns="masterTableNumber"))
+
+    assert len(res) == 0
+
+    with pytest.raises(TypeError):
+        list(bufr_structure.stream_bufr(messages, columns, required_columns=len))
+
+    res = list(bufr_structure.stream_bufr(messages, columns, filters={"count": 1}))
+
+    assert len(res) == 1
+    assert res == expected[:1]
+
+    res = list(bufr_structure.stream_bufr(messages, columns, filters={"count": 2}))
+
+    assert len(res) == 1
+    assert res == expected[1:]
+
+    res = list(bufr_structure.stream_bufr(messages, columns, filters={"edition": 3}, prefilter_headers=True))
+
+    assert len(res) == 1
+    assert res == expected[:1]
+
+    expected_2 = [{"WMO_station_id": 1128}, {"WMO_station_id": 1129}]
+
+    res = list(bufr_structure.stream_bufr(messages, ["WMO_station_id"],))
+
+    assert len(res) == 2
+    assert res == expected_2
