@@ -1,0 +1,8 @@
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - attrs
+  - eccodes=>2.19.0
+  - python-eccodes
+  - numpy
