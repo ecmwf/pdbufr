@@ -36,7 +36,7 @@ class BufrKey:
 IS_KEY_COORD = {"subsetNumber": True, "operator": False}
 
 
-def message_structure(message: T.Mapping[str, T.Any],) -> T.Iterator[T.Tuple[int, str]]:
+def message_structure(message: T.Mapping[str, T.Any]) -> T.Iterator[T.Tuple[int, str]]:
     level = 0
     coords: T.Dict[str, int] = collections.OrderedDict()
     for key in message:
@@ -197,9 +197,14 @@ def extract_observations(
             if bufr_key.key not in value_cache:
                 value_cache[bufr_key.key] = message[bufr_key.key]
             value = value_cache[bufr_key.key]
+
+            # unpack compressed BUFR values
             if isinstance(value, np.ndarray) and len(value) == subset_count:
-                value = value[subset]
+                value = value[subset].item()
+
             if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
+                value = None
+            elif isinstance(value, int) and value == eccodes.CODES_MISSING_LONG:
                 value = None
 
             if name in filters:
