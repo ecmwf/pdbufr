@@ -17,8 +17,10 @@ import os
 import typing as T
 
 import numpy as np  # type: ignore
-import pandas as pd  # type: ignore
-from pandas.testing import assert_frame_equal  # type: ignore
+import pytest
+
+pd = pytest.importorskip("pandas")
+assert_frame_equal = pd.testing.assert_frame_equal
 
 import pdbufr
 
