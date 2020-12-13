@@ -164,7 +164,7 @@ def test_extract_observations_simple() -> None:
     message = {
         "#1#pressure": 100,
         "#1#temperature": 300.0,
-        "#2#pressure": 90,
+        "#2#pressure": eccodes.CODES_MISSING_LONG,
         "#2#temperature": eccodes.CODES_MISSING_DOUBLE,
         "#1#pressure->code": "005002",
         "#2#pressure->code": "005002",
@@ -172,7 +172,7 @@ def test_extract_observations_simple() -> None:
     filtered_keys = list(bufr_structure.filter_keys(message))[:-2]
     expected = [
         {"pressure": 100, "temperature": 300.0},
-        {"pressure": 90, "temperature": None},
+        {"pressure": None, "temperature": None},
     ]
 
     res = bufr_structure.extract_observations(message, filtered_keys)
