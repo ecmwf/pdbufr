@@ -49,10 +49,6 @@ class BufrFilter:
             return max(self.filter)
 
 
-def compile_filters(filters: T.Dict[str, T.Any]) -> T.Dict[str, BufrFilter]:
-    return {key: BufrFilter.from_user(filter) for key, filter in filters.items()}
-
-
 def is_match(
     message: T.Mapping[str, T.Any],
     compiled_filters: T.Dict[str, BufrFilter],

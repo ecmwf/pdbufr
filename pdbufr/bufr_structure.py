@@ -265,26 +265,26 @@ def stream_bufr(
     columns = list(columns)
     filters = dict(filters)
 
-    compiled_filters = bufr_filters.compile_filters(filters)
-    included_keys = set(compiled_filters)
+    value_filters = {k: bufr_filters.BufrFilter.from_user(filters[k]) for k in filters}
+    included_keys = set(value_filters)
     included_keys |= set(columns)
     for keys, computed_key, _ in COMPUTED_KEYS:
         if computed_key in included_keys:
             included_keys |= set(keys)
 
-    if "count" in compiled_filters:
-        max_count = compiled_filters["count"].max()
+    if "count" in value_filters:
+        max_count = value_filters["count"].max()
     else:
         max_count = None
 
     keys_cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[BufrKey]] = {}
     for count, message in enumerate(bufr_file, 1):
-        if "count" in compiled_filters and not compiled_filters["count"].match(count):
+        if "count" in value_filters and not value_filters["count"].match(count):
             continue
 
         if prefilter_headers:
             # test header keys for failed matches before unpacking
-            if not bufr_filters.is_match(message, compiled_filters, required=False):
+            if not bufr_filters.is_match(message, value_filters, required=False):
                 continue
 
         message["skipExtraKeyAttributes"] = 1
@@ -296,7 +296,7 @@ def stream_bufr(
         else:
             observation = {}
         for observation in extract_observations(
-            message, filtered_keys, compiled_filters, observation,
+            message, filtered_keys, value_filters, observation,
         ):
             augmented_observation = add_computed_keys(observation, included_keys)
             data = {k: v for k, v in augmented_observation.items() if k in columns}

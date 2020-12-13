@@ -66,20 +66,6 @@ def test_BufrFilter_callable() -> None:
     assert bufr_filters.BufrFilter.from_user(lambda x: x > 0).max() is None
 
 
-def test_compile_filters() -> None:
-    user_filters = {
-        "station": 234,
-        "level": range(1, 12),
-        "height": slice(1.5, 2.1),
-    }
-
-    res = bufr_filters.compile_filters(user_filters)
-
-    assert isinstance(res, dict)
-    assert set(res) == set(user_filters)
-    assert all(isinstance(r, bufr_filters.BufrFilter) for r in res.values())
-
-
 def test_is_match() -> None:
     compile_filters = {
         "station": bufr_filters.BufrFilter({234}),
