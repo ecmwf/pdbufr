@@ -79,7 +79,7 @@ jobs:
     - name: Type check with mypy
       shell: bash -l {0}
       run: |
-        conda install mypy
+        conda install mypy pytest
         mypy --strict .
 
   code-style:
