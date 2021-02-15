@@ -254,6 +254,10 @@ def stream_bufr(
         ``True`` means all ``columns`` are required (default ``True``)
     :param prefilter_headers: filter the header keys before unpacking the data section (default ``False``)
     """
+
+    if isinstance(columns, str):
+        columns = (columns,)
+
     if required_columns is True:
         required_columns = set(columns)
     elif required_columns is False:
@@ -262,7 +266,7 @@ def stream_bufr(
         required_columns = set(required_columns)
     else:
         raise TypeError("required_columns must be a bool or an iterable")
-    columns = list(columns)
+
     filters = dict(filters)
 
     value_filters = {k: bufr_filters.BufrFilter.from_user(filters[k]) for k in filters}

@@ -1,5 +1,5 @@
 #
-# Copyright 2019 European Centre for Medium-Range Weather Forecasts (ECMWF).
+# Copyright 2021 European Centre for Medium-Range Weather Forecasts (ECMWF).
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -66,6 +66,12 @@ def test_read_bufr_one_subset_one_filters() -> None:
 
     res = pdbufr.read_bufr(
         TEST_DATA_1, columns=("latitude",), filters={"rdbtimeTime": "115557"}
+    )
+
+    assert len(res) == 6
+
+    res = pdbufr.read_bufr(
+        TEST_DATA_1, columns=("latitude"), filters={"rdbtimeTime": "115557"}
     )
 
     assert len(res) == 6
