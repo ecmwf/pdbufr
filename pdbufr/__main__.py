@@ -1,5 +1,5 @@
 #
-# Copyright 2019 European Centre for Medium-Range Weather Forecasts (ECMWF).
+# Copyright 2021 European Centre for Medium-Range Weather Forecasts (ECMWF).
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 import argparse
 import typing as T
 
-from . import bufr_structure
+import eccodes  # type: ignore
 
 
 def main(argv: T.Optional[T.List[str]] = None) -> None:
@@ -28,7 +28,7 @@ def main(argv: T.Optional[T.List[str]] = None) -> None:
     parser.add_argument("command")
     args = parser.parse_args(args=argv)
     if args.command == "selfcheck":
-        print("Found: ecCodes v%s." % bufr_structure.eccodes.codes_get_api_version())
+        print("Found: ecCodes v%s." % eccodes.codes_get_api_version())
         print("Your system is ready.")
     else:
         raise RuntimeError(
