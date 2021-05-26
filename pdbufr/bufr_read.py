@@ -24,7 +24,7 @@ import eccodes  # type: ignore
 import pandas as pd  # type: ignore
 
 from . import bufr_structure
-from .high_level_bufr.bufr import BufrFile
+from .high_level_bufr.bufr import BufrFile  # type: ignore
 
 
 def read_bufr(
