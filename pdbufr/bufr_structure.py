@@ -62,7 +62,8 @@ def message_structure(message: T.Mapping[str, T.Any]) -> T.Iterator[T.Tuple[int,
 
 
 def filter_keys(
-    message: T.Mapping[str, T.Any], include: T.Container[str] = (),
+    message: T.Mapping[str, T.Any],
+    include: T.Container[str] = (),
 ) -> T.Iterator[BufrKey]:
     for level, key in message_structure(message):
         bufr_key = BufrKey.from_level_key(level, key)
@@ -300,7 +301,10 @@ def stream_bufr(
         else:
             observation = {}
         for observation in extract_observations(
-            message, filtered_keys, value_filters, observation,
+            message,
+            filtered_keys,
+            value_filters,
+            observation,
         ):
             augmented_observation = add_computed_keys(observation, included_keys)
             data = {k: v for k, v in augmented_observation.items() if k in columns}
