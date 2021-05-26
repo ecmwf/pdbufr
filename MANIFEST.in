@@ -2,7 +2,7 @@ include *.bufr
 include *.yml
 include LICENSE
 include Makefile
-include mypi.ini
+include mypy.ini
 recursive-include tests *.bufr
 recursive-include tests *.py
 recursive-include tests *.yml
