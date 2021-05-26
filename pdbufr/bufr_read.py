@@ -23,8 +23,8 @@ import typing as T
 import eccodes  # type: ignore
 import pandas as pd  # type: ignore
 
-from .high_level_bufr.bufr import BufrFile
 from . import bufr_structure
+from .high_level_bufr.bufr import BufrFile
 
 
 def read_bufr(
