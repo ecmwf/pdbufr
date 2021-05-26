@@ -24,7 +24,7 @@ import eccodes  # type: ignore
 import pandas as pd  # type: ignore
 
 from . import bufr_structure
-from .high_level_bufr.bufr import BufrFile  # type: ignore
+from .high_level_bufr.bufr import BufrFile
 
 
 def read_bufr(
@@ -42,7 +42,7 @@ def read_bufr(
     :param required_columns: The list BUFR keys that are required for all observations.
         ``True`` means all ``columns`` are required
     """
-    with BufrFile(path) as bufr_file:
+    with BufrFile(path) as bufr_file:  # type: ignore
         observations = bufr_structure.stream_bufr(
             bufr_file, columns, filters, required_columns
         )
