@@ -1,3 +1,8 @@
+pdbufr
+======
+
+.. image:: https://img.shields.io/pypi/v/pdbufr.svg
+   :target: https://pypi.python.org/pypi/pdbufr/
 
 Pandas reader for the BUFR format using ecCodes.
 
