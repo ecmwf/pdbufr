@@ -14,6 +14,7 @@ import attr
 import eccodes  # type: ignore
 import numpy as np  # type: ignore
 
+from shapely.geometry import Point
 from . import bufr_filters
 
 
@@ -135,7 +136,58 @@ def wmo_station_id_from_bufr(observation, prefix, keys):
     block_number = int(observation[prefix + keys[0]])
     station_number = int(observation[prefix + keys[1]])
     return block_number * 1000 + station_number
+    
+def wmo_station_position_from_bufr(observation, prefix, keys):
+    # type: (T.Dict[str, T.Any], str, T.List[str]) -> Point
+    longitude = float(observation[prefix + keys[0]]) # easting (X)
+    latitude = float(observation[prefix + keys[1]]) # northing (Y)
+    heightOfStationGroundAboveMeanSeaLevel = float(observation.get(prefix + keys[2], 0.0))
+    return Point([longitude,latitude,heightOfStationGroundAboveMeanSeaLevel]) 
 
+def CRS_from_bufr(observation, prefix, keys):
+    # type: (T.Dict[str, T.Any], str, T.List[str]) -> str
+    bufr_CRS = int(observation.get(prefix + keys[0], 0))
+    if bufr_CRS == 0:
+        CRS = "EPSG:4326" # WGS84
+    elif bufr_CRS == 1:
+        CRS = "EPSG:4258" # ETRS89
+    elif bufr_CRS == 2:
+        CRS = "EPSG:4269" # NAD83
+    elif bufr_CRS == 3:
+        CRS = "EPSG:4314" # DHDN
+    elif bufr_CRS == 4:
+        """
+        Ellipsoidal datum using the International Reference Meridian and the International
+        Reference Pole as the prime meridian and prime pole, respectively, and the origin
+        of the International Terrestrial Reference System (ITRS) (see Note 2). The
+        International Reference Meridian, International Reference Pole and ITRS are
+        maintained by the International Earth Rotation and Reference Systems
+        Service (IERS)
+        
+        (2) When Code figure 4 is used to specify a custom coordinate reference system, the ellipsoidal
+            datum shall be an oblate ellipsoid of revolution, where the major axis is uniplanar with the
+            equatorial plane and the minor axis traverses the prime meridian towards the prime pole.
+            North corresponds to the direction from the Equator to the prime pole. East corresponds to
+            the counterclockwise direction from the prime meridian as viewed from above the North Pole.
+            In this case, the semi-major and semi-minor axes must be specified (e.g. by descriptors
+            0 01 152 and 0 01 153).
+        """
+        # TODO: get ellipsoid axes from descriptors 001152 and 001153 and create an CRS using pyproj.crs.CRS.from_cf(...)
+        CRS = eccodes.CODES_MISSING_LONG
+    elif bufr_CRS == 5:
+        """
+        Earth-centred, Earth-fixed (ECEF) coordinate system or Earth-centred rotational
+        (ECR) system. This is a right-handed Cartesian coordinate system (X, Y, Z)
+        rotating with the Earth. The origin is defined by the centre of mass of the Earth.
+        (Footnote (5) of class 27 does not apply if ECEF coordinates are specified.)
+        """
+        # TODO: create an CRS using pyproj.crs.CRS.from_cf(...)
+        CRS = eccodes.CODES_MISSING_LONG
+    elif bufr_CRS == eccodes.CODES_MISSING_LONG:
+        CRS = "EPSG:4326" # WGS84
+    else:
+        CRS = "EPSG:4326" # WGS84
+    return CRS
 
 COMPUTED_KEYS = [
     (
@@ -155,13 +207,33 @@ COMPUTED_KEYS = [
         "typical_datetime",
         datetime_from_bufr,
     ),
-    (["blockNumber", "stationNumber"], "WMO_station_id", wmo_station_id_from_bufr),
+    (
+        ["blockNumber", "stationNumber"], 
+        "WMO_station_id", 
+        wmo_station_id_from_bufr),
+    (
+        [
+            "longitude",
+            "latitude",
+            "heightOfStationGroundAboveMeanSeaLevel",
+        ], 
+        "geometry", # WMO_station_position (predefined to geometry for geopandas)
+        wmo_station_position_from_bufr,
+    ),
+    (
+        [
+            "coordinateReferenceSystem",
+        ], 
+        "CRS", 
+        CRS_from_bufr,
+    ),
 ]
 
 
 def extract_observations(
     message: T.Mapping[str, T.Any],
     filtered_keys: T.List[BufrKey],
+    computed_keys: T.List[str],
     filters: T.Dict[str, bufr_filters.BufrFilter] = {},
     base_observation: T.Dict[str, T.Any] = {},
 ) -> T.Iterator[T.Dict[str, T.Any]]:
@@ -174,6 +246,8 @@ def extract_observations(
         subset_count = message["numberOfSubsets"]
     else:
         subset_count = 1
+        
+    filters_without_computed = {k:v for k,v in filters.items() if not k in computed_keys}        
 
     for subset in range(subset_count):
         current_observation: T.Dict[str, T.Any]
@@ -188,7 +262,7 @@ def extract_observations(
                 continue
 
             # TODO: make into a function
-            if all(name in current_observation for name in filters) and (
+            if all(name in current_observation for name in filters_without_computed) and (
                 level < current_levels[-1]
                 or (level == current_levels[-1] and name in current_observation)
             ):
@@ -215,8 +289,8 @@ def extract_observations(
             elif isinstance(value, int) and value == eccodes.CODES_MISSING_LONG:
                 value = None
 
-            if name in filters:
-                if filters[name].match(value):
+            if name in filters_without_computed:
+                if filters_without_computed[name].match(value):
                     failed_match_level = None
                 else:
                     failed_match_level = level
@@ -226,22 +300,30 @@ def extract_observations(
             current_levels.append(level)
 
         # yield the last observation
-        if all(name in current_observation for name in filters):
+        if all(name in current_observation for name in filters_without_computed):
             yield dict(current_observation)
 
 
 def add_computed_keys(
-    observation: T.Dict[str, T.Any], included_keys: T.Container[str]
+    observation: T.Dict[str, T.Any], 
+    included_keys: T.Container[str],
+    filters: T.Dict[str, bufr_filters.BufrFilter] = {},
 ) -> T.Dict[str, T.Any]:
     augmented_observation = observation.copy()
     for keys, computed_key, getter in COMPUTED_KEYS:
         if computed_key not in included_keys:
             continue
+        computed_value = None
         try:
             computed_value = getter(observation, "", keys)
-            augmented_observation[computed_key] = computed_value
         except Exception:
             pass
+        if computed_value:
+            if computed_key in filters:
+                if filters[computed_key].match(computed_value):
+                    augmented_observation[computed_key] = computed_value
+            else:
+                augmented_observation[computed_key] = computed_value
     return augmented_observation
 
 
@@ -250,6 +332,7 @@ def stream_bufr(
     columns: T.Iterable[str],
     filters: T.Mapping[str, T.Any] = {},
     required_columns: T.Union[bool, T.Iterable[str]] = True,
+    geopandas: bool = False,
     prefilter_headers: bool = False,
 ) -> T.Iterator[T.Dict[str, T.Any]]:
     """
@@ -266,6 +349,9 @@ def stream_bufr(
     if isinstance(columns, str):
         columns = (columns,)
 
+    if geopandas:
+        columns += ('geometry','CRS')
+
     if required_columns is True:
         required_columns = set(columns)
     elif required_columns is False:
@@ -280,10 +366,12 @@ def stream_bufr(
     value_filters = {k: bufr_filters.BufrFilter.from_user(filters[k]) for k in filters}
     included_keys = set(value_filters)
     included_keys |= set(columns)
+    computed_keys = []
     for keys, computed_key, _ in COMPUTED_KEYS:
         if computed_key in included_keys:
             included_keys |= set(keys)
-
+            computed_keys.append(computed_key)
+    
     if "count" in value_filters:
         max_count = value_filters["count"].max()
     else:
@@ -296,7 +384,7 @@ def stream_bufr(
 
         if prefilter_headers:
             # test header keys for failed matches before unpacking
-            if not bufr_filters.is_match(message, value_filters, required=False):
+            if not bufr_filters.is_match(message, value_filters, geopandas, required=False):
                 continue
 
         message["skipExtraKeyAttributes"] = 1
@@ -308,9 +396,9 @@ def stream_bufr(
         else:
             observation = {}
         for observation in extract_observations(
-            message, filtered_keys, value_filters, observation,
+            message, filtered_keys, computed_keys, value_filters, observation,
         ):
-            augmented_observation = add_computed_keys(observation, included_keys)
+            augmented_observation = add_computed_keys(observation, included_keys, value_filters)
             data = {k: v for k, v in augmented_observation.items() if k in columns}
             if required_columns.issubset(data):
                 yield data

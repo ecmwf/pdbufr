@@ -1120,3 +1120,9 @@ def test_new_synop_data() -> None:
     )
 
     assert len(res) == 14
+    
+if __name__ == "__main__":
+    functions = [f for f in globals() if callable(globals()[f]) if not f.startswith('assert_')]
+    for f in functions:
+        print(f"running {f}")
+        globals()[f]()

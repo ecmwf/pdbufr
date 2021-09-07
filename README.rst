@@ -4,7 +4,7 @@ pdbufr
 .. image:: https://img.shields.io/pypi/v/pdbufr.svg
    :target: https://pypi.python.org/pypi/pdbufr/
 
-Pandas reader for the BUFR format using ecCodes.
+Pandas and GeoPandas reader for the BUFR format using ecCodes.
 
 Features with development status **Beta**:
 
@@ -12,7 +12,11 @@ Features with development status **Beta**:
 - reads BUFR 3 and 4 files with uncompressed and compressed subsets,
 - supports all modern versions of Python 3.9, 3.8, 3.7, 3.6 and PyPy3,
 - works on Linux, MacOS and Windows, the ecCodes C-library is the only binary dependency,
-- sports a rich filtering engine.
+- sports a rich filtering engine,
+- alternative use of Pandas DataFrame or GeoPandas GeoDataFrame 
+- WMO station positions (latitude, longitude, heightOfStationGroundAboveMeanSeaLevel) are used to build geometry for GeoPandas GeoSeries 
+- Coordinate Reference System is included as computed key CRS and defaults to WGS84 if missing as BufrKey 
+- computed keys (data_datetime, typical_datetime, WMO_station_id, geometry, CRS) can now also be used to filter the records
 
 Limitations:
 
@@ -67,7 +71,10 @@ You can explore the file with *ecCodes* command line tools ``bufr_ls`` and ``buf
 understand the structure and the keys/values you can use to select the observations you
 are interested in.
 
-The ``pdbufr.read_bufr`` function return a ``pandas.DataDrame`` with the requested columns.
+Pandas Part
+-----------
+
+The ``pdbufr.read_bufr`` function return a ``pandas.DataFrame`` with the requested columns.
 It accepts query filters on the BUFR message header
 that are very fast and query filters on the observation keys.
 Filters match on an exact value or with one of the values in a list and all filters must match:
@@ -115,6 +122,96 @@ Filters match on an exact value or with one of the values in a list and all filt
     193              9    2000.0           203.1 2008-12-08 12:00:00
     194              9    1390.0           197.9 2008-12-08 12:00:00
 
+GeoPandas Part
+--------------
+
+The ``pdbufr.read_bufr`` function return a ``geopandas.GeoDataFrame`` with the requested columns if ``geopandas=True`` is set.
+It accepts query filters on the BUFR message header 
+that are very fast and query filters on the observation keys.
+Additionally also on the following computed keys:
+
+- data_datetime and typical_datetime (datetime.datetime)
+- geometry (shapely.geometry.Point.X <-> longitude, .Y <-> latitude, .Z <-> heightOfStationGroundAboveMeanSeaLevel)
+- CRS (BufrKey Coordinate Reference System Values 0,1,2,3 and missing are supported, 4 and 5 are not supported, defaults to WGS84 (EPSG:4632))
+
+Filters match on an exact value or with one of the values in a list and all filters must match:
+
+.. code-block:: python
+
+    >>> import pdbufr
+    >>> from pyproj import Geod
+    >>> from shapely.geometry import Point
+    
+    >>> def distance(center,position):
+    ...     g = Geod(ellps="WGS84") 
+    ...     az12,az21,dist = g.inv(position.x,position.y,center.x,center.y)
+    ...     return dist
+    
+    >>> df_all = pdbufr.read_bufr(
+    ...     'temp.bufr', 
+    ...     columns=('stationNumber', 'latitude', 'longitude'),
+    ...     geopandas=True
+    ...)
+    
+    >>> df_all.head()
+       stationNumber  latitude  ...                         geometry        CRS
+    0            907     58.47  ...   POINT Z (-78.080 58.470 0.000)  EPSG:4326
+    1            823     53.75  ...   POINT Z (-73.670 53.750 0.000)  EPSG:4326
+    2              9    -90.00  ...    POINT Z (0.000 -90.000 0.000)  EPSG:4326
+    3            486     18.43  ...   POINT Z (-69.880 18.430 0.000)  EPSG:4326
+    4            165     21.98  ...  POINT Z (-159.330 21.980 0.000)  EPSG:4326
+
+    >>> center = Point(-75.0,55.0)
+    >>> radius = 1000*1000 # 1000 km
+
+    >>> df_geo = pdbufr.read_bufr(
+    ...     'temp.bufr', 
+    ...     columns=('stationNumber', 'latitude', 'longitude'), 
+    ...     filters={'geometry': lambda x: distance(center,x) < radius}, 
+    ...     geopandas=True
+    ...)
+    
+    >>> df_geo.head()
+       stationNumber  latitude  ...                              geometry        CRS
+    0            907     58.47  ...  POINT Z (-78.08000 58.47000 0.00000)  EPSG:4326
+    1            823     53.75  ...  POINT Z (-73.67000 53.75000 0.00000)  EPSG:4326
+    2            816     53.30  ...  POINT Z (-60.37000 53.30000 0.00000)  EPSG:4326
+    3            836     51.27  ...  POINT Z (-80.65000 51.27000 0.00000)  EPSG:4326
+    4            906     58.12  ...  POINT Z (-68.42000 58.12000 0.00000)  EPSG:4326
+
+    >>> df_one = pdbufr.read_bufr(
+    ...     'temp.bufr',
+    ...     columns=('stationNumber', 'latitude', 'longitude'),
+    ...     filters={'stationNumber': 907},
+    ...     geopandas=True
+    ... )
+    
+    >>> df_one.head()
+       stationNumber  latitude  ...                              geometry        CRS
+    0            907     58.47  ...  POINT Z (-78.08000 58.47000 0.00000)  EPSG:4326
+
+    >>> df_two = pdbufr.read_bufr(
+    ...     'temp.bufr',
+    ...     columns=('stationNumber', 'data_datetime', 'pressure', 'airTemperature'),
+    ...     filters={'stationNumber': [823, 9]},
+    ... )
+
+    >>> df_two.head()
+       stationNumber  pressure  ...                              geometry        CRS
+    0            823  100000.0  ...  POINT Z (-73.67000 53.75000 0.00000)  EPSG:4326
+    1            823   97400.0  ...  POINT Z (-73.67000 53.75000 0.00000)  EPSG:4326
+    2            823   93700.0  ...  POINT Z (-73.67000 53.75000 0.00000)  EPSG:4326
+    3            823   92500.0  ...  POINT Z (-73.67000 53.75000 0.00000)  EPSG:4326
+    4            823   90600.0  ...  POINT Z (-73.67000 53.75000 0.00000)  EPSG:4326
+
+    >>> df_two.tail()
+         stationNumber  pressure  ...                             geometry        CRS
+    190              9    2990.0  ...  POINT Z (36.17000 51.77000 0.00000)  EPSG:4326
+    191              9    2790.0  ...  POINT Z (36.17000 51.77000 0.00000)  EPSG:4326
+    192              9    2170.0  ...  POINT Z (36.17000 51.77000 0.00000)  EPSG:4326
+    193              9    2000.0  ...  POINT Z (36.17000 51.77000 0.00000)  EPSG:4326
+    194              9    1390.0  ...  POINT Z (36.17000 51.77000 0.00000)  EPSG:4326
+
 
 Contributing
 ============
@@ -134,6 +231,10 @@ Main contributors:
 
 - `Sandor Kertesz <https://github.com/sandorkertesz>`_ - `ECMWF <https://ecmwf.int>`_
 - `Iain Russell <https://github.com/iainrussell>`_ - ECMWF
+
+GeoPandas contribution:
+
+- `Nik Klever <https://github.com/nklever>`_ - `University of Applied Sciences Augsburg <https://hs-augsburg.de>`_
 
 Also:
 - Daniel Lee - DWD, who contributed the code in the high_level_bufr directory, originally part of eccodes-python

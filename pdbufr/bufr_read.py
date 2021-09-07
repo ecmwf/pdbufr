@@ -11,6 +11,7 @@ import typing as T
 
 import eccodes  # type: ignore
 import pandas as pd  # type: ignore
+import geopandas as gpd  # type: ignore
 
 from . import bufr_structure
 from .high_level_bufr.bufr import BufrFile
@@ -21,7 +22,8 @@ def read_bufr(
     columns: T.Iterable[str],
     filters: T.Mapping[str, T.Any] = {},
     required_columns: T.Union[bool, T.Iterable[str]] = True,
-) -> pd.DataFrame:
+    geopandas: bool = False,
+) -> T.Union[pd.DataFrame,gpd.GeoDataFrame]:
     """
     Read selected observations from a BUFR file into DataFrame.
 
@@ -33,6 +35,17 @@ def read_bufr(
     """
     with BufrFile(path) as bufr_file:  # type: ignore
         observations = bufr_structure.stream_bufr(
-            bufr_file, columns, filters, required_columns
+            bufr_file, columns, filters, required_columns, geopandas,
         )
-        return pd.DataFrame.from_records(observations)
+        dataFrame = pd.DataFrame.from_records(observations)
+        if dataFrame.empty:
+            return dataFrame
+        elif geopandas:
+            if 'CRS' in dataFrame:
+                CRS = dataFrame.CRS[0]
+                geoDataFrame = gpd.GeoDataFrame(dataFrame,geometry=dataFrame.geometry,crs=CRS)
+            else:
+                geoDataFrame = gpd.GeoDataFrame(dataFrame,geometry=dataFrame.geometry,crs="EPSG:4326")  # WGS84
+            return geoDataFrame
+        else:
+            return dataFrame       

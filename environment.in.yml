@@ -7,3 +7,5 @@ dependencies:
   - python-eccodes
   - numpy
   - pandas
+  - geopandas
+  - shapely
