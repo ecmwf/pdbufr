@@ -14,7 +14,8 @@ import pandas as pd  # type: ignore
 
 try:
     import geopandas as gpd  # type: ignore
-    from shapely.geometry import Point # type: ignore
+    from shapely.geometry import Point  # type: ignore
+
     HAS_GEOPANDAS = True
 except ModuleNotFoundError:  # pragma: no cover
     HAS_GEOPANDAS = False
@@ -41,7 +42,11 @@ def read_bufr(
     """
     with BufrFile(path) as bufr_file:  # type: ignore
         observations = bufr_structure.stream_bufr(
-            bufr_file, columns, filters, required_columns=required_columns, geopandas=geopandas,
+            bufr_file,
+            columns,
+            filters,
+            required_columns=required_columns,
+            geopandas=geopandas,
         )
         dataFrame = pd.DataFrame.from_records(observations)
         if dataFrame.empty:
@@ -49,13 +54,19 @@ def read_bufr(
         elif geopandas:
             if not HAS_GEOPANDAS:
                 raise ImportError("Module 'geopandas' and/or 'shapely' missing")
-            if 'CRS' in dataFrame:
+            if "CRS" in dataFrame:
                 CRS = dataFrame.CRS[0]
                 if not CRS:
-                    raise TypeError("pdbufr does currently not support the type of coordinate system reference in BUFR data")
-                geoDataFrame = gpd.GeoDataFrame(dataFrame,geometry=dataFrame.geometry,crs=CRS)
+                    raise TypeError(
+                        "pdbufr does currently not support the type of coordinate system reference in BUFR data"
+                    )
+                geoDataFrame = gpd.GeoDataFrame(
+                    dataFrame, geometry=dataFrame.geometry, crs=CRS
+                )
             else:
-                geoDataFrame = gpd.GeoDataFrame(dataFrame,geometry=dataFrame.geometry,crs="EPSG:4326")  # WGS84
+                geoDataFrame = gpd.GeoDataFrame(
+                    dataFrame, geometry=dataFrame.geometry, crs="EPSG:4326"
+                )  # WGS84
             return geoDataFrame
         else:
-            return dataFrame       
+            return dataFrame

@@ -16,7 +16,8 @@ import numpy as np  # type: ignore
 
 try:
     import geopandas as gpd  # type: ignore
-    from shapely.geometry import Point # type: ignore
+    from shapely.geometry import Point  # type: ignore
+
     HAS_GEOPANDAS = True
 except ModuleNotFoundError:  # pragma: no cover
     HAS_GEOPANDAS = False
@@ -142,29 +143,33 @@ def wmo_station_id_from_bufr(observation, prefix, keys):
     block_number = int(observation[prefix + keys[0]])
     station_number = int(observation[prefix + keys[1]])
     return block_number * 1000 + station_number
-    
+
+
 def wmo_station_position_from_bufr(observation, prefix, keys):
     # type: (T.Dict[str, T.Any], str, T.List[str]) -> T.List
-    longitude = float(observation[prefix + keys[0]]) # easting (X)
-    latitude = float(observation[prefix + keys[1]]) # northing (Y)
-    heightOfStationGroundAboveMeanSeaLevel = float(observation.get(prefix + keys[2], 0.0))
+    longitude = float(observation[prefix + keys[0]])  # easting (X)
+    latitude = float(observation[prefix + keys[1]])  # northing (Y)
+    heightOfStationGroundAboveMeanSeaLevel = float(
+        observation.get(prefix + keys[2], 0.0)
+    )
     if HAS_GEOPANDAS:
-        return Point([longitude,latitude,heightOfStationGroundAboveMeanSeaLevel]) 
-    else: 
-        return [longitude,latitude,heightOfStationGroundAboveMeanSeaLevel]
+        return Point([longitude, latitude, heightOfStationGroundAboveMeanSeaLevel])
+    else:
+        return [longitude, latitude, heightOfStationGroundAboveMeanSeaLevel]
+
 
 def CRS_from_bufr(observation, prefix, keys):
     # type: (T.Dict[str, T.Any], str, T.List[str]) -> str
     bufr_CRS = int(observation.get(prefix + keys[0], 0))
     CRS_choices = {
-                    0:"EPSG:4326", # WGS84
-                    1:"EPSG:4258", # ETRS89
-                    2:"EPSG:4269", # NAD83
-                    3:"EPSG:4314", # DHDN
-                    4:None, # TODO: get ellipsoid axes from descriptors 001152 and 001153 and create an CRS using pyproj.crs.CRS.from_cf(...) (s.below)
-                    5:None, # TODO: create an CRS using pyproj.crs.CRS.from_cf(...) (s. below)
-                    eccodes.CODES_MISSING_LONG:"EPSG:4326", # WGS84
-                  }
+        0: "EPSG:4326",  # WGS84
+        1: "EPSG:4258",  # ETRS89
+        2: "EPSG:4269",  # NAD83
+        3: "EPSG:4314",  # DHDN
+        4: None,  # TODO: get ellipsoid axes from descriptors 001152 and 001153 and create an CRS using pyproj.crs.CRS.from_cf(...) (s.below)
+        5: None,  # TODO: create an CRS using pyproj.crs.CRS.from_cf(...) (s. below)
+        eccodes.CODES_MISSING_LONG: "EPSG:4326",  # WGS84
+    }
     """
     Note to CRS:4
     -------------
@@ -192,6 +197,7 @@ def CRS_from_bufr(observation, prefix, keys):
     """
     return CRS_choices[bufr_CRS]
 
+
 COMPUTED_KEYS = [
     (
         ["year", "month", "day", "hour", "minute", "second"],
@@ -210,26 +216,13 @@ COMPUTED_KEYS = [
         "typical_datetime",
         datetime_from_bufr,
     ),
+    (["blockNumber", "stationNumber"], "WMO_station_id", wmo_station_id_from_bufr),
     (
-        ["blockNumber", "stationNumber"], 
-        "WMO_station_id", 
-        wmo_station_id_from_bufr),
-    (
-        [
-            "longitude",
-            "latitude",
-            "heightOfStationGroundAboveMeanSeaLevel",
-        ], 
-        "geometry", # WMO_station_position (predefined to geometry for geopandas)
+        ["longitude", "latitude", "heightOfStationGroundAboveMeanSeaLevel",],
+        "geometry",  # WMO_station_position (predefined to geometry for geopandas)
         wmo_station_position_from_bufr,
     ),
-    (
-        [
-            "coordinateReferenceSystem",
-        ], 
-        "CRS", 
-        CRS_from_bufr,
-    ),
+    (["coordinateReferenceSystem",], "CRS", CRS_from_bufr,),
 ]
 
 
@@ -249,7 +242,7 @@ def extract_observations(
         subset_count = message["numberOfSubsets"]
     else:
         subset_count = 1
-        
+
     for subset in range(subset_count):
         current_observation: T.Dict[str, T.Any]
         current_observation = collections.OrderedDict(base_observation)
@@ -306,7 +299,7 @@ def extract_observations(
 
 
 def add_computed_keys(
-    observation: T.Dict[str, T.Any], 
+    observation: T.Dict[str, T.Any],
     included_keys: T.Container[str],
     filters: T.Dict[str, bufr_filters.BufrFilter] = {},
 ) -> T.Dict[str, T.Any]:
@@ -351,7 +344,7 @@ def stream_bufr(
         columns = (columns,)
 
     if geopandas:
-        columns += ('geometry','CRS')
+        columns += ("geometry", "CRS")
 
     if required_columns is True:
         required_columns = set(columns)
@@ -372,7 +365,7 @@ def stream_bufr(
         if computed_key in included_keys:
             included_keys |= set(keys)
             computed_keys.append(computed_key)
-    
+
     if "count" in value_filters:
         max_count = value_filters["count"].max()
     else:
@@ -385,7 +378,9 @@ def stream_bufr(
 
         if prefilter_headers:
             # test header keys for failed matches before unpacking
-            if not bufr_filters.is_match(message, value_filters, geopandas, required=False):
+            if not bufr_filters.is_match(
+                message, value_filters, geopandas, required=False
+            ):
                 continue
 
         message["skipExtraKeyAttributes"] = 1
@@ -396,13 +391,21 @@ def stream_bufr(
             observation = {"count": count}
         else:
             observation = {}
-            
-        value_filters_without_computed = {k:v for k,v in value_filters.items() if not k in computed_keys}        
-            
+
+        value_filters_without_computed = {
+            k: v for k, v in value_filters.items() if not k in computed_keys
+        }
+
         for observation in extract_observations(
-            message, filtered_keys, computed_keys, value_filters_without_computed, observation,
+            message,
+            filtered_keys,
+            computed_keys,
+            value_filters_without_computed,
+            observation,
         ):
-            augmented_observation = add_computed_keys(observation, included_keys, value_filters)
+            augmented_observation = add_computed_keys(
+                observation, included_keys, value_filters
+            )
             data = {k: v for k, v in augmented_observation.items() if k in columns}
             if required_columns.issubset(data):
                 yield data
