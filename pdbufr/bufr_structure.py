@@ -14,7 +14,13 @@ import attr
 import eccodes  # type: ignore
 import numpy as np  # type: ignore
 
-from shapely.geometry import Point
+try:
+    import geopandas as gpd  # type: ignore
+    from shapely.geometry import Point # type: ignore
+    HAS_GEOPANDAS = True
+except ModuleNotFoundError:  # pragma: no cover
+    HAS_GEOPANDAS = False
+
 from . import bufr_filters
 
 
@@ -138,56 +144,53 @@ def wmo_station_id_from_bufr(observation, prefix, keys):
     return block_number * 1000 + station_number
     
 def wmo_station_position_from_bufr(observation, prefix, keys):
-    # type: (T.Dict[str, T.Any], str, T.List[str]) -> Point
+    # type: (T.Dict[str, T.Any], str, T.List[str]) -> T.List
     longitude = float(observation[prefix + keys[0]]) # easting (X)
     latitude = float(observation[prefix + keys[1]]) # northing (Y)
     heightOfStationGroundAboveMeanSeaLevel = float(observation.get(prefix + keys[2], 0.0))
-    return Point([longitude,latitude,heightOfStationGroundAboveMeanSeaLevel]) 
+    if HAS_GEOPANDAS:
+        return Point([longitude,latitude,heightOfStationGroundAboveMeanSeaLevel]) 
+    else: 
+        return [longitude,latitude,heightOfStationGroundAboveMeanSeaLevel]
 
 def CRS_from_bufr(observation, prefix, keys):
     # type: (T.Dict[str, T.Any], str, T.List[str]) -> str
     bufr_CRS = int(observation.get(prefix + keys[0], 0))
-    if bufr_CRS == 0:
-        CRS = "EPSG:4326" # WGS84
-    elif bufr_CRS == 1:
-        CRS = "EPSG:4258" # ETRS89
-    elif bufr_CRS == 2:
-        CRS = "EPSG:4269" # NAD83
-    elif bufr_CRS == 3:
-        CRS = "EPSG:4314" # DHDN
-    elif bufr_CRS == 4:
-        """
-        Ellipsoidal datum using the International Reference Meridian and the International
-        Reference Pole as the prime meridian and prime pole, respectively, and the origin
-        of the International Terrestrial Reference System (ITRS) (see Note 2). The
-        International Reference Meridian, International Reference Pole and ITRS are
-        maintained by the International Earth Rotation and Reference Systems
-        Service (IERS)
-        
-        (2) When Code figure 4 is used to specify a custom coordinate reference system, the ellipsoidal
-            datum shall be an oblate ellipsoid of revolution, where the major axis is uniplanar with the
-            equatorial plane and the minor axis traverses the prime meridian towards the prime pole.
-            North corresponds to the direction from the Equator to the prime pole. East corresponds to
-            the counterclockwise direction from the prime meridian as viewed from above the North Pole.
-            In this case, the semi-major and semi-minor axes must be specified (e.g. by descriptors
-            0 01 152 and 0 01 153).
-        """
-        # TODO: get ellipsoid axes from descriptors 001152 and 001153 and create an CRS using pyproj.crs.CRS.from_cf(...)
-        CRS = eccodes.CODES_MISSING_LONG
-    elif bufr_CRS == 5:
-        """
-        Earth-centred, Earth-fixed (ECEF) coordinate system or Earth-centred rotational
-        (ECR) system. This is a right-handed Cartesian coordinate system (X, Y, Z)
-        rotating with the Earth. The origin is defined by the centre of mass of the Earth.
-        (Footnote (5) of class 27 does not apply if ECEF coordinates are specified.)
-        """
-        # TODO: create an CRS using pyproj.crs.CRS.from_cf(...)
-        CRS = eccodes.CODES_MISSING_LONG
-    elif bufr_CRS == eccodes.CODES_MISSING_LONG:
-        CRS = "EPSG:4326" # WGS84
-    else:
-        CRS = "EPSG:4326" # WGS84
-    return CRS
+    CRS_choices = {
+                    0:"EPSG:4326", # WGS84
+                    1:"EPSG:4258", # ETRS89
+                    2:"EPSG:4269", # NAD83
+                    3:"EPSG:4314", # DHDN
+                    4:None, # TODO: get ellipsoid axes from descriptors 001152 and 001153 and create an CRS using pyproj.crs.CRS.from_cf(...) (s.below)
+                    5:None, # TODO: create an CRS using pyproj.crs.CRS.from_cf(...) (s. below)
+                    eccodes.CODES_MISSING_LONG:"EPSG:4326", # WGS84
+                  }
+    """
+    Note to CRS:4
+    -------------
+    Ellipsoidal datum using the International Reference Meridian and the International
+    Reference Pole as the prime meridian and prime pole, respectively, and the origin
+    of the International Terrestrial Reference System (ITRS) (see Note 2). The
+    International Reference Meridian, International Reference Pole and ITRS are
+    maintained by the International Earth Rotation and Reference Systems
+    Service (IERS)
+    
+    (2) When Code figure 4 is used to specify a custom coordinate reference system, the ellipsoidal
+        datum shall be an oblate ellipsoid of revolution, where the major axis is uniplanar with the
+        equatorial plane and the minor axis traverses the prime meridian towards the prime pole.
+        North corresponds to the direction from the Equator to the prime pole. East corresponds to
+        the counterclockwise direction from the prime meridian as viewed from above the North Pole.
+        In this case, the semi-major and semi-minor axes must be specified (e.g. by descriptors
+        0 01 152 and 0 01 153).
+
+    Note to CRS:5
+    -------------    
+    Earth-centred, Earth-fixed (ECEF) coordinate system or Earth-centred rotational
+    (ECR) system. This is a right-handed Cartesian coordinate system (X, Y, Z)
+    rotating with the Earth. The origin is defined by the centre of mass of the Earth.
+    (Footnote (5) of class 27 does not apply if ECEF coordinates are specified.)
+    """
+    return CRS_choices[bufr_CRS]
 
 COMPUTED_KEYS = [
     (
@@ -247,8 +250,6 @@ def extract_observations(
     else:
         subset_count = 1
         
-    filters_without_computed = {k:v for k,v in filters.items() if not k in computed_keys}        
-
     for subset in range(subset_count):
         current_observation: T.Dict[str, T.Any]
         current_observation = collections.OrderedDict(base_observation)
@@ -262,7 +263,7 @@ def extract_observations(
                 continue
 
             # TODO: make into a function
-            if all(name in current_observation for name in filters_without_computed) and (
+            if all(name in current_observation for name in filters) and (
                 level < current_levels[-1]
                 or (level == current_levels[-1] and name in current_observation)
             ):
@@ -289,8 +290,8 @@ def extract_observations(
             elif isinstance(value, int) and value == eccodes.CODES_MISSING_LONG:
                 value = None
 
-            if name in filters_without_computed:
-                if filters_without_computed[name].match(value):
+            if name in filters:
+                if filters[name].match(value):
                     failed_match_level = None
                 else:
                     failed_match_level = level
@@ -300,7 +301,7 @@ def extract_observations(
             current_levels.append(level)
 
         # yield the last observation
-        if all(name in current_observation for name in filters_without_computed):
+        if all(name in current_observation for name in filters):
             yield dict(current_observation)
 
 
@@ -395,8 +396,11 @@ def stream_bufr(
             observation = {"count": count}
         else:
             observation = {}
+            
+        value_filters_without_computed = {k:v for k,v in value_filters.items() if not k in computed_keys}        
+            
         for observation in extract_observations(
-            message, filtered_keys, computed_keys, value_filters, observation,
+            message, filtered_keys, computed_keys, value_filters_without_computed, observation,
         ):
             augmented_observation = add_computed_keys(observation, included_keys, value_filters)
             data = {k: v for k, v in augmented_observation.items() if k in columns}
