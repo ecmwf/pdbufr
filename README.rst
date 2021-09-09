@@ -25,6 +25,9 @@ Limitations:
 Installation
 ============
 
+Pandas
+------
+
 The easiest way to install *pdbufr* dependencies is via Conda::
 
     $ conda install -c conda-forge python-eccodes pandas
@@ -32,6 +35,13 @@ The easiest way to install *pdbufr* dependencies is via Conda::
 and *pdbufr* itself as a Python package from PyPI with::
 
     $ pip install pdbufr
+
+GeoPandas
+---------
+
+To use GeoPandas you must additionally install geopandas via Conda::
+
+    $ conda install -c conda-forge geopandas
 
 
 System dependencies
@@ -77,6 +87,12 @@ Pandas Part
 The ``pdbufr.read_bufr`` function return a ``pandas.DataFrame`` with the requested columns.
 It accepts query filters on the BUFR message header
 that are very fast and query filters on the observation keys.
+Additionally also on the following computed keys:
+
+- data_datetime and typical_datetime (datetime.datetime)
+- geometry (List [longitude,latitude,heightOfStationGroundAboveMeanSeaLevel])
+- CRS (BufrKey Coordinate Reference System Values 0,1,2,3 and missing are supported (4 and 5 are not supported), defaults to WGS84 (EPSG:4632))
+
 Filters match on an exact value or with one of the values in a list and all filters must match:
 
 .. code-block:: python
@@ -132,7 +148,7 @@ Additionally also on the following computed keys:
 
 - data_datetime and typical_datetime (datetime.datetime)
 - geometry (shapely.geometry.Point.X <-> longitude, .Y <-> latitude, .Z <-> heightOfStationGroundAboveMeanSeaLevel)
-- CRS (BufrKey Coordinate Reference System Values 0,1,2,3 and missing are supported, 4 and 5 are not supported, defaults to WGS84 (EPSG:4632))
+- CRS (BufrKey Coordinate Reference System Values 0,1,2,3 and missing are supported (4 and 5 are not supported), defaults to WGS84 (EPSG:4632))
 
 Filters match on an exact value or with one of the values in a list and all filters must match:
 
