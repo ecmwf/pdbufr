@@ -229,7 +229,6 @@ COMPUTED_KEYS = [
 def extract_observations(
     message: T.Mapping[str, T.Any],
     filtered_keys: T.List[BufrKey],
-    computed_keys: T.List[str],
     filters: T.Dict[str, bufr_filters.BufrFilter] = {},
     base_observation: T.Dict[str, T.Any] = {},
 ) -> T.Iterator[T.Dict[str, T.Any]]:
@@ -397,11 +396,7 @@ def stream_bufr(
         }
 
         for observation in extract_observations(
-            message,
-            filtered_keys,
-            computed_keys,
-            value_filters_without_computed,
-            observation,
+            message, filtered_keys, value_filters_without_computed, observation,
         ):
             augmented_observation = add_computed_keys(
                 observation, included_keys, value_filters
