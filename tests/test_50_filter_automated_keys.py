@@ -19,16 +19,23 @@ VERBOSE = True
 #     az12, az21, dist = g.inv(position.x, position.y, center.x, center.y)
 #     return dist
 
-def distance(center, position): 
+
+def distance(center, position):
     # Orthodrome - see https://en.wikipedia.org/wiki/Great_circle
-    RadiusEarth = 6371000 # Average Radius of Earth in m
+    RadiusEarth = 6371000  # Average Radius of Earth in m
     lat1 = math.radians(center[0])
     lat2 = math.radians(position[0])
     lon1 = math.radians(center[1])
     lon2 = math.radians(position[1])
-    return math.acos(math.sin(lat1) * math.sin(lat2) + \
-           math.cos(lat1) * math.cos(lat2) * math.cos(lon2-lon1)) * RadiusEarth
-    
+    return (
+        math.acos(
+            math.sin(lat1) * math.sin(lat2)
+            + math.cos(lat1) * math.cos(lat2) * math.cos(lon2 - lon1)
+        )
+        * RadiusEarth
+    )
+
+
 def readBufrFile(file, columns, filters={}):
     try:
         df_all = pdbufr.read_bufr(file, columns, filters)
@@ -88,9 +95,7 @@ def testPdBufr2preparedGeoPandas(file):
             rs = readBufrFile(file, columns, filters)
             if VERBOSE:
                 print(rs)
-            results.append(
-                dict(cIndx=cIndx, fIndx=fIndx, rs=rs, len=len(rs))
-            )
+            results.append(dict(cIndx=cIndx, fIndx=fIndx, rs=rs, len=len(rs)))
             if "geometry" in filters:
                 for station in rs.to_records():
                     assert distance(center, station["geometry"]) < radius
@@ -114,9 +119,7 @@ def testPdBufr2preparedGeoPandas(file):
             print(f"assertion in {indx}: {test}")
             raise
         if VERBOSE:
-            print(
-                f"{test['cIndx']} {test['fIndx']} : Length Check ok ({test['len']})"
-            )
+            print(f"{test['cIndx']} {test['fIndx']} : Length Check ok ({test['len']})")
 
     print("all Checks ok")
 

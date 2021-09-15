@@ -33,10 +33,6 @@ def read_bufr(
     """
     with BufrFile(path) as bufr_file:  # type: ignore
         observations = bufr_structure.stream_bufr(
-            bufr_file,
-            columns,
-            filters,
-            required_columns=required_columns,
+            bufr_file, columns, filters, required_columns=required_columns,
         )
         return pd.DataFrame.from_records(observations)
-
