@@ -12,14 +12,6 @@ import typing as T
 import eccodes  # type: ignore
 import pandas as pd  # type: ignore
 
-try:
-    import geopandas as gpd  # type: ignore
-    from shapely.geometry import Point  # type: ignore
-
-    HAS_GEOPANDAS = True
-except ModuleNotFoundError:  # pragma: no cover
-    HAS_GEOPANDAS = False
-
 from . import bufr_structure
 from .high_level_bufr.bufr import BufrFile
 
@@ -29,7 +21,6 @@ def read_bufr(
     columns: T.Iterable[str],
     filters: T.Mapping[str, T.Any] = {},
     required_columns: T.Union[bool, T.Iterable[str]] = True,
-    geopandas: bool = False,
 ) -> pd.DataFrame:
     """
     Read selected observations from a BUFR file into DataFrame.
@@ -46,27 +37,6 @@ def read_bufr(
             columns,
             filters,
             required_columns=required_columns,
-            geopandas=geopandas,
         )
-        dataFrame = pd.DataFrame.from_records(observations)
-        if dataFrame.empty:
-            return dataFrame
-        elif geopandas:
-            if not HAS_GEOPANDAS:
-                raise ImportError("Module 'geopandas' and/or 'shapely' missing")
-            if "CRS" in dataFrame:
-                CRS = dataFrame.CRS[0]
-                if not CRS:
-                    raise TypeError(
-                        "pdbufr does currently not support the type of coordinate system reference in BUFR data"
-                    )
-                geoDataFrame = gpd.GeoDataFrame(
-                    dataFrame, geometry=dataFrame.geometry, crs=CRS
-                )
-            else:
-                geoDataFrame = gpd.GeoDataFrame(
-                    dataFrame, geometry=dataFrame.geometry, crs="EPSG:4326"
-                )  # WGS84
-            return geoDataFrame
-        else:
-            return dataFrame
+        return pd.DataFrame.from_records(observations)
+

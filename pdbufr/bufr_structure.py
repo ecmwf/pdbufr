@@ -14,14 +14,6 @@ import attr
 import eccodes  # type: ignore
 import numpy as np  # type: ignore
 
-try:
-    import geopandas as gpd  # type: ignore
-    from shapely.geometry import Point  # type: ignore
-
-    HAS_GEOPANDAS = True
-except ModuleNotFoundError:  # pragma: no cover
-    HAS_GEOPANDAS = False
-
 from . import bufr_filters
 
 
@@ -152,10 +144,7 @@ def wmo_station_position_from_bufr(observation, prefix, keys):
     heightOfStationGroundAboveMeanSeaLevel = float(
         observation.get(prefix + keys[2], 0.0)
     )
-    if HAS_GEOPANDAS:
-        return Point([longitude, latitude, heightOfStationGroundAboveMeanSeaLevel])
-    else:
-        return [longitude, latitude, heightOfStationGroundAboveMeanSeaLevel]
+    return [longitude, latitude, heightOfStationGroundAboveMeanSeaLevel]
 
 
 def CRS_from_bufr(observation, prefix, keys):
@@ -325,7 +314,6 @@ def stream_bufr(
     columns: T.Iterable[str],
     filters: T.Mapping[str, T.Any] = {},
     required_columns: T.Union[bool, T.Iterable[str]] = True,
-    geopandas: bool = False,
     prefilter_headers: bool = False,
 ) -> T.Iterator[T.Dict[str, T.Any]]:
     """
@@ -341,9 +329,6 @@ def stream_bufr(
 
     if isinstance(columns, str):
         columns = (columns,)
-
-    if geopandas:
-        columns += ("geometry", "CRS")
 
     if required_columns is True:
         required_columns = set(columns)
