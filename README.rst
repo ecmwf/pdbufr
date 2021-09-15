@@ -24,9 +24,6 @@ Limitations:
 Installation
 ============
 
-Pandas
-------
-
 The easiest way to install *pdbufr* dependencies is via Conda::
 
     $ conda install -c conda-forge python-eccodes pandas
@@ -71,9 +68,6 @@ First, you need a well-formed BUFR file, if you don't have one at hand you can d
 You can explore the file with *ecCodes* command line tools ``bufr_ls`` and ``bufr_dump`` to
 understand the structure and the keys/values you can use to select the observations you
 are interested in.
-
-Pandas Part
------------
 
 The ``pdbufr.read_bufr`` function return a ``pandas.DataFrame`` with the requested columns.
 It accepts query filters on the BUFR message header

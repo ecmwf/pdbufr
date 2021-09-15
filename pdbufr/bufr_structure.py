@@ -363,7 +363,7 @@ def stream_bufr(
         if prefilter_headers:
             # test header keys for failed matches before unpacking
             if not bufr_filters.is_match(
-                message, value_filters, geopandas, required=False
+                message, value_filters, required=False
             ):
                 continue
 
