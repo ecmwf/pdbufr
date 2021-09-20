@@ -8,7 +8,7 @@ TEST_DATA_GEOPANDAS = os.path.join(
     SAMPLE_DATA_FOLDER,
     "Z__C_EDZW_20210516120400_bda01,synop_bufr_GER_999999_999999__MW_466.bin",
 )
-VERBOSE = True
+VERBOSE = False
 
 
 # from pyproj import Geod
@@ -20,7 +20,7 @@ VERBOSE = True
 #     return dist
 
 
-def distance(center, position):
+def distance(center: list, position: list) -> float:
     # Orthodrome - see https://en.wikipedia.org/wiki/Great_circle
     RadiusEarth = 6371000  # Average Radius of Earth in m
     lat1 = math.radians(center[0])
@@ -36,17 +36,7 @@ def distance(center, position):
     )
 
 
-def readBufrFile(file, columns, filters={}):
-    try:
-        df_all = pdbufr.read_bufr(file, columns, filters)
-        return df_all
-    except:
-        t, v, tb = sys.exc_info()
-        sys.stderr.write(f"File={file}: {t} - {v} \n")
-        raise
-
-
-def testPdBufr2preparedGeoPandas(file):
+def testPdBufr2preparedGeoPandas():
     center = [11.010754, 47.800864]  # Hohenpeißenberg
     radius = 100 * 1000  # 100 km
     columnsList = [
@@ -92,7 +82,7 @@ def testPdBufr2preparedGeoPandas(file):
             if VERBOSE:
                 print(f"columns[{cIndx}]={columns}")
                 print(f"filters[{fIndx}]={filters}")
-            rs = readBufrFile(file, columns, filters)
+            rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filters)
             if VERBOSE:
                 print(rs)
             results.append(dict(cIndx=cIndx, fIndx=fIndx, rs=rs, len=len(rs)))
@@ -125,4 +115,4 @@ def testPdBufr2preparedGeoPandas(file):
 
 
 if __name__ == "__main__":
-    testPdBufr2preparedGeoPandas(TEST_DATA_GEOPANDAS)
+    testPdBufr2preparedGeoPandas()
