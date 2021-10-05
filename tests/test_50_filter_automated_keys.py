@@ -1,7 +1,16 @@
-import pdbufr
-import sys
+# (C) Copyright 2019- ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
+
 import os
+import typing as T
 import math
+
+import pdbufr
 
 SAMPLE_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "sample-data")
 TEST_DATA_GEOPANDAS = os.path.join(
@@ -36,7 +45,7 @@ def distance(center: list, position: list) -> float:
     )
 
 
-def testPdBufr2preparedGeoPandas():
+def test_computed_keys_filter() -> None:
     center = [11.010754, 47.800864]  # Hohenpeißenberg
     radius = 100 * 1000  # 100 km
     columnsList = [
@@ -111,8 +120,7 @@ def testPdBufr2preparedGeoPandas():
         if VERBOSE:
             print(f"{test['cIndx']} {test['fIndx']} : Length Check ok ({test['len']})")
 
-    print("all Checks ok")
+    if VERBOSE:
+        print("all Checks ok")
 
 
-if __name__ == "__main__":
-    testPdBufr2preparedGeoPandas()

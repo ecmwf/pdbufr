@@ -1,10 +1,20 @@
+# (C) Copyright 2019- ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
+
+import os
+import sys
+import typing as T
+import math
+
 import pytest
 from importlib import import_module
 
 import pdbufr
-import sys
-import os
-import typing as T
 
 
 def modules_installed(*modules):
@@ -25,13 +35,14 @@ TEST_DATA_GEOPANDAS = os.path.join(
     SAMPLE_DATA_FOLDER,
     "Z__C_EDZW_20210516120400_bda01,synop_bufr_GER_999999_999999__MW_466.bin",
 )
-VERBOSE = True
+VERBOSE = False
 
 
 @pytest.mark.skipif(
-    MISSING("pyproj"), reason="pyproj not installed",
+    MISSING("pyproj", "shapely"), reason="pyproj and/or shapely not installed",
 )
-def distance(center, position):
+def distance(center, position) -> float:
+    # center: Point, position: Point -> float
     from pyproj import Geod
 
     g = Geod(ellps="WGS84")
@@ -234,8 +245,7 @@ def test_PdBufr2GeoPandas():
                         f"{test['cIndx']} {test['fIndx']}: DataFrame Pandas vs {results[indx-1]['gIndx']} GeoDataFrame could not be equal because geometry and CRS is automatically included only into GeoPandas"
                     )
 
-    print("all Checks ok")
+    if VERBOSE:
+        print("all Checks ok")
 
 
-if __name__ == "__main__":
-    test_PdBufr2GeoPandas()
