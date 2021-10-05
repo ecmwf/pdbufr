@@ -7,9 +7,7 @@
 # nor does it submit to any jurisdiction.
 
 import os
-import sys
 import typing as T
-import math
 
 import pytest
 from importlib import import_module
@@ -35,7 +33,6 @@ TEST_DATA_GEOPANDAS = os.path.join(
     SAMPLE_DATA_FOLDER,
     "Z__C_EDZW_20210516120400_bda01,synop_bufr_GER_999999_999999__MW_466.bin",
 )
-VERBOSE = False
 
 
 @pytest.mark.skipif(
@@ -89,163 +86,298 @@ def read_geo_bufr(
     return gpd.GeoDataFrame(dataFrame, geometry=dataFrame.geometry, crs=CRS)
 
 
-def readBufrFile(file, columns, filters={}, geopandas=False):
-    try:
-        if geopandas:
-            df_all = read_geo_bufr(file, columns, filters)
-        else:
-            df_all = pdbufr.read_bufr(file, columns, filters)
-        return df_all
-    except:
-        t, v, tb = sys.exc_info()
-        sys.stderr.write(f"File={file}: {t} - {v} \n")
-        raise
+@pytest.mark.skipif(
+    MISSING("shapely"), reason="shapely not installed",
+)
+def test_GeoPandas_without_latlon_with_timesignificance():
+    from shapely.geometry import Point
+
+    center = Point([11.010754, 47.800864])  # Hohenpeißenberg
+    radius = 100 * 1000  # 100 km
+    columns = [
+        "WMO_station_id",
+        "stationOrSiteName",
+        "geometry",
+        "CRS",
+        "typicalDate",
+        "typicalTime",
+        "timeSignificance",
+        "timePeriod",
+        "windDirection",
+        "windSpeed",
+    ]
+    filter_wind = dict(windDirection=float, windSpeed=float)
+    filter_wind_geometry = dict(
+        windDirection=float,
+        windSpeed=float,
+        geometry=lambda x: distance(center, Point(x)) < radius,
+    )
+
+    rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns)
+    assert len(rsg) == 178
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
+    assert len(rs) == 178
+
+    assert any(
+        rs.sort_index().sort_index(axis=1) == rsg.sort_index().sort_index(axis=1)
+    )
+
+    rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    assert len(rsg) == 175
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    assert len(rs) == 175
+
+    assert any(
+        rs.sort_index().sort_index(axis=1) == rsg.sort_index().sort_index(axis=1)
+    )
+
+    rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    assert len(rsg) == 10
+    for station in rsg.to_records():
+        assert distance(center, station["geometry"]) < radius
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    assert len(rs) == 10
+    for station in rs.to_records():
+        assert distance(center, Point(station["geometry"])) < radius
+
+    assert any(
+        rs.sort_index().sort_index(axis=1) == rsg.sort_index().sort_index(axis=1)
+    )
 
 
 @pytest.mark.skipif(
     MISSING("shapely"), reason="shapely not installed",
 )
-def test_PdBufr2GeoPandas():
+def test_GeoPandas_with_latlon_with_timesignificance():
     from shapely.geometry import Point
 
     center = Point([11.010754, 47.800864])  # Hohenpeißenberg
     radius = 100 * 1000  # 100 km
-    columnsList = [
-        [
-            "WMO_station_id",
-            "stationOrSiteName",
-            "geometry",
-            "CRS",
-            "typicalDate",
-            "typicalTime",
-            "timeSignificance",
-            "timePeriod",
-            "windDirection",
-            "windSpeed",
-        ],
-        [
-            "WMO_station_id",
-            "stationOrSiteName",
-            "latitude",
-            "longitude",
-            "geometry",
-            "CRS",
-            "typicalDate",
-            "typicalTime",
-            "timeSignificance",
-            "timePeriod",
-            "windDirection",
-            "windSpeed",
-        ],
-        [
-            "WMO_station_id",
-            "stationOrSiteName",
-            "geometry",
-            "CRS",
-            "typicalDate",
-            "typicalTime",
-            "timePeriod",
-            "windDirection",
-            "windSpeed",
-        ],
-        [
-            "WMO_station_id",
-            "stationOrSiteName",
-            "latitude",
-            "longitude",
-            "geometry",
-            "CRS",
-            "typicalDate",
-            "typicalTime",
-            "timePeriod",
-            "windDirection",
-            "windSpeed",
-        ],
-        [
-            "WMO_station_id",
-            "stationOrSiteName",
-            "typicalDate",
-            "typicalTime",
-            "timePeriod",
-            "windDirection",
-            "windSpeed",
-        ],
+    columns = [
+        "WMO_station_id",
+        "stationOrSiteName",
+        "latitude",
+        "longitude",
+        "geometry",
+        "CRS",
+        "typicalDate",
+        "typicalTime",
+        "timeSignificance",
+        "timePeriod",
+        "windDirection",
+        "windSpeed",
     ]
-    filtersList = [
-        dict(),
-        dict(windDirection=float, windSpeed=float),
-        dict(
-            windDirection=float,
-            windSpeed=float,
-            geometry=lambda x: distance(center, Point(x)) < radius,
-        ),
+    filter_wind = dict(windDirection=float, windSpeed=float)
+    filter_wind_geometry = dict(
+        windDirection=float,
+        windSpeed=float,
+        geometry=lambda x: distance(center, Point(x)) < radius,
+    )
+
+    rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns)
+    assert len(rsg) == 178
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
+    assert len(rs) == 178
+
+    assert any(
+        rs.sort_index().sort_index(axis=1) == rsg.sort_index().sort_index(axis=1)
+    )
+
+    rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    assert len(rsg) == 175
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    assert len(rs) == 175
+
+    assert any(
+        rs.sort_index().sort_index(axis=1) == rsg.sort_index().sort_index(axis=1)
+    )
+
+    rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    assert len(rsg) == 10
+    for station in rsg.to_records():
+        assert distance(center, station["geometry"]) < radius
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    assert len(rs) == 10
+    for station in rs.to_records():
+        assert distance(center, Point(station["geometry"])) < radius
+
+    assert any(
+        rs.sort_index().sort_index(axis=1) == rsg.sort_index().sort_index(axis=1)
+    )
+
+
+@pytest.mark.skipif(
+    MISSING("shapely"), reason="shapely not installed",
+)
+def test_GeoPandas_without_latlon_without_timesignificance():
+    from shapely.geometry import Point
+
+    center = Point([11.010754, 47.800864])  # Hohenpeißenberg
+    radius = 100 * 1000  # 100 km
+    columns = [
+        "WMO_station_id",
+        "stationOrSiteName",
+        "geometry",
+        "CRS",
+        "typicalDate",
+        "typicalTime",
+        "timePeriod",
+        "windDirection",
+        "windSpeed",
     ]
-    results = []
-    for cIndx, columns in enumerate(columnsList):
-        for fIndx, filters in enumerate(filtersList):
-            for gIndx, geopandas in {"GeoPandas": True, "Pandas": False}.items():
-                if VERBOSE:
-                    print(f"columns[{cIndx}]={columns}")
-                    print(f"filters[{fIndx}]={filters}")
-                    print(f"{gIndx} Result")
-                rs = readBufrFile(
-                    TEST_DATA_GEOPANDAS, columns, filters, geopandas=geopandas
-                )
-                if VERBOSE:
-                    print(rs)
-                results.append(
-                    dict(cIndx=cIndx, fIndx=fIndx, gIndx=gIndx, rs=rs, len=len(rs))
-                )
-                if geopandas and "geometry" in filters:
-                    for station in rs.to_records():
-                        assert distance(center, station["geometry"]) < radius
-                    if VERBOSE:
-                        print(f"Distance check (radius = {radius/1000} km) ok")
+    filter_wind = dict(windDirection=float, windSpeed=float)
+    filter_wind_geometry = dict(
+        windDirection=float,
+        windSpeed=float,
+        geometry=lambda x: distance(center, Point(x)) < radius,
+    )
 
-    if VERBOSE:
-        print("Length Checks and DataFrame Checks")
+    rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns)
+    assert len(rsg) == 204
 
-    for indx, test in enumerate(results):
-        if test["cIndx"] in [0, 1] and test["fIndx"] == 0:
-            results[indx]["awaitedLength"] = 178
-        elif test["cIndx"] in [0, 1] and test["fIndx"] == 1:
-            results[indx]["awaitedLength"] = 175
-        elif test["cIndx"] in [0, 1] and test["fIndx"] == 2:
-            results[indx]["awaitedLength"] = 10
-        elif test["cIndx"] in [2, 3, 4] and test["fIndx"] == 0:
-            results[indx]["awaitedLength"] = 204
-        elif test["cIndx"] in [2, 3, 4] and test["fIndx"] == 1:
-            results[indx]["awaitedLength"] = 201
-        elif test["cIndx"] in [2, 3, 4] and test["fIndx"] == 2:
-            results[indx]["awaitedLength"] = 13
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
+    assert len(rs) == 204
 
-        try:
-            assert test["len"] == test["awaitedLength"]
-        except:
-            print(f"assertion in {indx}: {test}")
-            raise
-        if VERBOSE:
-            print(
-                f"{test['cIndx']} {test['fIndx']} {test['gIndx']}: Length Check ok ({test['len']})"
-            )
+    assert any(
+        rs.sort_index().sort_index(axis=1) == rsg.sort_index().sort_index(axis=1)
+    )
 
-        if test["gIndx"] == "Pandas":
-            if not (test["cIndx"] == 4):
-                assert any(
-                    test["rs"].sort_index().sort_index(axis=1)
-                    == results[indx - 1]["rs"].sort_index().sort_index(axis=1)
-                )
-                if VERBOSE:
-                    print(
-                        f"{test['cIndx']} {test['fIndx']}: Pandas DataFrame vs {results[indx-1]['gIndx']} GeoDataFrame Comparison ok"
-                    )
-            else:
-                if VERBOSE:
-                    print(
-                        f"{test['cIndx']} {test['fIndx']}: DataFrame Pandas vs {results[indx-1]['gIndx']} GeoDataFrame could not be equal because geometry and CRS is automatically included only into GeoPandas"
-                    )
+    rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    assert len(rsg) == 201
 
-    if VERBOSE:
-        print("all Checks ok")
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    assert len(rs) == 201
+
+    assert any(
+        rs.sort_index().sort_index(axis=1) == rsg.sort_index().sort_index(axis=1)
+    )
+
+    rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    assert len(rsg) == 13
+    for station in rsg.to_records():
+        assert distance(center, station["geometry"]) < radius
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    assert len(rs) == 13
+    for station in rs.to_records():
+        assert distance(center, Point(station["geometry"])) < radius
+
+    assert any(
+        rs.sort_index().sort_index(axis=1) == rsg.sort_index().sort_index(axis=1)
+    )
 
 
+@pytest.mark.skipif(
+    MISSING("shapely"), reason="shapely not installed",
+)
+def test_GeoPandas_with_latlon_without_timesignificance():
+    from shapely.geometry import Point
+
+    center = Point([11.010754, 47.800864])  # Hohenpeißenberg
+    radius = 100 * 1000  # 100 km
+    columns = [
+        "WMO_station_id",
+        "stationOrSiteName",
+        "latitude",
+        "longitude",
+        "geometry",
+        "CRS",
+        "typicalDate",
+        "typicalTime",
+        "timePeriod",
+        "windDirection",
+        "windSpeed",
+    ]
+    filter_wind = dict(windDirection=float, windSpeed=float)
+    filter_wind_geometry = dict(
+        windDirection=float,
+        windSpeed=float,
+        geometry=lambda x: distance(center, Point(x)) < radius,
+    )
+
+    rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns)
+    assert len(rsg) == 204
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
+    assert len(rs) == 204
+
+    assert any(
+        rs.sort_index().sort_index(axis=1) == rsg.sort_index().sort_index(axis=1)
+    )
+
+    rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    assert len(rsg) == 201
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    assert len(rs) == 201
+
+    assert any(
+        rs.sort_index().sort_index(axis=1) == rsg.sort_index().sort_index(axis=1)
+    )
+
+    rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    assert len(rsg) == 13
+    for station in rsg.to_records():
+        assert distance(center, station["geometry"]) < radius
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    assert len(rs) == 13
+    for station in rs.to_records():
+        assert distance(center, Point(station["geometry"])) < radius
+
+    assert any(
+        rs.sort_index().sort_index(axis=1) == rsg.sort_index().sort_index(axis=1)
+    )
+
+
+@pytest.mark.skipif(
+    MISSING("shapely"), reason="shapely not installed",
+)
+def test_GeoPandas_without_geometry_without_latlon_without_timesignificance():
+    from shapely.geometry import Point
+
+    center = Point([11.010754, 47.800864])  # Hohenpeißenberg
+    radius = 100 * 1000  # 100 km
+    columns = [
+        "WMO_station_id",
+        "stationOrSiteName",
+        "typicalDate",
+        "typicalTime",
+        "timePeriod",
+        "windDirection",
+        "windSpeed",
+    ]
+    filter_wind = dict(windDirection=float, windSpeed=float)
+    filter_wind_geometry = dict(
+        windDirection=float,
+        windSpeed=float,
+        geometry=lambda x: distance(center, Point(x)) < radius,
+    )
+
+    rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns)
+    assert len(rsg) == 204
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
+    assert len(rs) == 204
+
+    rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    assert len(rsg) == 201
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    assert len(rs) == 201
+
+    rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    assert len(rsg) == 13
+    for station in rsg.to_records():
+        assert distance(center, station["geometry"]) < radius
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    assert len(rs) == 13
+    for station in rs.to_records():
+        assert distance(center, Point(station["geometry"])) < radius

@@ -9,7 +9,6 @@
 import os
 import typing as T
 
-import eccodes  # type: ignore
 import pandas as pd  # type: ignore
 
 from . import bufr_structure
@@ -33,6 +32,6 @@ def read_bufr(
     """
     with BufrFile(path) as bufr_file:  # type: ignore
         observations = bufr_structure.stream_bufr(
-            bufr_file, columns, filters, required_columns,
+            bufr_file, columns, filters, required_columns
         )
         return pd.DataFrame.from_records(observations)

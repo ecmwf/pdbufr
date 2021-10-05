@@ -155,7 +155,8 @@ def CRS_from_bufr(observation, prefix, keys):
         1: "EPSG:4258",  # ETRS89
         2: "EPSG:4269",  # NAD83
         3: "EPSG:4314",  # DHDN
-        4: None,  # TODO: get ellipsoid axes from descriptors 001152 and 001153 and create an CRS using pyproj.crs.CRS.from_cf(...) (s.below)
+        4: None,  # TODO: get ellipsoid axes from descriptors 001152 and 001153
+        # and create an CRS using pyproj.crs.CRS.from_cf(...) (s.below)
         5: None,  # TODO: create an CRS using pyproj.crs.CRS.from_cf(...) (s. below)
         eccodes.CODES_MISSING_LONG: "EPSG:4326",  # WGS84
     }
@@ -168,7 +169,7 @@ def CRS_from_bufr(observation, prefix, keys):
     International Reference Meridian, International Reference Pole and ITRS are
     maintained by the International Earth Rotation and Reference Systems
     Service (IERS)
-    
+
     (2) When Code figure 4 is used to specify a custom coordinate reference system, the ellipsoidal
         datum shall be an oblate ellipsoid of revolution, where the major axis is uniplanar with the
         equatorial plane and the minor axis traverses the prime meridian towards the prime pole.
@@ -178,7 +179,7 @@ def CRS_from_bufr(observation, prefix, keys):
         0 01 152 and 0 01 153).
 
     Note to CRS:5
-    -------------    
+    -------------
     Earth-centred, Earth-fixed (ECEF) coordinate system or Earth-centred rotational
     (ECR) system. This is a right-handed Cartesian coordinate system (X, Y, Z)
     rotating with the Earth. The origin is defined by the centre of mass of the Earth.
@@ -375,7 +376,7 @@ def stream_bufr(
             observation = {}
 
         value_filters_without_computed = {
-            k: v for k, v in value_filters.items() if not k in computed_keys
+            k: v for k, v in value_filters.items() if k not in computed_keys
         }
 
         for observation in extract_observations(

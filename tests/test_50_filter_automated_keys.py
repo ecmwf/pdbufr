@@ -7,7 +7,6 @@
 # nor does it submit to any jurisdiction.
 
 import os
-import typing as T
 import math
 
 import pdbufr
@@ -17,16 +16,6 @@ TEST_DATA_GEOPANDAS = os.path.join(
     SAMPLE_DATA_FOLDER,
     "Z__C_EDZW_20210516120400_bda01,synop_bufr_GER_999999_999999__MW_466.bin",
 )
-VERBOSE = False
-
-
-# from pyproj import Geod
-# from shapely.geometry import Point
-
-# def distance(center, position):
-#     g = Geod(ellps="WGS84")
-#     az12, az21, dist = g.inv(position.x, position.y, center.x, center.y)
-#     return dist
 
 
 def distance(center: list, position: list) -> float:
@@ -45,82 +34,73 @@ def distance(center: list, position: list) -> float:
     )
 
 
-def test_computed_keys_filter() -> None:
+def test_computedKeys_Filter_with_latlon() -> None:
     center = [11.010754, 47.800864]  # Hohenpeißenberg
     radius = 100 * 1000  # 100 km
-    columnsList = [
-        (
-            "WMO_station_id",
-            "stationOrSiteName",
-            "geometry",
-            "CRS",
-            "typicalDate",
-            "typicalTime",
-            "timeSignificance",
-            "timePeriod",
-            "windDirection",
-            "windSpeed",
-        ),
-        (
-            "WMO_station_id",
-            "stationOrSiteName",
-            "latitude",
-            "longitude",
-            "geometry",
-            "CRS",
-            "typicalDate",
-            "typicalTime",
-            "timeSignificance",
-            "timePeriod",
-            "windDirection",
-            "windSpeed",
-        ),
-    ]
-    filtersList = [
-        dict(),
-        dict(windDirection=float, windSpeed=float),
-        dict(
-            windDirection=float,
-            windSpeed=float,
-            geometry=lambda x: distance(center, x) < radius,
-        ),
-    ]
-    results = []
-    for cIndx, columns in enumerate(columnsList):
-        for fIndx, filters in enumerate(filtersList):
-            if VERBOSE:
-                print(f"columns[{cIndx}]={columns}")
-                print(f"filters[{fIndx}]={filters}")
-            rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filters)
-            if VERBOSE:
-                print(rs)
-            results.append(dict(cIndx=cIndx, fIndx=fIndx, rs=rs, len=len(rs)))
-            if "geometry" in filters:
-                for station in rs.to_records():
-                    assert distance(center, station["geometry"]) < radius
-                if VERBOSE:
-                    print(f"Distance check (radius = {radius/1000} km) ok")
+    columns = (
+        "WMO_station_id",
+        "stationOrSiteName",
+        "latitude",
+        "longitude",
+        "geometry",
+        "CRS",
+        "typicalDate",
+        "typicalTime",
+        "timeSignificance",
+        "timePeriod",
+        "windDirection",
+        "windSpeed",
+    )
 
-    if VERBOSE:
-        print("Length Checks and DataFrame Checks")
+    filter_wind = dict(windDirection=float, windSpeed=float)
+    filter_wind_geometry = dict(
+        windDirection=float,
+        windSpeed=float,
+        geometry=lambda x: distance(center, x) < radius,
+    )
 
-    for indx, test in enumerate(results):
-        if test["cIndx"] in [0, 1] and test["fIndx"] == 0:
-            results[indx]["awaitedLength"] = 178
-        elif test["cIndx"] in [0, 1] and test["fIndx"] == 1:
-            results[indx]["awaitedLength"] = 175
-        elif test["cIndx"] in [0, 1] and test["fIndx"] == 2:
-            results[indx]["awaitedLength"] = 7
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
+    assert len(rs) == 178
 
-        try:
-            assert test["len"] == test["awaitedLength"]
-        except:
-            print(f"assertion in {indx}: {test}")
-            raise
-        if VERBOSE:
-            print(f"{test['cIndx']} {test['fIndx']} : Length Check ok ({test['len']})")
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    assert len(rs) == 175
 
-    if VERBOSE:
-        print("all Checks ok")
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    assert len(rs) == 7
+    for station in rs.to_records():
+        assert distance(center, station["geometry"]) < radius
 
 
+def test_computedKeys_Filter_without_latlon() -> None:
+    center = [11.010754, 47.800864]  # Hohenpeißenberg
+    radius = 100 * 1000  # 100 km
+    columns = (
+        "WMO_station_id",
+        "stationOrSiteName",
+        "geometry",
+        "CRS",
+        "typicalDate",
+        "typicalTime",
+        "timeSignificance",
+        "timePeriod",
+        "windDirection",
+        "windSpeed",
+    )
+
+    filter_wind = dict(windDirection=float, windSpeed=float)
+    filter_wind_geometry = dict(
+        windDirection=float,
+        windSpeed=float,
+        geometry=lambda x: distance(center, x) < radius,
+    )
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
+    assert len(rs) == 178
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    assert len(rs) == 175
+
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    assert len(rs) == 7
+    for station in rs.to_records():
+        assert distance(center, station["geometry"]) < radius
