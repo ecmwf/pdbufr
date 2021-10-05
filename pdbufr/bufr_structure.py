@@ -155,8 +155,8 @@ def wmo_station_position_from_bufr(
 
 def CRS_from_bufr(
     observation: T.Dict[str, T.Any], prefix: str, datetime_keys: T.List[str]
-) -> Optional[str]:
-    # type: (T.Dict[str, T.Any], str, T.List[str]) -> Optional[str]
+) -> T.Optional[str]:
+    # type: (T.Dict[str, T.Any], str, T.List[str]) -> T.Optional[str]
     bufr_CRS = int(observation.get(prefix + keys[0], 0))
     CRS_choices = {
         0: "EPSG:4326",  # WGS84
