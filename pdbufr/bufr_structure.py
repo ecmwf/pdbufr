@@ -119,7 +119,9 @@ def filter_keys_cached(
     return cache[filtered_message_uid]
 
 
-def datetime_from_bufr(observation, prefix, datetime_keys):
+def datetime_from_bufr(
+    observation: T.Dict[str, T.Any], prefix: str, datetime_keys: T.List[str]
+) -> datetime.datetime:
     # type: (T.Dict[str, T.Any], str, T.List[str]) -> datetime.datetime
     hours = observation.get(prefix + datetime_keys[3], 0)
     minutes = observation.get(prefix + datetime_keys[4], 0)
@@ -130,14 +132,18 @@ def datetime_from_bufr(observation, prefix, datetime_keys):
     return datetime.datetime(*datetime_list)
 
 
-def wmo_station_id_from_bufr(observation, prefix, keys):
+def wmo_station_id_from_bufr(
+    observation: T.Dict[str, T.Any], prefix: str, datetime_keys: T.List[str]
+) -> int:
     # type: (T.Dict[str, T.Any], str, T.List[str]) -> int
     block_number = int(observation[prefix + keys[0]])
     station_number = int(observation[prefix + keys[1]])
     return block_number * 1000 + station_number
 
 
-def wmo_station_position_from_bufr(observation, prefix, keys):
+def wmo_station_position_from_bufr(
+    observation: T.Dict[str, T.Any], prefix: str, datetime_keys: T.List[str]
+) -> T.List[float]:
     # type: (T.Dict[str, T.Any], str, T.List[str]) -> T.List
     longitude = float(observation[prefix + keys[0]])  # easting (X)
     latitude = float(observation[prefix + keys[1]])  # northing (Y)
@@ -147,8 +153,10 @@ def wmo_station_position_from_bufr(observation, prefix, keys):
     return [longitude, latitude, heightOfStationGroundAboveMeanSeaLevel]
 
 
-def CRS_from_bufr(observation, prefix, keys):
-    # type: (T.Dict[str, T.Any], str, T.List[str]) -> str
+def CRS_from_bufr(
+    observation: T.Dict[str, T.Any], prefix: str, datetime_keys: T.List[str]
+) -> Optional[str]:
+    # type: (T.Dict[str, T.Any], str, T.List[str]) -> Optional[str]
     bufr_CRS = int(observation.get(prefix + keys[0], 0))
     CRS_choices = {
         0: "EPSG:4326",  # WGS84

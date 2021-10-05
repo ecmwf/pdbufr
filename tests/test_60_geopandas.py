@@ -8,14 +8,14 @@
 
 import os
 import typing as T
+from importlib import import_module
 
 import pytest
-from importlib import import_module
 
 import pdbufr
 
 
-def modules_installed(*modules):
+def modules_installed(modules: T.List[str]) -> bool:
     for module in modules:
         try:
             import_module(module)
@@ -24,8 +24,8 @@ def modules_installed(*modules):
     return True
 
 
-def MISSING(*modules):
-    return not modules_installed(*modules)
+def MISSING(modules: T.List[str]) -> bool:
+    return not modules_installed(modules)
 
 
 SAMPLE_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "sample-data")
@@ -36,9 +36,9 @@ TEST_DATA_GEOPANDAS = os.path.join(
 
 
 @pytest.mark.skipif(
-    MISSING("pyproj", "shapely"), reason="pyproj and/or shapely not installed",
+    MISSING(["pyproj", "shapely"]), reason="pyproj and/or shapely not installed",
 )
-def distance(center, position) -> float:
+def distance(center: T.Any, position: T.Any) -> float:
     # center: Point, position: Point -> float
     from pyproj import Geod
 
@@ -48,7 +48,7 @@ def distance(center, position) -> float:
 
 
 @pytest.mark.skipif(
-    MISSING("geopandas", "shapely"), reason="geopandas and/or shapely not installed",
+    MISSING(["geopandas", "shapely"]), reason="geopandas and/or shapely not installed",
 )
 def read_geo_bufr(
     path: T.Union[str, bytes, "os.PathLike[T.Any]"],
@@ -65,12 +65,19 @@ def read_geo_bufr(
     :param required_columns: The list BUFR keys that are required for all observations.
         ``True`` means all ``columns`` are required
     """
-    from shapely.geometry import Point
     import geopandas as gpd
+    from shapely.geometry import Point
 
     for key in ["geometry", "CRS"]:
         if key not in columns:
-            columns.append(key)
+            if isinstance(columns, list):
+                columns.append(key)
+            elif isinstance(columns, tuple):
+                columns += (key,)
+            elif isinstance(columns, set):
+                columns |= {key}
+            else:
+                raise ValueError("columns must be an instance of list or tuple or set")
 
     dataFrame = pdbufr.read_bufr(path, columns, filters, required_columns)
 
@@ -87,7 +94,7 @@ def read_geo_bufr(
 
 
 @pytest.mark.skipif(
-    MISSING("shapely"), reason="shapely not installed",
+    MISSING(["shapely"]), reason="shapely not installed",
 )
 def test_GeoPandas_without_latlon_with_timesignificance():
     from shapely.geometry import Point
@@ -149,7 +156,7 @@ def test_GeoPandas_without_latlon_with_timesignificance():
 
 
 @pytest.mark.skipif(
-    MISSING("shapely"), reason="shapely not installed",
+    MISSING(["shapely"]), reason="shapely not installed",
 )
 def test_GeoPandas_with_latlon_with_timesignificance():
     from shapely.geometry import Point
@@ -213,7 +220,7 @@ def test_GeoPandas_with_latlon_with_timesignificance():
 
 
 @pytest.mark.skipif(
-    MISSING("shapely"), reason="shapely not installed",
+    MISSING(["shapely"]), reason="shapely not installed",
 )
 def test_GeoPandas_without_latlon_without_timesignificance():
     from shapely.geometry import Point
@@ -274,7 +281,7 @@ def test_GeoPandas_without_latlon_without_timesignificance():
 
 
 @pytest.mark.skipif(
-    MISSING("shapely"), reason="shapely not installed",
+    MISSING(["shapely"]), reason="shapely not installed",
 )
 def test_GeoPandas_with_latlon_without_timesignificance():
     from shapely.geometry import Point
@@ -337,7 +344,7 @@ def test_GeoPandas_with_latlon_without_timesignificance():
 
 
 @pytest.mark.skipif(
-    MISSING("shapely"), reason="shapely not installed",
+    MISSING(["shapely"]), reason="shapely not installed",
 )
 def test_GeoPandas_without_geometry_without_latlon_without_timesignificance():
     from shapely.geometry import Point

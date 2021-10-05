@@ -6,13 +6,13 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-import pdbufr
-
 import os
 import typing as T
 
 import numpy as np  # type: ignore
 import pytest
+
+import pdbufr
 
 pd = pytest.importorskip("pandas")
 assert_frame_equal = pd.testing.assert_frame_equal
