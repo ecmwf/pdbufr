@@ -12,7 +12,7 @@ from importlib import import_module
 
 import pytest
 
-import pdbufr
+from pdbufr.bufr_read import read_bufr
 
 
 def modules_installed(modules: T.List[str]) -> bool:
@@ -31,7 +31,7 @@ def MISSING(modules: T.List[str]) -> bool:
 SAMPLE_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "sample-data")
 TEST_DATA_GEOPANDAS = os.path.join(
     SAMPLE_DATA_FOLDER,
-    "Z__C_EDZW_20210516120400_bda01,synop_bufr_GER_999999_999999__MW_466.bin",
+    "Z__C_EDZW_20210516120400_bda01,synop_bufr_GER_999999_999999__MW_466.bufr",
 )
 
 
@@ -79,7 +79,7 @@ def read_geo_bufr(
             else:
                 raise ValueError("columns must be an instance of list or tuple or set")
 
-    dataFrame = pdbufr.read_bufr(path, columns, filters, required_columns)
+    dataFrame = read_bufr(path, columns, filters, required_columns)
 
     if dataFrame.empty:
         return dataFrame
@@ -123,7 +123,7 @@ def test_GeoPandas_without_latlon_with_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rsg) == 178
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rs) == 178
 
     assert any(
@@ -133,7 +133,7 @@ def test_GeoPandas_without_latlon_with_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rsg) == 175
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rs) == 175
 
     assert any(
@@ -145,7 +145,7 @@ def test_GeoPandas_without_latlon_with_timesignificance():
     for station in rsg.to_records():
         assert distance(center, station["geometry"]) < radius
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
     assert len(rs) == 10
     for station in rs.to_records():
         assert distance(center, Point(station["geometry"])) < radius
@@ -187,7 +187,7 @@ def test_GeoPandas_with_latlon_with_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rsg) == 178
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rs) == 178
 
     assert any(
@@ -197,7 +197,7 @@ def test_GeoPandas_with_latlon_with_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rsg) == 175
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rs) == 175
 
     assert any(
@@ -209,7 +209,7 @@ def test_GeoPandas_with_latlon_with_timesignificance():
     for station in rsg.to_records():
         assert distance(center, station["geometry"]) < radius
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
     assert len(rs) == 10
     for station in rs.to_records():
         assert distance(center, Point(station["geometry"])) < radius
@@ -248,7 +248,7 @@ def test_GeoPandas_without_latlon_without_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rsg) == 204
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rs) == 204
 
     assert any(
@@ -258,7 +258,7 @@ def test_GeoPandas_without_latlon_without_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rsg) == 201
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rs) == 201
 
     assert any(
@@ -270,7 +270,7 @@ def test_GeoPandas_without_latlon_without_timesignificance():
     for station in rsg.to_records():
         assert distance(center, station["geometry"]) < radius
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
     assert len(rs) == 13
     for station in rs.to_records():
         assert distance(center, Point(station["geometry"])) < radius
@@ -311,7 +311,7 @@ def test_GeoPandas_with_latlon_without_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rsg) == 204
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rs) == 204
 
     assert any(
@@ -321,7 +321,7 @@ def test_GeoPandas_with_latlon_without_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rsg) == 201
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rs) == 201
 
     assert any(
@@ -333,7 +333,7 @@ def test_GeoPandas_with_latlon_without_timesignificance():
     for station in rsg.to_records():
         assert distance(center, station["geometry"]) < radius
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
     assert len(rs) == 13
     for station in rs.to_records():
         assert distance(center, Point(station["geometry"])) < radius
@@ -370,13 +370,13 @@ def test_GeoPandas_without_geometry_without_latlon_without_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rsg) == 204
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rs) == 204
 
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rsg) == 201
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rs) == 201
 
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
@@ -384,7 +384,7 @@ def test_GeoPandas_without_geometry_without_latlon_without_timesignificance():
     for station in rsg.to_records():
         assert distance(center, station["geometry"]) < radius
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
     assert len(rs) == 13
     for station in rs.to_records():
         assert distance(center, Point(station["geometry"])) < radius

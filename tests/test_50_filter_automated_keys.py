@@ -9,12 +9,12 @@
 import math
 import os
 
-import pdbufr
+from pdbufr.bufr_read import read_bufr
 
 SAMPLE_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "sample-data")
 TEST_DATA_GEOPANDAS = os.path.join(
     SAMPLE_DATA_FOLDER,
-    "Z__C_EDZW_20210516120400_bda01,synop_bufr_GER_999999_999999__MW_466.bin",
+    "Z__C_EDZW_20210516120400_bda01,synop_bufr_GER_999999_999999__MW_466.bufr",
 )
 
 
@@ -59,13 +59,13 @@ def test_computedKeys_Filter_with_latlon() -> None:
         geometry=lambda x: distance(center, x) < radius,
     )
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rs) == 178
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rs) == 175
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
     assert len(rs) == 7
     for station in rs.to_records():
         assert distance(center, station["geometry"]) < radius
@@ -94,13 +94,13 @@ def test_computedKeys_Filter_without_latlon() -> None:
         geometry=lambda x: distance(center, x) < radius,
     )
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rs) == 178
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rs) == 175
 
-    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
     assert len(rs) == 7
     for station in rs.to_records():
         assert distance(center, station["geometry"]) < radius
