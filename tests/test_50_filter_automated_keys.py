@@ -8,8 +8,9 @@
 
 import math
 import os
+import typing as T
 
-from pdbufr.bufr_read import read_bufr
+import pdbufr
 
 SAMPLE_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "sample-data")
 TEST_DATA_GEOPANDAS = os.path.join(
@@ -18,7 +19,7 @@ TEST_DATA_GEOPANDAS = os.path.join(
 )
 
 
-def distance(center: list, position: list) -> float:
+def distance(center: T.List[float], position: T.List[float]) -> float:
     # Orthodrome - see https://en.wikipedia.org/wiki/Great_circle
     RadiusEarth = 6371000  # Average Radius of Earth in m
     lat1 = math.radians(center[0])
@@ -59,13 +60,13 @@ def test_computedKeys_Filter_with_latlon() -> None:
         geometry=lambda x: distance(center, x) < radius,
     )
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rs) == 178
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rs) == 175
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
     assert len(rs) == 7
     for station in rs.to_records():
         assert distance(center, station["geometry"]) < radius
@@ -94,13 +95,13 @@ def test_computedKeys_Filter_without_latlon() -> None:
         geometry=lambda x: distance(center, x) < radius,
     )
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rs) == 178
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rs) == 175
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
     assert len(rs) == 7
     for station in rs.to_records():
         assert distance(center, station["geometry"]) < radius

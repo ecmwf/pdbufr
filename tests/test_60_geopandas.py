@@ -10,9 +10,12 @@ import os
 import typing as T
 from importlib import import_module
 
+import geopandas as gpd  # type: ignore
 import pytest
+from pyproj import Geod  # type: ignore
+from shapely.geometry import Point  # type: ignore
 
-from pdbufr.bufr_read import read_bufr
+import pdbufr
 
 
 def modules_installed(modules: T.List[str]) -> bool:
@@ -38,9 +41,8 @@ TEST_DATA_GEOPANDAS = os.path.join(
 @pytest.mark.skipif(
     MISSING(["pyproj", "shapely"]), reason="pyproj and/or shapely not installed",
 )
-def distance(center: T.Any, position: T.Any) -> float:
+def distance(center: T.Any, position: T.Any) -> T.Any:
     # center: Point, position: Point -> float
-    from pyproj import Geod
 
     g = Geod(ellps="WGS84")
     az12, az21, dist = g.inv(position.x, position.y, center.x, center.y)
@@ -55,7 +57,7 @@ def read_geo_bufr(
     columns: T.Iterable[str],
     filters: T.Mapping[str, T.Any] = {},
     required_columns: T.Union[bool, T.Iterable[str]] = True,
-):  # -> geopandas.GeoDataFrame:
+) -> gpd.GeoDataFrame:
     """
     Read selected observations from a BUFR file into GeoDataFrame.
 
@@ -65,8 +67,6 @@ def read_geo_bufr(
     :param required_columns: The list BUFR keys that are required for all observations.
         ``True`` means all ``columns`` are required
     """
-    import geopandas as gpd
-    from shapely.geometry import Point
 
     for key in ["geometry", "CRS"]:
         if key not in columns:
@@ -79,7 +79,7 @@ def read_geo_bufr(
             else:
                 raise ValueError("columns must be an instance of list or tuple or set")
 
-    dataFrame = read_bufr(path, columns, filters, required_columns)
+    dataFrame = pdbufr.read_bufr(path, columns, filters, required_columns)
 
     if dataFrame.empty:
         return dataFrame
@@ -96,9 +96,7 @@ def read_geo_bufr(
 @pytest.mark.skipif(
     MISSING(["shapely"]), reason="shapely not installed",
 )
-def test_GeoPandas_without_latlon_with_timesignificance():
-    from shapely.geometry import Point
-
+def test_GeoPandas_without_latlon_with_timesignificance() -> None:
     center = Point([11.010754, 47.800864])  # Hohenpeißenberg
     radius = 100 * 1000  # 100 km
     columns = [
@@ -123,7 +121,7 @@ def test_GeoPandas_without_latlon_with_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rsg) == 178
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rs) == 178
 
     assert any(
@@ -133,7 +131,7 @@ def test_GeoPandas_without_latlon_with_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rsg) == 175
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rs) == 175
 
     assert any(
@@ -145,7 +143,7 @@ def test_GeoPandas_without_latlon_with_timesignificance():
     for station in rsg.to_records():
         assert distance(center, station["geometry"]) < radius
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
     assert len(rs) == 10
     for station in rs.to_records():
         assert distance(center, Point(station["geometry"])) < radius
@@ -158,9 +156,7 @@ def test_GeoPandas_without_latlon_with_timesignificance():
 @pytest.mark.skipif(
     MISSING(["shapely"]), reason="shapely not installed",
 )
-def test_GeoPandas_with_latlon_with_timesignificance():
-    from shapely.geometry import Point
-
+def test_GeoPandas_with_latlon_with_timesignificance() -> None:
     center = Point([11.010754, 47.800864])  # Hohenpeißenberg
     radius = 100 * 1000  # 100 km
     columns = [
@@ -187,7 +183,7 @@ def test_GeoPandas_with_latlon_with_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rsg) == 178
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rs) == 178
 
     assert any(
@@ -197,7 +193,7 @@ def test_GeoPandas_with_latlon_with_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rsg) == 175
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rs) == 175
 
     assert any(
@@ -209,7 +205,7 @@ def test_GeoPandas_with_latlon_with_timesignificance():
     for station in rsg.to_records():
         assert distance(center, station["geometry"]) < radius
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
     assert len(rs) == 10
     for station in rs.to_records():
         assert distance(center, Point(station["geometry"])) < radius
@@ -222,9 +218,7 @@ def test_GeoPandas_with_latlon_with_timesignificance():
 @pytest.mark.skipif(
     MISSING(["shapely"]), reason="shapely not installed",
 )
-def test_GeoPandas_without_latlon_without_timesignificance():
-    from shapely.geometry import Point
-
+def test_GeoPandas_without_latlon_without_timesignificance() -> None:
     center = Point([11.010754, 47.800864])  # Hohenpeißenberg
     radius = 100 * 1000  # 100 km
     columns = [
@@ -248,7 +242,7 @@ def test_GeoPandas_without_latlon_without_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rsg) == 204
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rs) == 204
 
     assert any(
@@ -258,7 +252,7 @@ def test_GeoPandas_without_latlon_without_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rsg) == 201
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rs) == 201
 
     assert any(
@@ -270,7 +264,7 @@ def test_GeoPandas_without_latlon_without_timesignificance():
     for station in rsg.to_records():
         assert distance(center, station["geometry"]) < radius
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
     assert len(rs) == 13
     for station in rs.to_records():
         assert distance(center, Point(station["geometry"])) < radius
@@ -283,9 +277,7 @@ def test_GeoPandas_without_latlon_without_timesignificance():
 @pytest.mark.skipif(
     MISSING(["shapely"]), reason="shapely not installed",
 )
-def test_GeoPandas_with_latlon_without_timesignificance():
-    from shapely.geometry import Point
-
+def test_GeoPandas_with_latlon_without_timesignificance() -> None:
     center = Point([11.010754, 47.800864])  # Hohenpeißenberg
     radius = 100 * 1000  # 100 km
     columns = [
@@ -311,7 +303,7 @@ def test_GeoPandas_with_latlon_without_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rsg) == 204
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rs) == 204
 
     assert any(
@@ -321,7 +313,7 @@ def test_GeoPandas_with_latlon_without_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rsg) == 201
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rs) == 201
 
     assert any(
@@ -333,7 +325,7 @@ def test_GeoPandas_with_latlon_without_timesignificance():
     for station in rsg.to_records():
         assert distance(center, station["geometry"]) < radius
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
     assert len(rs) == 13
     for station in rs.to_records():
         assert distance(center, Point(station["geometry"])) < radius
@@ -346,9 +338,7 @@ def test_GeoPandas_with_latlon_without_timesignificance():
 @pytest.mark.skipif(
     MISSING(["shapely"]), reason="shapely not installed",
 )
-def test_GeoPandas_without_geometry_without_latlon_without_timesignificance():
-    from shapely.geometry import Point
-
+def test_GeoPandas_without_geometry_without_latlon_without_timesignificance() -> None:
     center = Point([11.010754, 47.800864])  # Hohenpeißenberg
     radius = 100 * 1000  # 100 km
     columns = [
@@ -370,13 +360,13 @@ def test_GeoPandas_without_geometry_without_latlon_without_timesignificance():
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rsg) == 204
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns)
     assert len(rs) == 204
 
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rsg) == 201
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind)
     assert len(rs) == 201
 
     rsg = read_geo_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
@@ -384,7 +374,7 @@ def test_GeoPandas_without_geometry_without_latlon_without_timesignificance():
     for station in rsg.to_records():
         assert distance(center, station["geometry"]) < radius
 
-    rs = read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
+    rs = pdbufr.read_bufr(TEST_DATA_GEOPANDAS, columns, filter_wind_geometry)
     assert len(rs) == 13
     for station in rs.to_records():
         assert distance(center, Point(station["geometry"])) < radius
