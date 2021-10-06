@@ -133,7 +133,7 @@ def datetime_from_bufr(
 
 
 def wmo_station_id_from_bufr(
-    observation: T.Dict[str, T.Any], prefix: str, datetime_keys: T.List[str]
+    observation: T.Dict[str, T.Any], prefix: str, keys: T.List[str]
 ) -> int:
     # type: (T.Dict[str, T.Any], str, T.List[str]) -> int
     block_number = int(observation[prefix + keys[0]])
@@ -142,7 +142,7 @@ def wmo_station_id_from_bufr(
 
 
 def wmo_station_position_from_bufr(
-    observation: T.Dict[str, T.Any], prefix: str, datetime_keys: T.List[str]
+    observation: T.Dict[str, T.Any], prefix: str, keys: T.List[str]
 ) -> T.List[float]:
     # type: (T.Dict[str, T.Any], str, T.List[str]) -> T.List
     longitude = float(observation[prefix + keys[0]])  # easting (X)
@@ -154,7 +154,7 @@ def wmo_station_position_from_bufr(
 
 
 def CRS_from_bufr(
-    observation: T.Dict[str, T.Any], prefix: str, datetime_keys: T.List[str]
+    observation: T.Dict[str, T.Any], prefix: str, keys: T.List[str]
 ) -> T.Optional[str]:
     # type: (T.Dict[str, T.Any], str, T.List[str]) -> T.Optional[str]
     bufr_CRS = int(observation.get(prefix + keys[0], 0))
