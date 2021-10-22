@@ -12,7 +12,10 @@ Features with development status **Beta**:
 - reads BUFR 3 and 4 files with uncompressed and compressed subsets,
 - supports all modern versions of Python 3.9, 3.8, 3.7, 3.6 and PyPy3,
 - works on Linux, MacOS and Windows, the ecCodes C-library is the only binary dependency,
-- sports a rich filtering engine.
+- sports a rich filtering engine,
+- WMO station positions (latitude, longitude, heightOfStationGroundAboveMeanSeaLevel) can be used to build an automated key geometry 
+- Coordinate Reference System is included as computed key CRS and defaults to WGS84 if missing as BufrKey 
+- computed keys (data_datetime, typical_datetime, WMO_station_id, geometry, CRS) can now also be used to filter the records
 
 Limitations:
 
@@ -28,7 +31,6 @@ The easiest way to install *pdbufr* dependencies is via Conda::
 and *pdbufr* itself as a Python package from PyPI with::
 
     $ pip install pdbufr
-
 
 System dependencies
 -------------------
@@ -67,9 +69,15 @@ You can explore the file with *ecCodes* command line tools ``bufr_ls`` and ``buf
 understand the structure and the keys/values you can use to select the observations you
 are interested in.
 
-The ``pdbufr.read_bufr`` function return a ``pandas.DataDrame`` with the requested columns.
+The ``pdbufr.read_bufr`` function return a ``pandas.DataFrame`` with the requested columns.
 It accepts query filters on the BUFR message header
 that are very fast and query filters on the observation keys.
+Additionally also on the following computed keys:
+
+- data_datetime and typical_datetime (datetime.datetime)
+- geometry (List [longitude,latitude,heightOfStationGroundAboveMeanSeaLevel])
+- CRS (BufrKey Coordinate Reference System Values 0,1,2,3 and missing are supported (4 and 5 are not supported), defaults to WGS84 (EPSG:4632))
+
 Filters match on an exact value or with one of the values in a list and all filters must match:
 
 .. code-block:: python

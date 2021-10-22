@@ -12,10 +12,10 @@ import typing as T
 import numpy as np  # type: ignore
 import pytest
 
+import pdbufr
+
 pd = pytest.importorskip("pandas")
 assert_frame_equal = pd.testing.assert_frame_equal
-
-import pdbufr
 
 SAMPLE_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "sample-data")
 TEST_DATA_1 = os.path.join(SAMPLE_DATA_FOLDER, "obs_3day.bufr")

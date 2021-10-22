@@ -9,7 +9,6 @@
 import os
 import typing as T
 
-import eccodes  # type: ignore
 import pandas as pd  # type: ignore
 
 from . import bufr_structure
