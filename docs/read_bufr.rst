@@ -67,7 +67,7 @@ read_bufr
 
      .. note::
 
-          The computed keys do not preserve their position in ``columns`` but are placed to end end of the resulting DataFrame.
+          The computed keys do not preserve their position in ``columns`` but are placed to end of the resulting DataFrame.
 
     **Filters** 
 
