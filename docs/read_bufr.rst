@@ -29,9 +29,16 @@ read_bufr
 
     * "data_datetime" (datetime.datetime): generated from the "year", "month", "day", "hour", "minute", "second" keys in the BUFR data section.
     * "typical_datetime" (datetime.datetime): generated from the "typicalYear", "typicalMonth", "typicalDay", "typicalHour", "typicalMinute", "typicalSecond" keys in the BUFR header section.
-    * "WMO_station_id": generated from the "blockNumber" and "stationNumber" BUFR data section keys as blockNumber*1000+stationNumber
-    * "geometry": values extracted as a list of [longitude, latitude,heightOfStationGroundAboveMeanSeaLevel] (predefined to geometry for geopandas).
-    * "CRS": generated from the "coordinateReferenceSystem" BUFR data section key using the following mappings:
+    * "WMO_station_id": generated from the "blockNumber" and "stationNumber" keys as:: 
+  
+          blockNumber*1000+stationNumber
+
+    * "geometry": values extracted as a list of::
+  
+          [longitude,latitude,heightOfStationGroundAboveMeanSeaLevel]
+          
+      as required for geopandas.
+    * "CRS": generated from the "coordinateReferenceSystem" key using the following mapping:
 
           .. list-table::
              :header-rows: 1
@@ -57,6 +64,10 @@ read_bufr
              * - missing
                - EPSG:4326
 
+
+     .. note::
+
+          The computed keys do not preserve their position in ``columns`` but are placed to end end of the resulting DataFrame.
 
     **Filters** 
 
