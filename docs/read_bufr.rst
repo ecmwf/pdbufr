@@ -18,15 +18,44 @@ read_bufr
 
    **Keys**
 
-   ecCodes keys from both the BUFR header and data sections are supported, but :func:`read_bufr` cannot handle keys containing the rank e.g. "#1#latitude#" or referring to attributes e.g. "latitude->code". The "count" generated key, which refers to the message index, is also supported but please note that message indexing starts at 1 and not at 0!
+   ecCodes keys from both the BUFR header and data sections are supported but there are some limitations:
+   
+     * keys containing the rank e.g. "#1#latitude#" cannot be used
+     * key attributes e.g. "latitude->code" cannot be used
+  
+   The "count" generated key, which refers to the message index, is also supported but please note that message indexing starts at 1 and not at 0!
    
    There is also a set of **computed keys** that can be used for :func:`read_bufr`:
 
-     * "data_datetime" (datetime.datetime): generated from the "year", "month", "day", "hour", "minute", "second" keys in the BUFR data section.
-     * "typical_datetime" (datetime.datetime): generated from the "typicalYear", "typicalMonth", "typicalDay", "typicalHour", "typicalMinute", "typicalSecond" keys in the BUFR header section.
-     * "WMO_station_id": generated from the "blockNumber" and "stationNumber" BUFR data section keys as blockNumber*1000+stationNumber
-     * "geometry": defines the list of "longitude", "latitude", "heightOfStationGroundAboveMeanSeaLevel" BUFR data section keys (predefined to geometry for geopandas).
-     * "CRS": generated from the "coordinateReferenceSystem" BUFR data section key. Values 0,1,2,3 and missing are supported (4 and 5 are not supported), defaults to WGS84 (EPSG:4632).
+    * "data_datetime" (datetime.datetime): generated from the "year", "month", "day", "hour", "minute", "second" keys in the BUFR data section.
+    * "typical_datetime" (datetime.datetime): generated from the "typicalYear", "typicalMonth", "typicalDay", "typicalHour", "typicalMinute", "typicalSecond" keys in the BUFR header section.
+    * "WMO_station_id": generated from the "blockNumber" and "stationNumber" BUFR data section keys as blockNumber*1000+stationNumber
+    * "geometry": values extracted as a list of [longitude, latitude,heightOfStationGroundAboveMeanSeaLevel] (predefined to geometry for geopandas).
+    * "CRS": generated from the "coordinateReferenceSystem" BUFR data section key using the following mappings:
+
+          .. list-table::
+             :header-rows: 1
+
+             * - coordinateReferenceSystem
+               - CRS
+
+             * - 0
+               - EPSG:4326
+
+             * - 1
+               - EPSG:4258
+
+             * - 2
+               - EPSG:4269
+
+             * - 3
+               - EPSG:4314
+               
+             * - 4 or 5
+               - not supported
+
+             * - missing
+               - EPSG:4326
 
 
     **Filters** 
@@ -67,7 +96,7 @@ read_bufr
     
     **Algorithm**
 
-    A BUFR message/subset seemingly has a flat structure but actually it is organised into a hierarchy. According to the WMO manual each key in class 01-09 introduces a new hierarchy level in the BUFR message/subset::
+    A BUFR message/subset seemingly has a flat structure but actually it can be interpreted as a hierarchy. According to the WMO manual each key in class 01-09 introduces a new hierarchy level in the BUFR message/subset::
 
           Element descriptors corresponding to the following classes in Table B 
           shall remain in effect until superseded by redefinition:

@@ -23,7 +23,7 @@ using a rich filtering engine.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Documentations
+   :caption: Documentation
 
    read_bufr
 
