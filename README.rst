@@ -4,8 +4,8 @@ pdbufr
 .. image:: https://img.shields.io/pypi/v/pdbufr.svg
    :target: https://pypi.python.org/pypi/pdbufr/
 
-.. image:: https://github.com/ecmwf/pdbufr/actions/workflows/weekly.yml/badge.
-   :target: https://github.com/ecmwf/pdbufr/actions/workflows/weekly.yml
+.. image:: https://github.com/ecmwf/pdbufr/actions/workflows/on-push.yml/badge.
+   :target: https://github.com/ecmwf/pdbufr/actions/workflows/on-push.yml
 
 
 *pdbufr* is a Python package implementing a `Pandas <https://pandas.pydata.org>`_ reader for the BUFR format using  `ecCodes <https://confluence.ecmwf.int/display/ECC>`_. It supports BUFR 3 and 4 files with uncompressed and compressed subsets. It works on Linux, MacOS and Windows, the ecCodes C-library is the only binary dependency. All modern versions of Python (>=3.6) and PyPy3 are supported.
