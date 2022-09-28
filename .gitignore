@@ -77,6 +77,18 @@ venv.bak/
 tests/sample-data/cds*.grib
 tests/sample-data/cds*.nc
 *.idx
+_dev
 
 # kate
 .kate-swp
+
+# editors
+*.sublime-project
+*.sublime-workspace
+.vscode
+
+# mac 
+.DS_Store
+
+# docs
+docs/examples/temp.bufr
