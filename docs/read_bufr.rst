@@ -9,12 +9,14 @@ read_bufr
    :type path: str, bytes, os.PathLike
    :param columns: A list of ecCodes BUFR keys to extract for each BUFR message/subset.
    :type columns: iterable
-   :param filters: A dictionary of ecCodes BUFR key filter conditions. The individual conditions are combined together with the logical AND operator to form the filter.
+   :param filters: A dictionary of ecCodes BUFR key filter conditions. The individual conditions are combined together with the logical AND operator to form the filter. See details below.
    :type filters: dict
    :param required_columns: The list of ecCodes BUFR keys that are required to be present in the BUFR message/subset. ``True`` means all the keys in ``columns`` are required.
    :type required_columns: bool, iterable[str]
    :rtype: pandas.DataFrame
 
+
+   There are some :ref:`notebook examples <examples>` available demonstrating how to use :func:`read_bufr` for various observation/forecast BUFR data types. 
 
    **Keys**
 
