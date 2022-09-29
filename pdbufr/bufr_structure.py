@@ -13,7 +13,7 @@ import typing as T
 
 import attr
 import eccodes  # type: ignore
-import numpy as np  # type: ignore
+import numpy as np
 
 from . import bufr_filters
 
