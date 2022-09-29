@@ -67,7 +67,7 @@ read_bufr
 
      .. note::
 
-          The computed keys do not preserve their position in ``columns`` but are placed to end of the resulting DataFrame.
+          The computed keys do not preserve their position in ``columns`` but are placed to the end of the resulting DataFrame.
 
     **Filters** 
 
@@ -82,6 +82,7 @@ read_bufr
      .. code-block:: python 
           
           filters={"stationNumber": [843, 925]}
+          filters={"blockNumber": range(10, 13)}
           
     or an interval expressed as a ``slice`` (the boundaries as inclusive):
 
@@ -103,6 +104,14 @@ read_bufr
           filters={"blockNumber": 12, 
                "stationNumber": [843, 925], 
                "airTemperature": slice(273.16, 293.16)}
+
+    A geographical filter can be defined like this;
+
+     .. code-block:: python
+     
+          # locations in the 40W,10S - 30E,20N area
+          filters={"latitude": slice(-10, 20),
+                   "longitude": slice(-40, 30)}
 
     
     **Algorithm**

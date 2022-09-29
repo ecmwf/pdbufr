@@ -6,7 +6,7 @@ Welcome to pdbufr's documentation
 
   This documentation is still work in progress and can only be regarded as a **draft**.
 
-*pdbufr* is a Python package implementing a :xref:`pandas` reader for the BUFR format using  :xref:`eccodes`. 
+*pdbufr* is a Python package implementing a `Pandas <https://pandas.pydata.org>`_ reader for the BUFR format using  `ecCodes <https://confluence.ecmwf.int/display/ECC>`_. 
 
 It features the :func:`read_bufr` function to extract data from a BUFR file as a Pandas DataFrame
 using a rich filtering engine.
