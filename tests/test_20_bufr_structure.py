@@ -373,7 +373,12 @@ def test_stream_bufr() -> None:
 
     expected_2 = [{"WMO_station_id": 1128}]
 
-    res = list(bufr_structure.stream_bufr(messages, ["WMO_station_id"],))
+    res = list(
+        bufr_structure.stream_bufr(
+            messages,
+            ["WMO_station_id"],
+        )
+    )
 
     assert len(res) == 1
     assert res == expected_2
