@@ -91,4 +91,4 @@ _dev
 .DS_Store
 
 # docs
-docs/examples/temp.bufr
+docs/examples/*.bufr
