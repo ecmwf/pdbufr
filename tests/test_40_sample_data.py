@@ -962,7 +962,7 @@ def assert_nested_coords_core(
     coord_value_1: T.Any,
     coord_key_2: str,
     coord_value_2: T.Any,
-    ref_param: str,
+    ref_param: T.Any,
     ref_level: T.Any,
     part: bool = False,
 ) -> None:
