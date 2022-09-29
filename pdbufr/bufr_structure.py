@@ -70,7 +70,8 @@ def message_structure(message: T.Mapping[str, T.Any]) -> T.Iterator[T.Tuple[int,
 
 
 def filter_keys(
-    message: T.Mapping[str, T.Any], include: T.Container[str] = (),
+    message: T.Mapping[str, T.Any],
+    include: T.Container[str] = (),
 ) -> T.Iterator[BufrKey]:
     for level, key in message_structure(message):
         bufr_key = BufrKey.from_level_key(level, key)
@@ -212,11 +213,21 @@ COMPUTED_KEYS = [
     ),
     (["blockNumber", "stationNumber"], "WMO_station_id", wmo_station_id_from_bufr),
     (
-        ["longitude", "latitude", "heightOfStationGroundAboveMeanSeaLevel",],
+        [
+            "longitude",
+            "latitude",
+            "heightOfStationGroundAboveMeanSeaLevel",
+        ],
         "geometry",  # WMO_station_position (predefined to geometry for geopandas)
         wmo_station_position_from_bufr,
     ),
-    (["coordinateReferenceSystem",], "CRS", CRS_from_bufr,),
+    (
+        [
+            "coordinateReferenceSystem",
+        ],
+        "CRS",
+        CRS_from_bufr,
+    ),
 ]
 
 
@@ -384,7 +395,10 @@ def stream_bufr(
         }
 
         for observation in extract_observations(
-            message, filtered_keys, value_filters_without_computed, observation,
+            message,
+            filtered_keys,
+            value_filters_without_computed,
+            observation,
         ):
             augmented_observation = add_computed_keys(
                 observation, included_keys, value_filters
