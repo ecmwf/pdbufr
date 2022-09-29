@@ -35,7 +35,7 @@ dependencies:
   - pycparser=2.20
   - python=3.8.5
   - python-dateutil=2.8.1
-  - python-eccodes=2020.10.1
+  - python-eccodes=1.4.2
   - python_abi=3.8
   - pytz=2020.1
   - setuptools=50.3.1

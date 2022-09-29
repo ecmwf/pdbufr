@@ -8,7 +8,7 @@
 
 import typing as T
 
-import numpy as np  # type: ignore
+import numpy as np
 
 from pdbufr import bufr_filters
 
