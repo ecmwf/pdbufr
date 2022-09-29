@@ -9,7 +9,7 @@
 import os
 import typing as T
 
-import numpy as np  # type: ignore
+import numpy as np
 import pytest
 
 import pdbufr

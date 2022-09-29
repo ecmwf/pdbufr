@@ -9,7 +9,7 @@
 import typing as T
 
 import eccodes  # type: ignore
-import numpy as np  # type: ignore
+import numpy as np
 import pytest
 
 from pdbufr import bufr_filters, bufr_structure
