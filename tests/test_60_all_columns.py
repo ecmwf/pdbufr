@@ -304,6 +304,8 @@ def test_read_all_bufr_uncompressed_subsets() -> None:
 def test_read_all_bufr_compressed_subsets() -> None:
     res = pdbufr.read_all_bufr(TEST_DATA_9)
 
+    ref_val: T.Any
+
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
     assert "#1#latitude" in res

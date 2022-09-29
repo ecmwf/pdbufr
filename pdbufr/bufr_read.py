@@ -42,7 +42,7 @@ def read_all_bufr(
     header: bool = True,
     data: bool = True,
     filters: T.Mapping[str, T.Any] = {},
-    required_columns: T.Union[bool, T.Iterable[str]] = set(),
+    required_columns: T.Union[str, T.Iterable[str]] = set(),
     prefilter_headers: bool = False,
 ) -> pd.DataFrame:
     with BufrFile(path) as bufr_file:  # type: ignore

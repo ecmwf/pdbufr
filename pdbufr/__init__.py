@@ -11,7 +11,7 @@ from .bufr_structure import stream_bufr
 __all__ = ["stream_bufr"]
 
 try:
-    from .bufr_read import read_bufr, read_all_bufr
+    from .bufr_read import read_all_bufr, read_bufr
 
     __all__ += ["read_bufr", "read_all_bufr"]
 except ModuleNotFoundError:  # pragma: no cover
