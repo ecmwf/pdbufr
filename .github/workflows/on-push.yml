@@ -33,9 +33,13 @@ jobs:
       run: |
         conda install pytest pytest-cov tomli
         pip install --no-deps -e .
-        pytest -v --cov=. --cov-report=xml .
+        pytest -v --cov=. --cov-report=xml -k 'not test_notebooks' .
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
+    - name: Install test tools for notebooks
+      run: |
+        conda install nbformat nbconvert ipykernel
+        pytest -v -k 'test_notebooks'
 
   docs:
     runs-on: ubuntu-latest
