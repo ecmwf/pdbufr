@@ -13,10 +13,7 @@
 
 import datetime
 import os
-import subprocess
 import sys
-
-import sphinx_rtd_theme
 
 # Adds path to the folder _ext, where extensions are stored
 sys.path.insert(0, os.path.abspath("."))
@@ -75,19 +72,6 @@ html_static_path = ["_static"]
 html_logo = ""
 
 highlight_language = "none"
-
-xref_links = {
-    "eccodes": (
-        "ecCodes",
-        "https://confluence.ecmwf.int/display/ECC",
-    ),
-    "pandas": (
-        "Pandas",
-        "https://pandas.pydata.org",
-    ),
-}
-
-intersphinx_mapping = {"scipy": ("https://docs.scipy.org/doc/scipy/reference", None)}
 
 rst_prolog = """
 .. role:: mval
