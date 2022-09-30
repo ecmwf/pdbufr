@@ -6,16 +6,11 @@ testing, bug reports and contributions are highly welcomed and appreciated:
 
 https://github.com/ecmwf/pdbufr
 
-Please see the CONTRIBUTING.rst document for the best way to help.
-
-Lead developer:
-
-- `Iain Russell <https://github.com/iainrussell>`_ -  `ECMWF <https://ecmwf.int>`_
-
 Main contributors:
 
+- `Sandor Kertesz <https://github.com/sandorkertesz>`_ - `ECMWF <https://ecmwf.int>`_
+- `Iain Russell <https://github.com/iainrussell>`_ -  `ECMWF <https://ecmwf.int>`_
 - `Alessandro Amici <https://github.com/alexamici>`_ - `B-Open <https://bopen.eu>`_
-- `Sandor Kertesz <https://github.com/sandorkertesz>`_ - ECMWF
 
 Also:
 - Daniel Lee - DWD, who contributed the code in the high_level_bufr directory, originally part of eccodes-python

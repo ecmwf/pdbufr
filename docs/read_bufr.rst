@@ -16,6 +16,8 @@ read_bufr
    :rtype: pandas.DataFrame
 
 
+   In order to correctly use :func:`read_bufr` for a given BUFR file first you need to understand the structure of the messages and the keys/values you can use for data extraction and filter definition. The BUFR structure can be explored with *ecCodes* command line tools `bufr_ls <https://confluence.ecmwf.int/display/ECC/bufr_ls>`_  and  `bufr_dump <https://confluence.ecmwf.int/display/ECC/bufr_dump>`_.
+
    There are some :ref:`notebook examples <examples>` available demonstrating how to use :func:`read_bufr` for various observation/forecast BUFR data types. 
 
    **Keys**
@@ -107,7 +109,7 @@ read_bufr
                "stationNumber": [843, 925], 
                "airTemperature": slice(273.16, 293.16)}
 
-    A geographical filter can be defined like this;
+    A geographical filter can be defined like this:
 
      .. code-block:: python
      
@@ -115,10 +117,18 @@ read_bufr
           filters={"latitude": slice(-10, 20),
                    "longitude": slice(-40, 30)}
 
+    An example for a temporal filter:
+
+     .. code-block:: python
+     
+          filters={"data_datetime": 
+               slice(datetime.datetime(2009,1,23,13,0), 
+                     datetime.datetime(2009,1,23,13,1))}
+
     
     **Algorithm**
 
-    A BUFR message/subset seemingly has a flat structure but actually it can be interpreted as a hierarchy. According to the WMO manual each key in class 01-09 introduces a new hierarchy level in the BUFR message/subset::
+    A BUFR message/subset seemingly has a flat structure but actually it can be interpreted as a hierarchy. According to the `WMO BUFR manual <https://community.wmo.int/activity-areas/wmo-codes/manual-codes/bufr-edition-3-and-crex-edition-1>`_ each key in class 01-09 introduces a new hierarchy level in the BUFR message/subset::
 
           Element descriptors corresponding to the following classes in Table B 
           shall remain in effect until superseded by redefinition:
