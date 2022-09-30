@@ -47,18 +47,18 @@ jobs:
         python-version: "3.8"
         activate-environment: ubuntu-3.8
         environment-file: tests/environment-ubuntu-3.8.yml
-#    - name: Build documentation with Sphinx
-#      shell: bash -l {0}
-#      run: |
-#        conda install sphinx
-#        pip install --no-deps -e .
-#        python setup.py build_sphinx
-    - name: Test README with pytest
-      shell: bash -l {0}
-      run: |
-        conda install pytest pytest-cov tomli
-        pip install --no-deps -e .
-        pytest -v --cov=. --cov-report=xml README.rst
+   - name: Build documentation with Sphinx
+     shell: bash -l {0}
+     run: |
+       conda install sphinx
+       pip install --no-deps -e .
+       python setup.py build_sphinx
+    # - name: Test README with pytest
+    #   shell: bash -l {0}
+    #   run: |
+    #     conda install pytest pytest-cov tomli
+    #     pip install --no-deps -e .
+    #     pytest -v --cov=. --cov-report=xml README.rst
 
   code-quality:
     runs-on: ubuntu-latest
