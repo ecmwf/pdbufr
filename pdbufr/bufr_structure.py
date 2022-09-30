@@ -69,10 +69,10 @@ class UncompressedBufrKey:
 
         return cls(rank, 0, name)
 
-    def update_rank(self, key: str):
+    def update_rank(self, key: str) -> None:
         self.current_rank = rank_from_key(key)
 
-    def adjust_ref_rank(self):
+    def adjust_ref_rank(self) -> None:
         self.ref_rank = self.current_rank
 
     @property
