@@ -8,11 +8,11 @@
 
 # type: ignore
 
-from importlib import import_module
 import os
 import re
 import sys
 import typing as T
+from importlib import import_module
 
 import pytest
 
