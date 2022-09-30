@@ -52,6 +52,7 @@ jobs:
       run: |
         conda install sphinx
         conda install sphinx_rtd_theme -c conda-forge
+        conda install ipykernel
         conda install nbsphinx
         pip install --no-deps -e .
         python setup.py build_sphinx
