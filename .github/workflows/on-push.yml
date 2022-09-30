@@ -37,9 +37,10 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
     - name: Install test tools for notebooks
+      shell: bash -l {0}
       run: |
         conda install pytest nbformat nbconvert ipykernel
-        pytest -v -k 'test_notebooks'
+        pytest -v -k 'test_notebooks' .
 
   docs:
     runs-on: ubuntu-latest
