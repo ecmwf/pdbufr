@@ -117,7 +117,7 @@ read_bufr
           filters={"latitude": slice(-10, 20),
                    "longitude": slice(-40, 30)}
 
-    An example for a temporal filter:
+    while the following expression can be used as a temporal filter:
 
      .. code-block:: python
      
