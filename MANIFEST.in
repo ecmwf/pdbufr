@@ -1,8 +1,11 @@
 include *.bufr
 include *.yml
+include *.yaml
 include LICENSE
 include Makefile
 include mypy.ini
 recursive-include tests *.bufr
 recursive-include tests *.py
 recursive-include tests *.yml
+recursive-include docs *
+
