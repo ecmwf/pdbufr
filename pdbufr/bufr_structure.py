@@ -330,18 +330,18 @@ def add_computed_keys(
 class CMWrapper:
     """Makes it possible to use context manager both with BufrMessage and dict type of messages"""
 
-    def __init__(self, d):
+    def __init__(self, d: T.Any):
         self.d = d
 
-    def __enter__(self):
+    def __enter__(self) -> T.Any:
         if isinstance(self.d, BufrMessage):
-            return self.d.__enter__()
+            return self.d.__enter__()  # type: ignore
         else:
             return self.d
 
-    def __exit__(self, *args):
+    def __exit__(self, *args) -> None:  # type: ignore
         if isinstance(self.d, BufrMessage):
-            self.d.__exit__(*args)
+            self.d.__exit__(*args)  # type: ignore
 
 
 def stream_bufr(
