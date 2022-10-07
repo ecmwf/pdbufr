@@ -311,16 +311,13 @@ def add_computed_keys(
     for keys, computed_key, getter in COMPUTED_KEYS:
         if computed_key not in included_keys:
             continue
-        print(f"computed_key={computed_key}")
         computed_value = None
         try:
             computed_value = getter(observation, "", keys)
         except Exception:
             pass
-        print(f" computed_value={computed_value}")
         if computed_value:
             if computed_key in filters:
-                print(f" match={filters[computed_key].match(computed_value)}")
                 if filters[computed_key].match(computed_value):
                     augmented_observation[computed_key] = computed_value
             else:
