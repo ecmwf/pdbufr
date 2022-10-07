@@ -310,7 +310,7 @@ def add_computed_keys(
     augmented_observation = observation.copy()
     for keys, computed_key, getter in COMPUTED_KEYS:
         if computed_key not in included_keys:
-            continue     
+            continue
         computed_value = None
         try:
             computed_value = getter(observation, "", keys)
