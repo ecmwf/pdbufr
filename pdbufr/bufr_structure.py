@@ -14,6 +14,8 @@ import attr
 import eccodes  # type: ignore
 import numpy as np
 
+from pdbufr.high_level_bufr.bufr import BufrMessage
+
 from . import bufr_filters
 
 
@@ -325,6 +327,23 @@ def add_computed_keys(
     return augmented_observation
 
 
+class CMWrapper:
+    """Makes it possible to use context manager both with BufrMessage and dict type of messages"""
+
+    def __init__(self, d: T.Any):
+        self.d = d
+
+    def __enter__(self) -> T.Any:
+        if isinstance(self.d, BufrMessage):
+            return self.d.__enter__()  # type: ignore
+        else:
+            return self.d
+
+    def __exit__(self, *args) -> None:  # type: ignore
+        if isinstance(self.d, BufrMessage):
+            self.d.__exit__(*args)  # type: ignore
+
+
 def stream_bufr(
     bufr_file: T.Iterable[T.MutableMapping[str, T.Any]],
     columns: T.Iterable[str],
@@ -372,41 +391,44 @@ def stream_bufr(
         max_count = None
 
     keys_cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[BufrKey]] = {}
-    for count, message in enumerate(bufr_file, 1):
-        if "count" in value_filters and not value_filters["count"].match(count):
-            continue
-
-        if prefilter_headers:
-            # test header keys for failed matches before unpacking
-            if not bufr_filters.is_match(message, value_filters, required=False):
+    for count, msg in enumerate(bufr_file, 1):
+        # we use a context manager to automatically delete the handle of the BufrMessage.
+        # We have to use a wrapper object here because a message can also be a dict
+        with CMWrapper(msg) as message:
+            if "count" in value_filters and not value_filters["count"].match(count):
                 continue
 
-        message["skipExtraKeyAttributes"] = 1
-        message["unpack"] = 1
+            if prefilter_headers:
+                # test header keys for failed matches before unpacking
+                if not bufr_filters.is_match(message, value_filters, required=False):
+                    continue
 
-        filtered_keys = filter_keys_cached(message, keys_cache, included_keys)
-        if "count" in included_keys:
-            observation = {"count": count}
-        else:
-            observation = {}
+            message["skipExtraKeyAttributes"] = 1
+            message["unpack"] = 1
 
-        value_filters_without_computed = {
-            k: v for k, v in value_filters.items() if k not in computed_keys
-        }
+            filtered_keys = filter_keys_cached(message, keys_cache, included_keys)
+            if "count" in included_keys:
+                observation = {"count": count}
+            else:
+                observation = {}
 
-        for observation in extract_observations(
-            message,
-            filtered_keys,
-            value_filters_without_computed,
-            observation,
-        ):
-            augmented_observation = add_computed_keys(
-                observation, included_keys, value_filters
-            )
-            data = {k: v for k, v in augmented_observation.items() if k in columns}
-            if required_columns.issubset(data):
-                yield data
+            value_filters_without_computed = {
+                k: v for k, v in value_filters.items() if k not in computed_keys
+            }
 
-        # optimisation: skip decoding messages above max_count
-        if max_count is not None and count >= max_count:
-            break
+            for observation in extract_observations(
+                message,
+                filtered_keys,
+                value_filters_without_computed,
+                observation,
+            ):
+                augmented_observation = add_computed_keys(
+                    observation, included_keys, value_filters
+                )
+                data = {k: v for k, v in augmented_observation.items() if k in columns}
+                if required_columns.issubset(data):
+                    yield data
+
+            # optimisation: skip decoding messages above max_count
+            if max_count is not None and count >= max_count:
+                break
