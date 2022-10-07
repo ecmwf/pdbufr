@@ -81,3 +81,14 @@ _dev
 
 # kate
 .kate-swp
+
+# editors
+*.sublime-project
+*.sublime-workspace
+.vscode
+
+# mac 
+.DS_Store
+
+# docs
+docs/examples/*.bufr
