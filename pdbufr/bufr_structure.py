@@ -614,24 +614,34 @@ def stream_bufr(
                 break
 
 
-def stream_bufr_all(
+def stream_bufr_flat(
     bufr_file: T.Iterable[T.MutableMapping[str, T.Any]],
-    add_header: bool = True,
-    add_data: bool = True,
+    columns: T.Union[T.Iterable[str], str],
     filters: T.Mapping[str, T.Any] = {},
-    required_columns: T.Union[str, T.Iterable[str]] = set(),
+    required_columns: T.Union[bool, T.Iterable[str]] = True,
     prefilter_headers: bool = False,
 ) -> T.Iterator[T.Dict[str, T.Any]]:
 
-    if isinstance(required_columns, str):
+    if not isinstance(columns, str):
+        raise ValueError("columns must be a str when mode=flat")
+    if columns not in ["all", "header", "data"]:
+        raise ValueError(
+            f"invalid columns value={columns}! Must be all, header or data"
+        )
+
+    add_header = columns in ["all", "header"]
+    add_data = columns in ["all", "data"]
+    if not add_header and not add_data:
+        raise ValueError("either header or data must be extracted")
+
+    if isinstance(required_columns, bool):
+        required_columns = set()
+    elif isinstance(required_columns, str):
         required_columns = {required_columns}
     elif isinstance(required_columns, T.Iterable):
         required_columns = set(required_columns)
     else:
-        raise TypeError("required_columns must be a str or an iterable")
-
-    if not add_header and not add_data:
-        raise ValueError("either add_header or add_data must be True")
+        raise TypeError("required_columns must be a bool, str or an iterable")
 
     # compile filters
     filters = dict(filters)

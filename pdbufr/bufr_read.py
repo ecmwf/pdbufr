@@ -20,6 +20,7 @@ def read_bufr(
     columns: T.Union[T.Iterable[str], str],
     filters: T.Mapping[str, T.Any] = {},
     required_columns: T.Union[bool, T.Iterable[str]] = True,
+    mode: str = "tree",
 ) -> pd.DataFrame:
     """
     Read selected observations from a BUFR file into DataFrame.
@@ -30,28 +31,17 @@ def read_bufr(
     :param required_columns: The list BUFR keys that are required for all observations.
         ``True`` means all ``columns`` are required
     """
-    with BufrFile(path) as bufr_file:  # type: ignore
-        observations = bufr_structure.stream_bufr(
-            bufr_file, columns, filters=filters, required_columns=required_columns
-        )
-        return pd.DataFrame.from_records(observations)
 
-
-def read_all_bufr(
-    path: T.Union[str, bytes, "os.PathLike[T.Any]"],
-    header: bool = True,
-    data: bool = True,
-    filters: T.Mapping[str, T.Any] = {},
-    required_columns: T.Union[str, T.Iterable[str]] = set(),
-    prefilter_headers: bool = False,
-) -> pd.DataFrame:
     with BufrFile(path) as bufr_file:  # type: ignore
-        observations = bufr_structure.stream_bufr_all(
-            bufr_file,
-            add_header=header,
-            add_data=data,
-            filters=filters,
-            required_columns=required_columns,
-            prefilter_headers=prefilter_headers,
-        )
+        if mode == "tree":
+            observations = bufr_structure.stream_bufr(
+                bufr_file, columns, filters=filters, required_columns=required_columns
+            )
+        elif mode == "flat":
+            observations = bufr_structure.stream_bufr_flat(
+                bufr_file, columns, filters=filters, required_columns=required_columns
+            )
+        else:
+            raise ValueError(f"Invalid mode value = {mode}")
+
         return pd.DataFrame.from_records(observations)

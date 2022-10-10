@@ -1,18 +1,29 @@
 read_bufr
-==========
+==============
 
-..  py:function:: read_bufr(path, columns, filters={}, required_columns=True)
+..  py:function:: read_bufr(path, columns, filters={}, required_columns=(), mode="tree")
 
-   Extract data from BUFR as a pandas.DataFrame with the specified ``columns`` applying the ``filters``.
+   Extract data from BUFR as a pandas.DataFrame with the specified ``columns`` applying the ``filters`` either in hierarchical or flat ``mode``.
    
    :param path: path to the BUFR file
    :type path: str, bytes, os.PathLike
-   :param columns: A list of ecCodes BUFR keys to extract for each BUFR message/subset.
-   :type columns: iterable
-   :param filters: A dictionary of ecCodes BUFR key filter conditions. The individual conditions are combined together with the logical AND operator to form the filter. See details below.
+   :param columns: a list of ecCodes BUFR keys to extract for each BUFR message/subset. When ``mode`` is "flat" ``columns`` must be a str with one of the following values:
+    
+        *  "all": all the columns extracted
+        *  "header": only columns from the header section extracted
+        *  "data": only the columns from the data section extracted
+
+   :type columns: str, iterable
+   :param filters: a dictionary of ecCodes BUFR key filter conditions. The individual conditions are combined together with the logical AND operator to form the filter. See details below.
    :type filters: dict
-   :param required_columns: The list of ecCodes BUFR keys that are required to be present in the BUFR message/subset. ``True`` means all the keys in ``columns`` are required.
+   :param required_columns: the list of ecCodes BUFR keys that are required to be present in the BUFR message/subset. The default value ``True`` has a different meaning based on ``mode``:
+
+      * If ``mode`` is "tree" True means all the keys in ``columns`` are required
+      * If ``mode`` is "flat" True means no columns are required
+  
    :type required_columns: bool, iterable[str]
+   :param mode: the extraction mode. When it is "tree" data is extracted as if the message had a tree-like hierarchy. When it is "flat" each message/subset is treated as a flat list. See details below.
+   :type mode: str
    :rtype: pandas.DataFrame
 
 
@@ -20,9 +31,10 @@ read_bufr
 
    There are some :ref:`notebook examples <examples>` available demonstrating how to use :func:`read_bufr` for various observation/forecast BUFR data types. 
 
-   **Keys**
 
-   ecCodes keys from both the BUFR header and data sections are supported but there are some limitations:
+   **BUFR keys**
+
+   ecCodes keysfrom both the BUFR header and data sections are supported in ``columns``, ``filters`` and ``required_columns``. However, there are some limitations:
    
      * keys containing the rank e.g. "#1#latitude#" cannot be used
      * key attributes e.g. "latitude->code" cannot be used
@@ -126,26 +138,28 @@ read_bufr
                      datetime.datetime(2009,1,23,13,1))}
 
     
-    **Algorithm**
+    **Tree mode**
+    
+    When ``mode`` is "tree" the contents of a BUFR message/subset is interpreted as a hierarchy. This is based on certain group of BUFR keys (e.g. keys related instrumentation, location etc), which according to the `WMO BUFR manual <https://community.wmo.int/activity-areas/wmo-codes/manual-codes/bufr-edition-3-and-crex-edition-1>`_ introduce a new hierarchy level. So ``read_bufr`` traverses this hierarchy and when all the columns are collected and the all the filters match a new record is added to the output. With this it is possible that several records extracted from the same message/subset.
 
-    A BUFR message/subset seemingly has a flat structure but actually it can be interpreted as a hierarchy. According to the `WMO BUFR manual <https://community.wmo.int/activity-areas/wmo-codes/manual-codes/bufr-edition-3-and-crex-edition-1>`_ each key in class 01-09 introduces a new hierarchy level in the BUFR message/subset::
+    **Flat mode** 
 
-          Element descriptors corresponding to the following classes in Table B 
-          shall remain in effect until superseded by redefinition:
-               Class
-               01 Identification
-               02 Instrumentation
-               03 Instrumentation
-               04 Location (time)
-               05 Location (horizontal - 1)
-               06 Location (horizontal - 2)
-               07 Location (vertical)
-               08 Significance qualifiers
-               09 Reserved
-               
-          Note: Redefinition is effected by the occurrence of element descriptors
-               which contradict the preceding element descriptors from these classes. If two or
-               more elements from the same class do not contradict one another, they all apply.
+    When ``mode`` is "flat" there can be at most one record per message/subset in the output. In the resulting DataFrame the column names are the original ecCodes keynames containing the rank e.g. "#1#latitude#". The following set of keys are always omitted:
 
-     
-    This may sound cryptic but this is what ``read_bufr`` uses to define the hierarchy and decide when a set of collected columns has to be added to the output as a new record.
+    * "unexpandedDescriptors"
+    * "operator"
+    * key attributes e.g. "latitude->code"
+
+    ``filters`` can still be used in this mode but are interpreted in a different way:
+
+    * filters can only contain keys without a rank
+    * computed keys cannot be used
+    * a filter condition matches if there is a match for the same key with any given rank in the message/subset. E.g. if ::
+
+        filters = {"pressure": 50000}
+
+      and "#12#pressure" is 50000 in the message/subset then the filter matches.
+
+    .. note::
+
+        Messages/subsets can contain a potentially different BUFR keys. When it happens Pandas adds the keys not yet present in the DataFrame to the end of the columns. 
