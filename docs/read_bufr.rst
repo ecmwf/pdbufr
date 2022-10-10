@@ -9,9 +9,9 @@ read_bufr
    :type path: str, bytes, os.PathLike
    :param columns: a list of ecCodes BUFR keys to extract for each BUFR message/subset. When ``mode`` is "flat" ``columns`` must be a str with one of the following values:
     
-        *  "all": all the columns extracted
-        *  "header": only columns from the header section extracted
-        *  "data": only the columns from the data section extracted
+        *  "all": all the columns are extracted
+        *  "header": only columns from the header section are extracted
+        *  "data": only the columns from the data section are extracted
 
    :type columns: str, iterable
    :param filters: a dictionary of ecCodes BUFR key filter conditions. The individual conditions are combined together with the logical AND operator to form the filter. See details below.
@@ -140,26 +140,29 @@ read_bufr
     
     **Tree mode**
     
-    When ``mode`` is "tree" the contents of a BUFR message/subset is interpreted as a hierarchy. This is based on a certain group of BUFR keys (related instrumentation, location etc), which according to the `WMO BUFR manual <https://community.wmo.int/activity-areas/wmo-codes/manual-codes/bufr-edition-3-and-crex-edition-1>`_ introduce a new hierarchy level. So ``read_bufr`` traverses this hierarchy and when all the columns are collected and the all the filters match a new record is added to the output. With this it is possible that several records extracted from the same message/subset.
+    When ``mode`` is "tree" the contents of a BUFR message/subset is interpreted as a hierarchical structure. This is based on a certain group of BUFR keys (related to instrumentation, location etc), which according to the `WMO BUFR manual <https://community.wmo.int/activity-areas/wmo-codes/manual-codes/bufr-edition-3-and-crex-edition-1>`_ introduce a new hierarchy level in the message/susbset. During data extraction ``read_bufr`` traverses this hierarchy and when all the columns are collected and the all the filters match a new record is added to the output. With this several records can be extracted from the same message/subset.
 
     **Flat mode** 
 
-    When ``mode`` is "flat" there can be at most one record per message/subset in the output. In the resulting DataFrame the column names are the original ecCodes keynames containing the rank e.g. "#1#latitude#". The following set of keys are omitted:
+    When ``mode`` is "flat" messages/subsets are extracted as a whole preserving the column order (see the note below for exceptions). In the resulting DataFrame the original ecCodes keys containing the **rank** are used as column names, e.g. "#1#latitude#" instead of "latitude". The following set of keys are omitted:
 
-    * "unexpandedDescriptors"
-    * non-element keys (i.e. when the identifier id available as keyname->code is not 0) 
+    * "unexpandedDescriptors" from the header
+    * non-element data section keys (i.e. when the identifier available as keyname->code does not start with 0) 
     * key attributes e.g. "latitude->code"
 
-    ``filters`` can still be used in this mode but are interpreted in a different way:
+    The **rank** appearing in the keys in a message containing **uncompressed subsets** is not reset by ecCodes when a new subset is started. To make the columns as aligned as a possible in the output :func:`read_bufr` resets the rank and makes sure that e.g. the first "latitude" key is always called "#1#latitude" in each uncompressed subset.
 
-    * filters can only contain keys without a rank
+    ``filters`` can still be used in "flat" mode but are interpreted in a different way:
+
+    * they can only contain keys without a rank
     * computed keys cannot be used
     * a filter condition matches if there is a match for the same key with any given rank in the message/subset. E.g. if ::
 
         filters = {"pressure": 50000}
 
-      and e.g. "#12#pressure" is 50000 in the message/subset then the filter matches.
+      and there is e.g. "#12#pressure" = 50000 in the message/subset then the filter matches.
 
     .. note::
 
-        Messages/subsets can contain a potentially different BUFR keys. When it happens Pandas adds the keys not yet present in the DataFrame to the end of the columns.
+        Messages/subsets in a BUFR file can have a different series of BUFR keys. When a new message/subset is processed :func:`read_bufr` adds it to the resulting DataFrame as a new record and columns that are not yet present in the output are automatically appended to the end changing the original order of keys for that message. This is something you need to be aware of when interpreting the results. 
+        
