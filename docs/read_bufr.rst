@@ -140,11 +140,11 @@ read_bufr
     
     **Tree mode**
     
-    When ``mode`` is "tree" the contents of a BUFR message/subset is interpreted as a hierarchy. This is based on certain group of BUFR keys (e.g. keys related instrumentation, location etc), which according to the `WMO BUFR manual <https://community.wmo.int/activity-areas/wmo-codes/manual-codes/bufr-edition-3-and-crex-edition-1>`_ introduce a new hierarchy level. So ``read_bufr`` traverses this hierarchy and when all the columns are collected and the all the filters match a new record is added to the output. With this it is possible that several records extracted from the same message/subset.
+    When ``mode`` is "tree" the contents of a BUFR message/subset is interpreted as a hierarchy. This is based on a certain group of BUFR keys (related instrumentation, location etc), which according to the `WMO BUFR manual <https://community.wmo.int/activity-areas/wmo-codes/manual-codes/bufr-edition-3-and-crex-edition-1>`_ introduce a new hierarchy level. So ``read_bufr`` traverses this hierarchy and when all the columns are collected and the all the filters match a new record is added to the output. With this it is possible that several records extracted from the same message/subset.
 
     **Flat mode** 
 
-    When ``mode`` is "flat" there can be at most one record per message/subset in the output. In the resulting DataFrame the column names are the original ecCodes keynames containing the rank e.g. "#1#latitude#". The following set of keys are always omitted:
+    When ``mode`` is "flat" there can be at most one record per message/subset in the output. In the resulting DataFrame the column names are the original ecCodes keynames containing the rank e.g. "#1#latitude#". The following set of keys are omitted:
 
     * "unexpandedDescriptors"
     * non-element keys (i.e. when the identifier id available as keyname->code is not 0) 
@@ -158,8 +158,8 @@ read_bufr
 
         filters = {"pressure": 50000}
 
-      and "#12#pressure" is 50000 in the message/subset then the filter matches.
+      and e.g. "#12#pressure" is 50000 in the message/subset then the filter matches.
 
     .. note::
 
-        Messages/subsets can contain a potentially different BUFR keys. When it happens Pandas adds the keys not yet present in the DataFrame to the end of the columns. 
+        Messages/subsets can contain a potentially different BUFR keys. When it happens Pandas adds the keys not yet present in the DataFrame to the end of the columns.

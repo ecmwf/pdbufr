@@ -7,5 +7,6 @@ include mypy.ini
 recursive-include tests *.bufr
 recursive-include tests *.py
 recursive-include tests *.yml
+recursive-include tests *.csv
 recursive-include docs *
 
