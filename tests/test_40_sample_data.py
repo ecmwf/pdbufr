@@ -49,6 +49,9 @@ TEST_DATA_11 = os.path.join(SAMPLE_DATA_FOLDER, "aircraft_small.bufr")
 # contains new types of synop messages
 TEST_DATA_12 = os.path.join(SAMPLE_DATA_FOLDER, "syn_new.bufr")
 
+# contains compressed aircraft messages with strings
+TEST_DATA_13 = os.path.join(SAMPLE_DATA_FOLDER, "aircraft_mrar_compressed.bufr")
+
 
 def test_read_bufr_one_subset_one_filters() -> None:
     res = pdbufr.read_bufr(TEST_DATA_1, columns=("latitude",))
@@ -1120,3 +1123,41 @@ def test_new_synop_data() -> None:
     )
 
     assert len(res) == 14
+
+
+def test_aircraft_compressed_with_string() -> None:
+    columns = (
+        "latitude",
+        "longitude",
+        "aircraftRegistrationNumberOrOtherIdentification",
+        "airTemperature",
+    )
+
+    expected_first_row = {
+        "aircraftRegistrationNumberOrOtherIdentification": "M87670b",
+        "latitude": 40.6605,
+        "longitude": -3.18049,
+        "airTemperature": 288.9,
+    }
+
+    expected_second_row = {
+        "aircraftRegistrationNumberOrOtherIdentification": "M519140",
+        "latitude": 40.2453,
+        "longitude": 3.94982,
+        "airTemperature": 273.65,
+    }
+
+    expected_last_row = {
+        "aircraftRegistrationNumberOrOtherIdentification": "M08f92c",
+        "latitude": 39.8098,
+        "longitude": -1.21851,
+        "airTemperature": 227.9,
+    }
+
+    ref = pd.DataFrame([expected_first_row, expected_second_row, expected_last_row])
+
+    res = pdbufr.read_bufr(TEST_DATA_13, columns=columns)
+
+    assert len(res) == 186
+    res = res.iloc[[0, 1, -1]].reset_index(drop=True)
+    assert_frame_equal(res, ref[res.columns])
