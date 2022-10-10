@@ -34,7 +34,7 @@ read_bufr
 
    **BUFR keys**
 
-   ecCodes keysfrom both the BUFR header and data sections are supported in ``columns``, ``filters`` and ``required_columns``. However, there are some limitations:
+   ecCodes keys from both the BUFR header and data sections are supported in ``columns``, ``filters`` and ``required_columns``. However, there are some limitations:
    
      * keys containing the rank e.g. "#1#latitude#" cannot be used
      * key attributes e.g. "latitude->code" cannot be used
@@ -147,7 +147,7 @@ read_bufr
     When ``mode`` is "flat" there can be at most one record per message/subset in the output. In the resulting DataFrame the column names are the original ecCodes keynames containing the rank e.g. "#1#latitude#". The following set of keys are always omitted:
 
     * "unexpandedDescriptors"
-    * "operator"
+    * non-element keys (i.e. when the identifier id available as keyname->code is not 0) 
     * key attributes e.g. "latitude->code"
 
     ``filters`` can still be used in this mode but are interpreted in a different way:

@@ -93,7 +93,6 @@ IS_KEY_COORD = {"subsetNumber": True, "operator": False}
 def message_structure(message: T.Mapping[str, T.Any]) -> T.Iterator[T.Tuple[int, str]]:
     level = 0
     coords: T.Dict[str, int] = collections.OrderedDict()
-    print("start message")
     for key in message:
         name = key.rpartition("#")[2]
 
@@ -109,7 +108,6 @@ def message_structure(message: T.Mapping[str, T.Any]) -> T.Iterator[T.Tuple[int,
         while is_coord and name in coords:
             _, level = coords.popitem()  # OrderedDict.popitem uses LIFO order
 
-        print(f"{level} {key}")
         yield (level, key)
 
         if is_coord:
@@ -389,7 +387,13 @@ def extract_message(
 
     uncompressed_keys: T.Dict["str", T.Any]
     uncompressed_keys = dict()
-    skip_keys = {"unexpandedDescriptors"}
+    skip_keys = {
+        "unexpandedDescriptors",
+        "delayedDescriptorReplicationFactor",
+        "shortDelayedDescriptorReplicationFactor",
+        "operator",
+        "dataPresentIndicator",
+    }
 
     for subset in range(subset_count):
         filters_match = {k: False for k in filters.keys()}
@@ -400,9 +404,16 @@ def extract_message(
         uncompressed_subset = 0
         for key in message:
 
-            # print(f" {key}")
+            name = key.rpartition("#")[2]
+            if name in skip_keys or "->" in name:
+                continue
 
-            if key in skip_keys or "->" in key:
+            try:
+                code = message[key + "->code"]
+                is_element = int(code[0]) == 0
+            except:
+                is_element = True
+            if not is_element:
                 continue
 
             if is_uncompressed and key == "subsetNumber":
@@ -452,8 +463,6 @@ def extract_message(
                 value = None
             elif isinstance(value, int) and value == eccodes.CODES_MISSING_LONG:
                 value = None
-
-            name = key.rpartition("#")[2]
 
             if is_uncompressed:
                 if name not in uncompressed_keys:
@@ -654,9 +663,6 @@ def stream_bufr_flat(
         max_count = None
 
     count_filter = value_filters.pop("count", None)
-
-    print(f"value_filters={value_filters}")
-    print(f"count_filter={count_filter}")
 
     for count, message in enumerate(bufr_file, 1):
         # count filter
