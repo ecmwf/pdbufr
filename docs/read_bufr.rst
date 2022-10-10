@@ -22,7 +22,7 @@ read_bufr
       * If ``mode`` is "flat" True means no columns are required
   
    :type required_columns: bool, iterable[str]
-   :param mode: the extraction mode. When it is "tree" data is extracted as if the message had a tree-like hierarchy. When it is "flat" each message/subset is treated as a flat list. See details below.
+   :param mode: the extraction mode. When it is "tree", data is extracted as if the message had a tree-like hierarchy. When it is "flat" each message/subset is treated as a flat list. See details below.
    :type mode: str
    :rtype: pandas.DataFrame
 
@@ -146,8 +146,8 @@ read_bufr
 
     When ``mode`` is "flat" messages/subsets are extracted as a whole preserving the column order (see the note below for exceptions). In the resulting DataFrame the original ecCodes keys containing the **rank** are used as column names, e.g. "#1#latitude#" instead of "latitude". The following set of keys are omitted:
 
-    * "unexpandedDescriptors" from the header
-    * non-element data section keys (i.e. when the identifier available as keyname->code does not start with 0) 
+    * from the header: "unexpandedDescriptors"
+    * from the data section: data description operator qualifiers  (e.g. "delayedDescriptorReplicationFactor") and "operator"
     * key attributes e.g. "latitude->code"
 
     The **rank** appearing in the keys in a message containing **uncompressed subsets** is not reset by ecCodes when a new subset is started. To make the columns as aligned as a possible in the output :func:`read_bufr` resets the rank and makes sure that e.g. the first "latitude" key is always called "#1#latitude" in each uncompressed subset.

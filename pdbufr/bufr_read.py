@@ -24,12 +24,6 @@ def read_bufr(
 ) -> pd.DataFrame:
     """
     Read selected observations from a BUFR file into DataFrame.
-
-    :param path: The path to the BUFR file
-    :param columns: A list of BUFR keys to return in the DataFrame for every observation
-    :param filters: A dictionary of BUFR key / filter definition to filter the observations to return
-    :param required_columns: The list BUFR keys that are required for all observations.
-        ``True`` means all ``columns`` are required
     """
 
     with BufrFile(path) as bufr_file:  # type: ignore

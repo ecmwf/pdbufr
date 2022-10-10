@@ -389,10 +389,14 @@ def extract_message(
     uncompressed_keys = dict()
     skip_keys = {
         "unexpandedDescriptors",
-        "delayedDescriptorReplicationFactor",
         "shortDelayedDescriptorReplicationFactor",
-        "operator",
+        "delayedDescriptorReplicationFactor",
+        "extendedDelayedDescriptorReplicationFactor",
+        "delayedDescriptorAndDataRepetitionFactor",
+        "extendedDelayedDescriptorAndDataRepetitionFactor"
+        "associatedFieldSignificance",
         "dataPresentIndicator",
+        "operator",
     }
 
     for subset in range(subset_count):
@@ -405,15 +409,7 @@ def extract_message(
         for key in message:
 
             name = key.rpartition("#")[2]
-            if name in skip_keys or "->" in name:
-                continue
-
-            try:
-                code = message[key + "->code"]
-                is_element = int(code[0]) == 0
-            except:
-                is_element = True
-            if not is_element:
+            if name in skip_keys or "->" in key:
                 continue
 
             if is_uncompressed and key == "subsetNumber":
