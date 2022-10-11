@@ -150,7 +150,7 @@ read_bufr
     * from the data section: data description operator qualifiers  (e.g. "delayedDescriptorReplicationFactor") and "operator"
     * key attributes e.g. "latitude->code"
 
-    The **rank** appearing in the keys in a message containing **uncompressed subsets** is not reset by ecCodes when a new subset is started. To make the columns as aligned as a possible in the output :func:`read_bufr` resets the rank and makes sure that e.g. the first "latitude" key is always called "#1#latitude" in each uncompressed subset.
+    The **rank** appearing in the keys in a message containing **uncompressed subsets** is not reset by ecCodes when a new subset started. To make the columns as aligned as a possible in the output :func:`read_bufr` resets the rank and makes sure that e.g. the first "latitude" key is always called "#1#latitude" in each uncompressed subset.
 
     ``filters`` can still be used in "flat" mode but are interpreted in a different way:
 
