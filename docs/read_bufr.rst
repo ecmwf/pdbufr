@@ -160,7 +160,7 @@ read_bufr
 
         filters = {"pressure": 50000}
 
-      and there is e.g. "#12#pressure" = 50000 in the message/subset then the filter matches.
+      and there is e.g. the value "#12#pressure" = 50000 in the message/subset then the filter matches.
 
     .. note::
 
