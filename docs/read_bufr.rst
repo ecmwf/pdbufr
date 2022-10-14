@@ -1,7 +1,7 @@
 read_bufr
 ==============
 
-..  py:function:: read_bufr(path, columns, filters={}, required_columns=(), mode="tree")
+..  py:function:: read_bufr(path, columns, filters={}, required_columns=True, mode="tree")
 
    Extract data from BUFR as a pandas.DataFrame with the specified ``columns`` applying the ``filters`` either in hierarchical or flat ``mode``.
    
@@ -16,10 +16,10 @@ read_bufr
    :type columns: str, iterable
    :param filters: a dictionary of ecCodes BUFR key filter conditions. The individual conditions are combined together with the logical AND operator to form the filter. See details below.
    :type filters: dict
-   :param required_columns: the list of ecCodes BUFR keys that are required to be present in the BUFR message/subset. The default value ``True`` has a different meaning based on ``mode``:
+   :param required_columns: the list of ecCodes BUFR keys that are required to be present in the BUFR message/subset. Bool values are interpreted as follows:
 
-      * If ``mode`` is "tree" True means all the keys in ``columns`` are required
-      * If ``mode`` is "flat" True means no columns are required
+      * if ``mode`` is "tree" True means all the keys in ``columns`` are required, while False means no columns are required
+      * if ``mode`` is "flat" either bool value means no columns are required
   
    :type required_columns: bool, iterable[str]
    :param mode: the extraction mode. When it is "tree", data is extracted as if the message had a tree-like hierarchy. When it is "flat" each message/subset is treated as a flat list. See details below.
@@ -36,7 +36,7 @@ read_bufr
 
    ecCodes keys from both the BUFR header and data sections are supported in ``columns``, ``filters`` and ``required_columns``. However, there are some limitations:
    
-     * keys containing the rank e.g. "#1#latitude#" cannot be used
+     * keys containing the rank e.g. "#1#latitude" cannot be used
      * key attributes e.g. "latitude->code" cannot be used
   
    The "count" generated key, which refers to the message index, is also supported but please note that message indexing starts at 1 and not at 0!
