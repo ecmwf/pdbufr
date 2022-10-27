@@ -512,6 +512,26 @@ def add_computed_keys(
     return augmented_observation
 
 
+def test_computed_keys(
+    observation: T.Dict[str, T.Any],
+    filters: T.Dict[str, bufr_filters.BufrFilter] = {},
+    prefix: str = "",
+) -> bool:
+    for keys, computed_key, getter in COMPUTED_KEYS:
+        if computed_key in filters:
+            computed_value = None
+            try:
+                computed_value = getter(observation, prefix, keys)
+            except Exception:
+                return False
+            if computed_value is not None:
+                if not filters[computed_key].match(computed_value):
+                    return False
+            else:
+                return False
+    return True
+
+
 class CMWrapper:
     """Makes it possible to use context manager both with BufrMessage and dict type of messages"""
 
@@ -531,7 +551,7 @@ class CMWrapper:
 
 def stream_bufr(
     bufr_file: T.Iterable[T.MutableMapping[str, T.Any]],
-    columns: T.Union[T.Iterable[str], str],
+    columns: T.Union[T.Sequence[str], str],
     filters: T.Mapping[str, T.Any] = {},
     required_columns: T.Union[bool, T.Iterable[str]] = True,
     prefilter_headers: bool = False,
@@ -621,21 +641,26 @@ def stream_bufr(
 
 def stream_bufr_flat(
     bufr_file: T.Iterable[T.MutableMapping[str, T.Any]],
-    columns: T.Union[T.Iterable[str], str],
+    columns: T.Union[T.Sequence[str], str],
     filters: T.Mapping[str, T.Any] = {},
     required_columns: T.Union[bool, T.Iterable[str]] = True,
     prefilter_headers: bool = False,
+    column_info: T.Any = None,
 ) -> T.Iterator[T.Dict[str, T.Any]]:
 
-    if not isinstance(columns, str):
-        raise ValueError("columns must be a str when mode=flat")
-    if columns not in ["all", "header", "data"]:
-        raise ValueError(
-            f"invalid columns value={columns}! Must be all, header or data"
-        )
+    if isinstance(columns, str):
+        columns = (columns,)
 
-    add_header = columns in ["all", "header"]
-    add_data = columns in ["all", "data"]
+    if len(columns) == 0 or columns[0] == "":
+        columns = ("all",)
+    elif len(columns) != 1:
+        raise ValueError(f"when columns is an iterable it can have maximum 1 element")
+
+    if columns[0] not in ["all", "header", "data"]:
+        raise ValueError(f"columns must be all, header or data")
+
+    add_header = columns[0] in ["all", "header"]
+    add_data = columns[0] in ["all", "data"]
     if not add_header and not add_data:
         raise ValueError("either header or data must be extracted")
 
@@ -660,58 +685,77 @@ def stream_bufr_flat(
 
     count_filter = value_filters.pop("count", None)
 
-    for count, message in enumerate(bufr_file, 1):
-        # count filter
-        if count_filter is not None and not count_filter.match(count):
-            continue
+    # prepare computed keys
+    computed_keys = [x for _, x, _ in COMPUTED_KEYS]
+    value_filters_without_computed = {
+        k: v for k, v in value_filters.items() if k not in computed_keys
+    }
 
-        message_value_filters = value_filters
-        message_required_columns = required_columns
+    if column_info is not None:
+        column_info.first_count = 0
 
-        header_keys = set()
-        if not add_header or prefilter_headers or value_filters or required_columns:
-            header_keys = set(message.keys())
+    for count, msg in enumerate(bufr_file, 1):
+        # we use a context manager to automatically delete the handle of the BufrMessage.
+        # We have to use a wrapper object here because a message can also be a dict
+        with CMWrapper(msg) as message:
+            # count filter
+            if count_filter is not None and not count_filter.match(count):
+                continue
 
-            if required_columns:
-                message_required_columns = required_columns - set(header_keys)
+            message_value_filters = value_filters_without_computed
+            message_required_columns = required_columns
 
-            # test header keys for failed matches before unpacking
-            if prefilter_headers:
-                if not bufr_filters.is_match(message, value_filters, required=False):
-                    continue
-                # remove already tested filters
-                else:
-                    message_value_filters = {
-                        k: v for k, v in value_filters.items() if k not in header_keys
-                    }
+            header_keys = set()
+            if not add_header or prefilter_headers or value_filters or required_columns:
+                header_keys = set(message.keys())
 
-        message["skipExtraKeyAttributes"] = 1
+                if required_columns:
+                    message_required_columns = required_columns - set(header_keys)
 
-        if add_data or message_value_filters or message_required_columns:
-            message["unpack"] = 1
+                # test header keys for failed matches before unpacking
+                if prefilter_headers:
+                    if not bufr_filters.is_match(
+                        message, value_filters, required=False
+                    ):
+                        continue
+                    # remove already tested filters
+                    else:
+                        message_value_filters = {
+                            k: v
+                            for k, v in value_filters.items()
+                            if k not in header_keys
+                        }
 
-        observation: T.Dict[str, T.Any] = {}
+            message["skipExtraKeyAttributes"] = 1
 
-        for observation in extract_message(
-            message,
-            message_value_filters,
-            observation,
-            message_required_columns,
-            header_keys,
-        ):
+            if add_data or message_value_filters or message_required_columns:
+                message["unpack"] = 1
 
-            if header_keys:
-                if not add_header:
-                    for key in header_keys:
-                        observation.pop(key, None)
-                if not add_data:
-                    data_keys = set(observation.keys()) - header_keys
-                    for key in data_keys:
-                        observation.pop(key, None)
+            observation: T.Dict[str, T.Any] = {}
 
-            if observation:
-                yield observation
+            for observation in extract_message(
+                message,
+                message_value_filters,
+                observation,
+                message_required_columns,
+                header_keys,
+            ):
+                if header_keys:
+                    if not add_header:
+                        for key in header_keys:
+                            observation.pop(key, None)
+                    if not add_data:
+                        data_keys = set(observation.keys()) - header_keys
+                        for key in data_keys:
+                            observation.pop(key, None)
 
-        # optimisation: skip decoding messages above max_count
-        if max_count is not None and count >= max_count:
-            break
+                if observation and test_computed_keys(
+                    observation, value_filters, "#1#"
+                ):
+                    if column_info is not None and column_info.first_count == 0:
+                        column_info.first_count = len(observation)
+                    yield observation
+
+            # optimisation: skip decoding messages above max_count
+            if max_count is not None and count >= max_count:
+                break

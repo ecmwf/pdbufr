@@ -1,0 +1,5 @@
+    subsetNumber  #1#blockNumber  #1#stationNumber    ...  #25#airTemperature  #25#dewpointTemperature  #25#windDirection  #25#windSpeed
+0        1             71               907                    NaN                      NaN                NaN            NaN
+1        1             71               823                  221.5                    191.5                NaN            NaN
+
+[2 rows x 197 columns]
