@@ -651,7 +651,9 @@ def stream_bufr_flat(
     if isinstance(columns, str):
         columns = (columns,)
 
-    if len(columns) == 0 or columns[0] == "":
+    if not isinstance(columns, T.Sequence):
+        raise TypeError("invalid columns type")
+    elif len(columns) == 0 or columns[0] == "":
         columns = ("all",)
     elif len(columns) != 1:
         raise ValueError(f"when columns is an iterable it can have maximum 1 element")
