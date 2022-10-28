@@ -60,6 +60,7 @@ jobs:
         conda install ipykernel
         conda install pandoc
         conda install nbsphinx
+        conda install jinja2=3.0.3
         pip install --no-deps -e .
         python setup.py build_sphinx
     # - name: Test README with pytest
