@@ -451,9 +451,15 @@ def extract_message(
             else:
                 value = message[key]
 
-            # unpack compressed BUFR values
-            if isinstance(value, np.ndarray) and len(value) == subset_count:
-                value = value[subset].item()
+            # extract compressed BUFR values. They are either numpy arrays (for numeric types)
+            # or lists of strings
+            if (
+                is_compressed
+                and name != "unexpandedDescriptors"
+                and isinstance(value, (np.ndarray, list))
+                and len(value) == subset_count
+            ):
+                value = value[subset]
 
             if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
                 value = None

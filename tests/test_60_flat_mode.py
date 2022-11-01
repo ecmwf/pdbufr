@@ -8,6 +8,7 @@
 
 import os
 import typing as T
+import warnings
 
 import numpy as np
 import pytest
@@ -24,6 +25,9 @@ TEST_DATA_2 = os.path.join(SAMPLE_DATA_FOLDER, "synop_multi_subset_uncompressed.
 
 # contains 1 message - with 51 compressed subsets with multiple timePeriods
 TEST_DATA_9 = os.path.join(SAMPLE_DATA_FOLDER, "ens_multi_subset_compressed.bufr")
+
+# contains 1 message - with 128 compressed subsets with some str values
+TEST_DATA_10 = os.path.join(SAMPLE_DATA_FOLDER, "pgps_110.bufr")
 
 REF_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "ref_data")
 REF_DATA_1 = os.path.join(REF_DATA_FOLDER, "obs_3day_ref_1.csv")
@@ -459,7 +463,6 @@ def test_read_flat_bufr_compressed_subsets() -> None:
     assert "edition" in res
     assert "#1#latitude" in res
     for i in range(1, 62):
-        print(i)
         assert f"#{i}#timePeriod" in res
         assert f"#{i}#cape" in res
     assert len(res.columns) == 149
@@ -472,7 +475,6 @@ def test_read_flat_bufr_compressed_subsets() -> None:
     assert "edition" in res
     assert "#1#latitude" in res
     for i in range(1, 62):
-        print(i)
         assert f"#{i}#timePeriod" in res
         assert f"#{i}#cape" in res
     assert len(res.columns) == 149
@@ -604,3 +606,79 @@ def test_read_flat_bufr_compressed_subsets() -> None:
     assert "#1#cape" not in res
     assert len(res.columns) == 19
     assert len(res) == 2
+
+
+def test_read_flat_bufr_compressed_subsets_with_str() -> None:
+    ref_str: T.Any
+
+    res = pdbufr.read_bufr(TEST_DATA_10, "all", flat=True)
+
+    assert isinstance(res, pd.DataFrame)
+    assert "edition" in res
+    assert "#1#latitude" in res
+    assert "#1#stationOrSiteName" in res
+    assert len(res["#1#stationOrSiteName"]) == 128
+    assert isinstance(res["#1#stationOrSiteName"][0], str)
+    ref_str = ["ARD2-LPTR"] * 11 + ["DAV2-LPTR"] * 11
+    assert list(res["#1#stationOrSiteName"][:22]) == ref_str
+    assert len(res.columns) == 228
+    assert len(res) == 128
+
+    res = pdbufr.read_bufr(
+        TEST_DATA_10, filters={"stationOrSiteName": "DAV2-LPTR"}, flat=True
+    )
+
+    assert isinstance(res, pd.DataFrame)
+    assert "edition" in res
+    assert "#1#latitude" in res
+    assert "#1#stationOrSiteName" in res
+    assert len(res["#1#stationOrSiteName"]) == 11
+    assert isinstance(res["#1#stationOrSiteName"][0], str)
+    ref_str = ["DAV2-LPTR"] * 11
+    assert list(res["#1#stationOrSiteName"]) == ref_str
+    assert len(res.columns) == 228
+    assert len(res) == 11
+
+
+def test_read_flat_bufr_warning() -> None:
+    def _find_warning(w: T.Any) -> bool:
+        for item in w:
+            if issubclass(
+                item.category, UserWarning
+            ) and "not all BUFR messages/subsets have the same structure" in str(
+                item.message
+            ):
+                return True
+        return False
+
+    # non-overlapping messages: warning generated
+    with warnings.catch_warnings(record=True) as w:
+        res = pdbufr.read_bufr(TEST_DATA_1, flat=True)
+        assert len(res.columns) == 103
+        assert len(res) == 50
+        assert len(w) > 0
+        assert _find_warning(w)
+
+    # non-overlapping messages: warning disabled
+    warnings.filterwarnings("ignore", module="pdbufr")
+    with warnings.catch_warnings(record=True) as w:
+        res = pdbufr.read_bufr(TEST_DATA_1, flat=True)
+        assert len(res.columns) == 103
+        assert len(res) == 50
+        assert not _find_warning(w)
+
+    # re-enables warnings
+    warnings.filterwarnings("always", module="pdbufr")
+    with warnings.catch_warnings(record=True) as w:
+        res = pdbufr.read_bufr(TEST_DATA_1, flat=True)
+        assert len(res.columns) == 103
+        assert len(res) == 50
+        assert len(w) > 0
+        assert _find_warning(w)
+
+    # overlapping messages: no warnings should be generated
+    with warnings.catch_warnings(record=True) as w:
+        res = pdbufr.read_bufr(TEST_DATA_2, flat=True)
+        assert len(res.columns) == 101
+        assert len(res) == 12
+        assert not _find_warning(w)

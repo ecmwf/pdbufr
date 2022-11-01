@@ -202,7 +202,8 @@ Flat mode
 
     .. warning::
 
-        Messages/subsets in a BUFR file can have a different set of BUFR keys. When a new message/subset is processed :func:`read_bufr` adds it to the resulting DataFrame as a new record and columns that are not yet present in the output are automatically appended to the end changing the original order of keys for that message. When this happens :func:`pdbufr` prints a warning message to the stdout.
+        Messages/subsets in a BUFR file can have a different set of BUFR keys. When a new message/subset is processed :func:`read_bufr` adds it to the resulting DataFrame as a new record and columns that are not yet present in the output are automatically appended to the end changing the original order of keys for that message. When this happens :func:`pdbufr` prints a warning message to the stdout
+        (see the example below or the :ref:`/examples/flat_dump.ipynb` notebook for details).
         
     **Example**
 
@@ -210,13 +211,31 @@ Flat mode
 
       .. code-block:: python
   
-              df = pdbufr.read_bufr("temp.bufr", columns="data",
-                          flat=True
-                          filters={"count": [1, 2]},  
-                    )
+        df = pdbufr.read_bufr("temp.bufr", columns="data",
+                flat=True
+                filters={"count": [1, 2]},  
+              )
 
     which results in the following DataFrame:
 
       .. literalinclude:: _static/flat_dump_output.txt
 
+    and generates the following warning::
 
+      Warning: not all BUFR messages/subsets have the same structure in the input file. Non-overlapping columns (starting with column[189] = #1#generatingApplication) were added to end of the resulting dataframe altering the original column order for these messages.
+
+    This warning can be disabled by using the **warnings** module. The code below produces the same DataFrame as the one above but does not print the warning message:
+
+      .. code-block:: python
+  
+        import warnings
+        warnings.filterwarnings("ignore", module="pdbufr")
+
+        df = pdbufr.read_bufr("temp.bufr", columns="data",
+              flat=True
+              filters={"count": [1, 2]},  
+            )
+
+    .. note::
+
+      See the :ref:`/examples/flat_dump.ipynb` notebook for more details.

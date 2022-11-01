@@ -9,7 +9,6 @@
 import os
 import typing as T
 
-import attr
 import pandas as pd  # type: ignore
 
 from . import bufr_structure
@@ -55,9 +54,19 @@ def read_bufr(
             # compare the column count in the first record to that of the
             # dataframe. If the latter is larger, then there were non-aligned columns,
             # which were appended to the end of the dataframe columns.
-            if column_info.first_count < len(df.columns):
-                print(
-                    f"Warning: not all BUFR messages/subsets have the same structure in the input file. Non-overlapping columns were added to end of the resulting dataframe altering the original column order for these messages."
+            if column_info.first_count > 0 and column_info.first_count < len(
+                df.columns
+            ):
+                import warnings
+
+                # temporarily overwrite warnings formatter
+                ori_formatwarning = warnings.formatwarning
+                warnings.formatwarning = (
+                    lambda msg, *args, **kwargs: f"Warning: {msg}\n"
                 )
+                warnings.warn(
+                    f"not all BUFR messages/subsets have the same structure in the input file. Non-overlapping columns (starting with column[{column_info.first_count-1}] = {df.columns[column_info.first_count-1]}) were added to end of the resulting dataframe altering the original column order for these messages."
+                )
+                warnings.formatwarning = ori_formatwarning
 
             return df
