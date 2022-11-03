@@ -3,18 +3,18 @@ read_bufr
 
 .. py:function:: read_bufr(path, columns=[], filters={}, required_columns=True, flat=False)
 
-    Extract data from BUFR as a pandas.DataFrame with the specified ``columns`` applying the ``filters`` either in hierarchical or flat mode.
+    Extract data from BUFR as a pandas.DataFrame with the specified ``columns`` applying the ``filters`` either in :ref:`hierarchical <tree-mode-section>` or :ref:`flat <flat-mode-section>` mode.
     
     :param path: path to the BUFR file
     :type path: str, bytes, os.PathLike
     :param columns: a list of ecCodes BUFR keys to extract for each BUFR message/subset. When ``flat`` is True ``columns`` can contain maximum one value, which is interpreted in the following way:
       
           * "all", empty str or empty list (default): all the columns are extracted
-          * "header": only columns from the header section are extracted
+          * "header": only the columns from the header section are extracted
           * "data": only the columns from the data section are extracted
 
-    :type columns: str, iterable[str]
-    :param filters: a dictionary of ecCodes BUFR key filter conditions. The individual conditions are combined together with the logical AND operator to form the filter. See details below.
+    :type columns: str, sequence[str]
+    :param filters: a dictionary of ecCodes BUFR key filter conditions. The individual conditions are combined together with the logical AND operator to form the filter. See :ref:`filters-section` for details.
     :type filters: dict
     :param required_columns: the list of ecCodes BUFR keys that are required to be present in the BUFR message/subset. Bool values are interpreted as follows:
 
@@ -27,7 +27,7 @@ read_bufr
     
     :type required_columns: bool, iterable[str]
     :param flat: enables flat extraction mode. When it is ``True`` each message/subset is treated as a :ref:`flat list <flat-mode-section>`, while when it is ``False`` (default), data is extracted as if the message had a :ref:`tree-like hierarchy <tree-mode-section>`. See details below. New in *version 0.10.0*
-    :type mode: bool
+    :type flat: bool
     :rtype: pandas.DataFrame
 
 
@@ -89,6 +89,8 @@ BUFR keys
      .. note::
 
           The computed keys do not preserve their position in ``columns`` but are placed to the end of the resulting DataFrame.
+
+.. _filters-section:
 
 Filters
 --------------
@@ -202,7 +204,7 @@ Flat mode
 
     .. warning::
 
-        Messages/subsets in a BUFR file can have a different set of BUFR keys. When a new message/subset is processed :func:`read_bufr` adds it to the resulting DataFrame as a new record and columns that are not yet present in the output are automatically appended to the end changing the original order of keys for that message. When this happens :func:`pdbufr` prints a warning message to the stdout
+        Messages/subsets in a BUFR file can have a different set of BUFR keys. When a new message/subset is processed :func:`read_bufr` adds it to the resulting DataFrame as a new record and columns that are not yet present in the output are automatically appended by Pandas to the end changing the original order of keys for that message. When this happens :func:`pdbufr` prints a warning message to the stdout
         (see the example below or the :ref:`/examples/flat_dump.ipynb` notebook for details).
         
     **Example**
@@ -222,7 +224,10 @@ Flat mode
 
     and generates the following warning::
 
-      Warning: not all BUFR messages/subsets have the same structure in the input file. Non-overlapping columns (starting with column[189] = #1#generatingApplication) were added to end of the resulting dataframe altering the original column order for these messages.
+      Warning: not all BUFR messages/subsets have the same structure in the input file.
+      Non-overlapping columns (starting with column[189] = #1#generatingApplication) 
+      were added to end of the resulting dataframe altering the original column order
+      for these messages.
 
     This warning can be disabled by using the **warnings** module. The code below produces the same DataFrame as the one above but does not print the warning message:
 
