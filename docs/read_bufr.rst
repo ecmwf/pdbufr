@@ -190,7 +190,7 @@ Flat mode
 
     The **rank** appearing in the keys in a message containing **uncompressed subsets** is not reset by ecCodes when a new subset started. To make the columns as aligned as a possible in the output :func:`read_bufr` resets the rank and ensures that e.g. the first "latitude" key is always called "#1#latitude" in each uncompressed subset.
 
-    ``filters`` control what messages/subsets should be extracted from the BUFR file. They are interpreted in a different way than in the  :ref:`hierarchical <tree-mode-section>`:
+    ``filters`` control what messages/subsets should be extracted from the BUFR file. They are interpreted in a different way than in the  :ref:`hierarchical <tree-mode-section>` mode:
 
     * they can only contain keys without a rank
     * for **non-computed keys** the filter condition matches if there is a match for the same key with any given rank in the message/subset. E.g. if ::
