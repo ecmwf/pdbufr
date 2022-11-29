@@ -31,7 +31,7 @@ read_bufr
     :rtype: pandas.DataFrame
 
 
-    In order to correctly use :func:`read_bufr` for a given BUFR file first you need to understand the structure of the messages and the keys/values you can use for data extraction and filter definition. The BUFR structure can be explored with *ecCodes* command line tools `bufr_ls <https://confluence.ecmwf.int/display/ECC/bufr_ls>`_  and  `bufr_dump <https://confluence.ecmwf.int/display/ECC/bufr_dump>`_.
+    In order to correctly use :func:`read_bufr` for a given BUFR file first you need to understand the structure of the messages and the keys/values you can use for data extraction and filter definition. The BUFR structure can be explored with *ecCodes* command line tools `bufr_ls <https://confluence.ecmwf.int/display/ECC/bufr_ls>`_  and `bufr_dump <https://confluence.ecmwf.int/display/ECC/bufr_dump>`_. You can also use `CodesUI <https://confluence.ecmwf.int/display/METV/CodesUI>`_ or `Metview <https://metview.readthedocs.io>`_, which provide graphical user interfaces to inspect BUFR/GRIB data.
 
     There are some :ref:`notebook examples <examples>` available demonstrating how to use :func:`read_bufr` for various observation/forecast BUFR data types. 
 
@@ -180,7 +180,9 @@ Flat mode
 
     New in *version 0.10.0*
 
-    When ``flat`` is ``True`` messages/subsets are extracted as a whole preserving the column order (see the note below for exceptions). In the resulting DataFrame the original ecCodes keys containing the **rank** are used as column names, e.g. "#1#latitude" instead of "latitude". The following set of keys are omitted:
+    When ``flat`` is ``True`` messages/subsets are extracted as a whole preserving the column order (see the note below for exceptions) and each extracted message/subset will be a separate record in the resulting DataFrame. With ``filters`` we can control which messages/subsets should be selected. By default all the columns in a message/subset are extracted (see the exceptions below), but this can be changed by setting ``columns`` to "header" or "data" to get only the header or data section keys. Other column selection modes are not available.
+    
+    In the resulting DataFrame the original ecCodes keys containing the **rank** are used as column names, e.g. "#1#latitude" instead of "latitude". The following set of keys are omitted:
 
     * from the header: "unexpandedDescriptors"
     * from the data section: data description operator qualifiers  (e.g. "delayedDescriptorReplicationFactor") and "operator"
@@ -188,7 +190,7 @@ Flat mode
 
     The **rank** appearing in the keys in a message containing **uncompressed subsets** is not reset by ecCodes when a new subset started. To make the columns as aligned as a possible in the output :func:`read_bufr` resets the rank and ensures that e.g. the first "latitude" key is always called "#1#latitude" in each uncompressed subset.
 
-    ``filters`` can still be used in this mode but are interpreted in a different way:
+    ``filters`` control what messages/subsets should be extracted from the BUFR file. They are interpreted in a different way than in the  :ref:`hierarchical <tree-mode-section>`:
 
     * they can only contain keys without a rank
     * for **non-computed keys** the filter condition matches if there is a match for the same key with any given rank in the message/subset. E.g. if ::
