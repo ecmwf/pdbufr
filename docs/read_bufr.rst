@@ -180,7 +180,7 @@ Flat mode
 
     New in *version 0.10.0*
 
-    When ``flat`` is ``True`` messages/subsets are extracted as a whole preserving the column order (see the note below for exceptions) and each extracted message/subset will be a separate record in the resulting DataFrame. With ``filters`` we can control which messages/subsets should be selected. By default all the columns in a message/subset are extracted (see the exceptions below), but this can be changed by setting ``columns`` to "header" or "data" to get only the header or data section keys. Other column selection modes are not available.
+    When ``flat`` is ``True`` messages/subsets are extracted as a whole preserving the column order (see the note below for exceptions) and each extracted message/subset will be a separate record in the resulting DataFrame. With ``filters`` we can control which messages/subsets should be selected. By default, all the columns in a message/subset are extracted (see the exceptions below), but this can be changed by setting ``columns`` to "header" or "data" to get only the header or data section keys. Other column selection modes are not available.
     
     In the resulting DataFrame the original ecCodes keys containing the **rank** are used as column names, e.g. "#1#latitude" instead of "latitude". The following set of keys are omitted:
 
