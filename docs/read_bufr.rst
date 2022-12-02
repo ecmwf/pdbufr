@@ -7,14 +7,14 @@ read_bufr
     
     :param path: path to the BUFR file
     :type path: str, bytes, os.PathLike
-    :param columns: a list of ecCodes BUFR keys to extract for each BUFR message/subset. When ``flat`` is True ``columns`` can contain maximum one value, which is interpreted in the following way:
+    :param columns: a list of ecCodes BUFR keys to extract for each BUFR message/subset. When ``flat`` is True ``columns`` must be one of the following string values: 
       
           * "all", empty str or empty list (default): all the columns are extracted
           * "header": only the columns from the header section are extracted
           * "data": only the columns from the data section are extracted
 
     :type columns: str, sequence[str]
-    :param filters: a dictionary of ecCodes BUFR key filter conditions. The individual conditions are combined together with the logical AND operator to form the filter. See :ref:`filters-section` for details.
+    :param filters: defines the conditions when to extract the specified ``columns``. The individual conditions are combined together with the logical AND operator to form the filter. See :ref:`filters-section` for details.
     :type filters: dict
     :param required_columns: the list of ecCodes BUFR keys that are required to be present in the BUFR message/subset. Bool values are interpreted as follows:
 
@@ -95,20 +95,22 @@ BUFR keys
 Filters
 --------------
 
-     A filter condition can be a single value match:
+    The filter conditions are specified as a dict via ``filters`` and determine when the specified ``columns`` will actually be extracted.
+
+    A filter condition can be a single value match:
 
       .. code-block:: python 
 
           filters={"blockNumber": 12}
 
-     an "in" relation: 
+    an "in" relation: 
 
      .. code-block:: python 
           
           filters={"stationNumber": [843, 925]}
           filters={"blockNumber": range(10, 13)}
           
-     or an interval expressed as a ``slice`` (the boundaries as inclusive):
+    or an interval expressed as a ``slice`` (the boundaries as inclusive):
 
       .. code-block:: python
                
@@ -121,7 +123,7 @@ Filters
           # open interval (>=273.16)      
           filters={"airTemperature": slice(273.16, None)}
 
-     When multiple conditions are specified they are connected with a logical AND:
+    When multiple conditions are specified they are connected with a logical AND:
      
        .. code-block:: python
      
@@ -150,7 +152,7 @@ Filters
 Hierarchical mode
 -------------------
     
-    When ``flat`` is ``False`` the contents of a BUFR message/subset is interpreted as a hierarchical structure. This is based on a certain group of BUFR keys (related to instrumentation, location etc), which according to the `WMO BUFR manual <https://community.wmo.int/activity-areas/wmo-codes/manual-codes/bufr-edition-3-and-crex-edition-1>`_ introduce a new hierarchy level in the message/susbset. During data extraction ``read_bufr`` traverses this hierarchy and when all the columns are collected and the all the filters match a new record is added to the output. With this several records can be extracted from the same message/subset.
+    When ``flat`` is ``False`` the contents of a BUFR message/subset is interpreted as a hierarchical structure. This is based on a certain group of BUFR keys (related to instrumentation, location etc), which according to the `WMO BUFR manual <https://community.wmo.int/activity-areas/wmo-codes/manual-codes/bufr-edition-3-and-crex-edition-1>`_ introduce a new hierarchy level in the message/susbset. During data extraction ``read_bufr`` traverses this hierarchy and when all the ``columns`` are collected and the all the ``filters`` match a new record is added to the output. With this several records can be extracted from the same message/subset.
 
     **Example**
       
@@ -180,7 +182,9 @@ Flat mode
 
     New in *version 0.10.0*
 
-    When ``flat`` is ``True`` messages/subsets are extracted as a whole preserving the column order (see the note below for exceptions) and each extracted message/subset will be a separate record in the resulting DataFrame. With ``filters`` we can control which messages/subsets should be selected. By default, all the columns in a message/subset are extracted (see the exceptions below), but this can be changed by setting ``columns`` to "header" or "data" to get only the header or data section keys. Other column selection modes are not available.
+    When ``flat`` is ``True`` messages/subsets are extracted as a whole preserving the column order (see the note below for exceptions) and each extracted message/subset will be a separate record in the resulting DataFrame.
+    
+    With ``filters`` we can control which messages/subsets should be selected. By default, all the columns in a message/subset are extracted (see the exceptions below), but this can be changed by setting ``columns`` to "header" or "data" to get only the header or data section keys. Other column selection modes are not available.
     
     In the resulting DataFrame the original ecCodes keys containing the **rank** are used as column names, e.g. "#1#latitude" instead of "latitude". The following set of keys are omitted:
 
