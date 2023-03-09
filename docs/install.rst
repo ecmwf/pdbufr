@@ -1,33 +1,43 @@
 Installation
 ============
 
-The easiest way to install *pdbufr* dependencies is via Conda::
+Installing pdbufr
+--------------------
 
-    $ conda install -c conda-forge python-eccodes pandas
+*pdbufr* can be installed from PyPI with:
 
-and *pdbufr* itself as a Python package from PyPI with::
+.. code-block:: bash
 
-    $ pip install pdbufr
+    pip install pdbufr
 
-System dependencies
--------------------
+
+Installing the Python module
+-------------------------------
 
 The Python module depends on the ECMWF *ecCodes* library
-that must be installed on the system and accessible as a shared library.
-Some Linux distributions ship a binary version that may be installed with the standard package manager.
-On Ubuntu 18.04 use the command::
+that must be installed on the system and accessible as a shared library. The easiest way to install it is to use Conda:
 
-    $ sudo apt-get install libeccodes0
+.. code-block:: bash
 
-On a MacOS with HomeBrew use::
+    conda install eccodes -c conda-forge
 
-    $ brew install eccodes
+
+On a MacOS it is also available from HomeBrew:
+
+.. code-block:: bash
+
+    brew install eccodes
 
 As an alternative you may install the official source distribution
 by following the instructions at
 https://software.ecmwf.int/wiki/display/ECC/ecCodes+installation
 
-You may run a simple selfcheck command to ensure that your system is set up correctly::
+Selfcheck
+------------
+
+You may run a simple selfcheck command to ensure that your system is set up correctly:
+
+.. code-block:: bash
 
     $ python -m pdbufr selfcheck
     Found: ecCodes v2.19.0.
