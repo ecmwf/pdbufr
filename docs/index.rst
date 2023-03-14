@@ -29,6 +29,7 @@ Welcome to pdbufr's documentation
    :caption: Installation
 
    install
+   release_notes/index
    contributing
    licence
 
