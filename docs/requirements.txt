@@ -1,5 +1,5 @@
 ipykernel
-nbsphinx
+nbsphinx<=0.8.12
 docutils<=0.16.0
 Pygments>=2.6.1
 Sphinx>=4.4.0
