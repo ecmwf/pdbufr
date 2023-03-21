@@ -41,7 +41,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     include_package_data=True,
     install_requires=["attrs", "eccodes", "pandas"],
-    extras_require={"tests": ["flake8", "pytest", "pytest-cov"]},
+    extras_require={"tests": ["flake8", "pytest", "pytest-cov", "requests"]},
     zip_safe=True,
     keywords="eccodes bufr pandas",
     classifiers=[

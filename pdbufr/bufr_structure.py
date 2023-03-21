@@ -102,7 +102,7 @@ def message_structure(message: T.Mapping[str, T.Any]) -> T.Iterator[T.Tuple[int,
             try:
                 code = message[key + "->code"]
                 is_coord = int(code[:3]) < 10
-            except (KeyError, eccodes.KeyValueNotFoundError):
+            except KeyError:
                 is_coord = False
 
         while is_coord and name in coords:
@@ -142,7 +142,7 @@ def make_message_uid(message: T.Mapping[str, T.Any]) -> T.Tuple[T.Optional[int],
 
     try:
         delayed_descriptors = message["delayedDescriptorReplicationFactor"]
-    except (KeyError, eccodes.KeyValueNotFoundError):
+    except KeyError:
         delayed_descriptors = []
 
     if isinstance(delayed_descriptors, int):
@@ -286,8 +286,9 @@ def extract_observations(
     value_cache = {}
     try:
         is_compressed = bool(message["compressedData"])
-    except (KeyError, eccodes.KeyValueNotFoundError):
+    except KeyError:
         is_compressed = False
+
     if is_compressed:
         subset_count = message["numberOfSubsets"]
     else:
@@ -322,7 +323,10 @@ def extract_observations(
                 current_levels.pop()
 
             if bufr_key.key not in value_cache:
-                value_cache[bufr_key.key] = message[bufr_key.key]
+                try:
+                    value_cache[bufr_key.key] = message[bufr_key.key]
+                except KeyError:
+                    value_cache[bufr_key.key] = None
             value = value_cache[bufr_key.key]
 
             # extract compressed BUFR values. They are either numpy arrays (for numeric types)
@@ -365,7 +369,7 @@ def extract_message(
     value_cache = {}
     try:
         is_compressed = bool(message["compressedData"])
-    except (KeyError, eccodes.KeyValueNotFoundError):
+    except KeyError:
         is_compressed = False
 
     if is_compressed:
@@ -446,7 +450,10 @@ def extract_message(
 
             if is_compressed:
                 if key not in value_cache:
-                    value_cache[key] = message[key]
+                    try:
+                        value_cache[key] = message[key]
+                    except KeyError:
+                        value_cache[key] = None
                 value = value_cache[key]
             else:
                 value = message[key]

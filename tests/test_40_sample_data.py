@@ -18,6 +18,8 @@ pd = pytest.importorskip("pandas")
 assert_frame_equal = pd.testing.assert_frame_equal
 
 SAMPLE_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "sample-data")
+URL_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "url-data")
+
 TEST_DATA_1 = os.path.join(SAMPLE_DATA_FOLDER, "obs_3day.bufr")
 TEST_DATA_2 = os.path.join(SAMPLE_DATA_FOLDER, "synop_multi_subset_uncompressed.bufr")
 TEST_DATA_3 = os.path.join(SAMPLE_DATA_FOLDER, "temp.bufr")
@@ -51,6 +53,21 @@ TEST_DATA_12 = os.path.join(SAMPLE_DATA_FOLDER, "syn_new.bufr")
 
 # contains compressed aircraft messages with strings
 TEST_DATA_13 = os.path.join(SAMPLE_DATA_FOLDER, "aircraft_mrar_compressed.bufr")
+
+
+def download_test_data(filename: str) -> str:
+    import requests  # type: ignore
+
+    target = os.path.join(URL_DATA_FOLDER, filename)
+    if not os.path.exists(target):
+        url_base = "https://get.ecmwf.int/repository/test-data/pdbufr/test-data/"
+        url = os.path.join(url_base, filename)
+        os.makedirs(URL_DATA_FOLDER, mode=0o755, exist_ok=True)
+        target = os.path.join(URL_DATA_FOLDER, filename)
+        r = requests.get(url, allow_redirects=True)
+        r.raise_for_status()
+        open(target, "wb").write(r.content)
+    return target
 
 
 def test_read_bufr_one_subset_one_filters() -> None:
@@ -1161,3 +1178,16 @@ def test_aircraft_compressed_with_string() -> None:
     assert len(res) == 186
     res = res.iloc[[0, 1, -1]].reset_index(drop=True)
     assert_frame_equal(res, ref[res.columns])
+
+
+def test_no_value_for_key() -> None:
+    columns = (
+        "stationNumber",
+        "timePeriod",
+        "maximumWindGustDirection",
+        "maximumWindGustSpeed",
+    )
+
+    f = download_test_data("no_value_timeperiod.bufr")
+    res = pdbufr.read_bufr(f, columns=columns)
+    assert len(res) == 3
