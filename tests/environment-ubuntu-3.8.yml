@@ -9,4 +9,5 @@ dependencies:
   - nomkl
   - numpy
   - pandas
+  - requests
 prefix: /usr/share/miniconda/envs/ubuntu-3.8

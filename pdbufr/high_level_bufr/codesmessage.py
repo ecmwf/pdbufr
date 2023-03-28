@@ -10,7 +10,18 @@ its host file.
 Author: Daniel Lee, DWD, 2016
 """
 
+from contextlib import contextmanager
+
 import eccodes
+
+
+@contextmanager
+def raise_keyerror(key):
+    """Make operations on a key raise a KeyError if not found"""
+    try:
+        yield
+    except eccodes.KeyValueNotFoundError:
+        raise KeyError(f"key={key} key/value not found")
 
 
 class CodesMessage(object):
@@ -155,13 +166,12 @@ class CodesMessage(object):
 
     def get(self, key, ktype=None):
         """Get value of a given key as its native or specified type."""
-        # if self.missing(key):
-        #    raise KeyError("Value of key %s is MISSING." % key)
-        if eccodes.codes_get_size(self.codes_id, key) > 1:
-            ret = eccodes.codes_get_array(self.codes_id, key, ktype)
-        else:
-            ret = eccodes.codes_get(self.codes_id, key, ktype)
-        return ret
+        with raise_keyerror(key):
+            if eccodes.codes_get_size(self.codes_id, key) > 1:
+                ret = eccodes.codes_get_array(self.codes_id, key, ktype)
+            else:
+                ret = eccodes.codes_get(self.codes_id, key, ktype)
+            return ret
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Release message handle and inform host file of release."""
