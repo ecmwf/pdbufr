@@ -140,15 +140,22 @@ def make_message_uid(message: T.Mapping[str, T.Any]) -> T.Tuple[T.Optional[int],
     else:
         message_uid += tuple(descriptors) + (None,)
 
-    try:
-        delayed_descriptors = message["delayedDescriptorReplicationFactor"]
-    except KeyError:
-        delayed_descriptors = []
+    delayed_keys = (
+        "delayedDescriptorReplicationFactor",
+        "shortDelayedDescriptorReplicationFactor",
+        "extendedDelayedDescriptorReplicationFactor",
+    )
 
-    if isinstance(delayed_descriptors, int):
-        message_uid += (delayed_descriptors,)
-    else:
-        message_uid += tuple(delayed_descriptors)
+    for k in delayed_keys:
+        try:
+            delayed_descriptors = message[k]
+        except KeyError:
+            delayed_descriptors = []
+
+        if isinstance(delayed_descriptors, int):
+            message_uid += (delayed_descriptors, None)
+        else:
+            message_uid += tuple(delayed_descriptors) + (None,)
 
     return message_uid
 
