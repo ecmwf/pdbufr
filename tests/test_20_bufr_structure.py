@@ -145,11 +145,49 @@ def test_filter_keys_cached() -> None:
     assert res == expected_obj
 
     message["delayedDescriptorReplicationFactor"] = 1
-
     res = bufr_structure.filter_keys_cached(message, cache)
-
     assert len(cache) == 4
     assert len(res) == 5
+
+    message["delayedDescriptorReplicationFactor"] = (1, 2)
+    res = bufr_structure.filter_keys_cached(message, cache)
+    assert len(cache) == 5
+    assert len(res) == 5
+
+    message["delayedDescriptorReplicationFactor"] = 1
+    res = bufr_structure.filter_keys_cached(message, cache)
+    assert len(cache) == 5
+    assert len(res) == 5
+
+    message["shortDelayedDescriptorReplicationFactor"] = 1
+    res = bufr_structure.filter_keys_cached(message, cache)
+    assert len(cache) == 6
+    assert len(res) == 6
+
+    message["shortDelayedDescriptorReplicationFactor"] = (1, 2)
+    res = bufr_structure.filter_keys_cached(message, cache)
+    assert len(cache) == 7
+    assert len(res) == 6
+
+    message["shortDelayedDescriptorReplicationFactor"] = 1
+    res = bufr_structure.filter_keys_cached(message, cache)
+    assert len(cache) == 7
+    assert len(res) == 6
+
+    message["extendedDelayedDescriptorReplicationFactor"] = 1
+    res = bufr_structure.filter_keys_cached(message, cache)
+    assert len(cache) == 8
+    assert len(res) == 7
+
+    message["extendedDelayedDescriptorReplicationFactor"] = (1, 2)
+    res = bufr_structure.filter_keys_cached(message, cache)
+    assert len(cache) == 9
+    assert len(res) == 7
+
+    message["extendedDelayedDescriptorReplicationFactor"] = 1
+    res = bufr_structure.filter_keys_cached(message, cache)
+    assert len(cache) == 9
+    assert len(res) == 7
 
 
 def test_datetime_from_bufr() -> None:

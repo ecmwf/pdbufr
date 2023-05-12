@@ -2,6 +2,12 @@
 Version 0.10 Updates
 /////////////////////////
 
+
+Version 0.10.2
+===============
+
+- fixed issue when :func:`read_bufr` incorrectly treated different message structures as if they were identical  (`#49 <https://github.com/ecmwf/pdbufr/issues/49>`_)
+
 Version 0.10.1
 ===============
 

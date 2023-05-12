@@ -1180,7 +1180,7 @@ def test_aircraft_compressed_with_string() -> None:
     assert_frame_equal(res, ref[res.columns])
 
 
-def test_no_value_for_key() -> None:
+def test_message_structure_cache() -> None:
     columns = (
         "stationNumber",
         "timePeriod",
@@ -1188,6 +1188,22 @@ def test_no_value_for_key() -> None:
         "maximumWindGustSpeed",
     )
 
-    f = download_test_data("no_value_timeperiod.bufr")
+    ref = {
+        "stationNumber": {0: 603, 1: 603, 2: 603, 3: 641, 4: 641, 5: 641},
+        "timePeriod": {0: -10, 1: -60, 2: -180, 3: -10, 4: -60, 5: -180},
+        "maximumWindGustDirection": {0: 130, 1: 130, 2: 50, 3: 40, 4: 40, 5: 40},
+        "maximumWindGustSpeed": {
+            0: 2.0,
+            1: 2.4000000000000004,
+            2: 3.5,
+            3: 8.9,
+            4: 8.9,
+            5: 9.5,
+        },
+    }
+
+    f = download_test_data("message_structure_diff_2.bufr")
     res = pdbufr.read_bufr(f, columns=columns)
-    assert len(res) == 3
+
+    assert len(res) == 6
+    assert res.to_dict() == ref
