@@ -418,7 +418,6 @@ def extract_message(
 
         uncompressed_subset = 0
         for key in message:
-
             name = key.rpartition("#")[2]
             if name in skip_keys or "->" in key:
                 continue
@@ -667,7 +666,6 @@ def stream_bufr_flat(
     prefilter_headers: bool = False,
     column_info: T.Any = None,
 ) -> T.Iterator[T.Dict[str, T.Any]]:
-
     if isinstance(columns, str):
         columns = (columns,)
 

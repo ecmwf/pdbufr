@@ -18,7 +18,6 @@ from .codesmessage import CodesMessage
 
 
 class BufrMessage(CodesMessage):
-
     __doc__ = "\n".join(CodesMessage.__doc__.splitlines()[4:]).format(
         prod_type="BUFR", classname="BufrMessage", parent="BufrFile", alias="bufr"
     )
@@ -93,7 +92,6 @@ class BufrMessage(CodesMessage):
 
 
 class BufrFile(CodesFile):
-
     __doc__ = "\n".join(CodesFile.__doc__.splitlines()[4:]).format(
         prod_type="BUFR", classname="BufrFile", alias="bufr"
     )
