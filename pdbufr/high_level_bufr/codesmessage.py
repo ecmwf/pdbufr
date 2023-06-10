@@ -120,6 +120,8 @@ class CodesMessage(object):
         elif sample is not None:
             self.codes_id = eccodes.codes_new_from_samples(sample, self.product_kind)
 
+        self._codes = dict()
+
     def write(self, outfile=None):
         """Write message to file."""
         if not outfile:
@@ -208,3 +210,16 @@ class CodesMessage(object):
     def items(self):
         """Return list of tuples of all key/value pairs."""
         return [(key, self[key]) for key in self.keys()]
+
+    def code(self, key, name=None):
+        """Returns the BUFR descriptor, i.e. the code in the ecCodes terminology, of
+        the given key."""
+        if name is not None:
+            key = name
+        c = self._codes.get(key, None)
+        if c is None:
+            c_key = name + "->code"
+            with raise_keyerror(c_key):
+                c = eccodes.codes_get(self.codes_id, c_key, str)
+                self._codes[key] = c
+        return c
