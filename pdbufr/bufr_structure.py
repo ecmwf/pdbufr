@@ -89,7 +89,7 @@ class UncompressedBufrKey:
 IS_KEY_COORD = {"subsetNumber": True, "operator": False}
 
 
-def wrap_message(m):
+def wrap_message(m: T.Any) -> T.Any:
     if isinstance(m, BufrMessage):
         return m
     else:
@@ -108,20 +108,20 @@ class MessageWrapper:
     def __exit__(self, *args) -> None:  # type: ignore
         pass
 
-    def __iter__(self):
+    def __iter__(self):  # type: ignore
         return self.d.__iter__()
 
-    def code(self, key, name=None):
+    def code(self, key, name=None):  # type: ignore
         return self.d[key + "->code"]
 
-    def __getattr__(self, fname):
-        def call_func(*args, **kwargs):
+    def __getattr__(self, fname):  # type: ignore
+        def call_func(*args, **kwargs):  # type: ignore
             return getattr(self.d, fname, *args, **kwargs)
 
         return call_func
 
 
-def message_structure(message: T.Mapping[str, T.Any]) -> T.Iterator[T.Tuple[int, str]]:
+def message_structure(message: T.Any) -> T.Iterator[T.Tuple[int, str]]:
     level = 0
     coords: T.Dict[str, int] = collections.OrderedDict()
 
