@@ -120,8 +120,6 @@ class CodesMessage(object):
         elif sample is not None:
             self.codes_id = eccodes.codes_new_from_samples(sample, self.product_kind)
 
-        self._codes = dict()
-
     def write(self, outfile=None):
         """Write message to file."""
         if not outfile:
@@ -168,12 +166,21 @@ class CodesMessage(object):
 
     def get(self, key, ktype=None):
         """Get value of a given key as its native or specified type."""
+        # if key.endswith("->code"):
+        #     key = key.rpartition("->")[0]
+        #     name = key.rpartition("#")[2]
+        #     # print(name)
+        #     return self.code(key, name)
+
         with raise_keyerror(key):
             if eccodes.codes_get_size(self.codes_id, key) > 1:
                 ret = eccodes.codes_get_array(self.codes_id, key, ktype)
             else:
                 ret = eccodes.codes_get(self.codes_id, key, ktype)
             return ret
+
+    def _get(self, key, ktype=None):
+        return eccodes.codes_get(self.codes_id, key, ktype)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Release message handle and inform host file of release."""
@@ -210,16 +217,3 @@ class CodesMessage(object):
     def items(self):
         """Return list of tuples of all key/value pairs."""
         return [(key, self[key]) for key in self.keys()]
-
-    def code(self, key, name=None):
-        """Returns the BUFR descriptor, i.e. the code in the ecCodes terminology, of
-        the given key."""
-        if name is not None:
-            key = name
-        c = self._codes.get(key, None)
-        if c is None:
-            c_key = name + "->code"
-            with raise_keyerror(c_key):
-                c = eccodes.codes_get(self.codes_id, c_key, str)
-                self._codes[key] = c
-        return c

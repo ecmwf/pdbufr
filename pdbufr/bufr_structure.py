@@ -97,7 +97,8 @@ def wrap_message(m: T.Any) -> T.Any:
 
 
 class MessageWrapper:
-    """Makes it possible to use context manager and code methods for all types of messages."""
+    """Makes it possible to use context manager and is_coord methods for all
+    types of messages."""
 
     def __init__(self, d: T.Any):
         self.d = d
@@ -111,8 +112,11 @@ class MessageWrapper:
     def __iter__(self):  # type: ignore
         return self.d.__iter__()
 
-    def code(self, key, name=None):  # type: ignore
-        return self.d[key + "->code"]
+    def is_coord(self, key, name=None):  # type: ignore
+        try:
+            return BufrMessage.code_is_coord(self.d[key + "->code"])
+        except Exception:
+            return False
 
     def __getattr__(self, fname):  # type: ignore
         def call_func(*args, **kwargs):  # type: ignore
@@ -126,19 +130,12 @@ def message_structure(message: T.Any) -> T.Iterator[T.Tuple[int, str]]:
     coords: T.Dict[str, int] = collections.OrderedDict()
 
     message = wrap_message(message)
-
     for key in message:
         name = key.rpartition("#")[2]
         if name in IS_KEY_COORD:
             is_coord = IS_KEY_COORD[name]
         else:
-            is_coord = name in coords
-            if not is_coord:
-                try:
-                    code = message.code(key, name)
-                    is_coord = int(code[:3]) < 10
-                except KeyError:
-                    is_coord = False
+            is_coord = message.is_coord(key, name)
 
         while is_coord and name in coords:
             _, level = coords.popitem()  # OrderedDict.popitem uses LIFO order

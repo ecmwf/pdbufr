@@ -420,3 +420,24 @@ def test_stream_bufr() -> None:
 
     assert len(res) == 1
     assert res == expected_2
+
+
+def test_code_is_coord() -> None:
+    """Ensures that the different ways of identifying a coordinate key from
+    the BUFR descriptor/code agree"""
+
+    from pdbufr.high_level_bufr.bufr import BufrMessage
+
+    data = {
+        "000300": True,
+        "010000": False,
+        "009999": True,
+        "010999": False,
+        "100000": False,
+        "201001": False,
+        "301001": False,
+    }
+
+    for k, v in data.items():
+        assert BufrMessage.code_is_coord(k) == v
+        assert BufrMessage.code_is_coord(int(k)) == v
