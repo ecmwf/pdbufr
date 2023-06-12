@@ -111,7 +111,7 @@ class BufrMessage(CodesMessage):
         return c
 
     @staticmethod
-    def code_is_coord(code):
+    def code_is_coord(code) -> bool:
         try:
             return code <= 9999
         except:
