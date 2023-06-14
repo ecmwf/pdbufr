@@ -97,20 +97,29 @@ Filters
 
     The filter conditions are specified as a dict via ``filters`` and determine when the specified ``columns`` will actually be extracted.
 
+Single value
+++++++++++++++
+
     A filter condition can be a single value match:
 
       .. code-block:: python 
 
           filters={"blockNumber": 12}
 
-    an "in" relation: 
+List of values
+++++++++++++++
+
+    A list of values specifies an "in" relation: 
 
      .. code-block:: python 
           
           filters={"stationNumber": [843, 925]}
           filters={"blockNumber": range(10, 13)}
           
-    or an interval expressed as a ``slice`` (the boundaries as inclusive):
+Slices
+++++++++
+    
+    Intervals can be expressed as a ``slice`` (the boundaries as inclusive):
 
       .. code-block:: python
                
@@ -123,6 +132,33 @@ Filters
           # open interval (>=273.16)      
           filters={"airTemperature": slice(273.16, None)}
 
+
+Callables
++++++++++++
+
+    We can even use a ``callable`` condition. This example uses a lambda expression to filter values in a certain range:
+
+    .. code-block:: python
+     
+          filters={"airTemperature": lambda x: x > 250 and x <= 300} 
+
+    
+    The same task can also be achieved by using a function:
+
+    .. code-block:: python
+     
+          def filter_temp(t):
+              return t > 250 and t <= 300
+
+          df = pdbufr.read_bufr("temp.bufr", 
+              columns=("latitude", "longitude", "airTemperature"),
+              filters={"airTemperature": filter_temp}, 
+          )
+
+
+Combining conditions
++++++++++++++++++++++
+
     When multiple conditions are specified they are connected with a logical AND:
      
        .. code-block:: python
@@ -131,7 +167,7 @@ Filters
                "stationNumber": [843, 925], 
                "airTemperature": slice(273.16, 293.16)}
 
-    A geographical filter can be defined like this:
+    A ``geographical filter`` can be defined like this:
 
      .. code-block:: python
      
@@ -139,7 +175,7 @@ Filters
           filters={"latitude": slice(-10, 20),
                    "longitude": slice(-40, 30)}
 
-    while the following expression can be used as a temporal filter:
+    while the following expression can be used as a ``temporal filter``:
 
      .. code-block:: python
      
@@ -147,6 +183,7 @@ Filters
                slice(datetime.datetime(2009,1,23,13,0), 
                      datetime.datetime(2009,1,23,13,1))}
 
+    
 .. _tree-mode-section:
 
 Hierarchical mode
