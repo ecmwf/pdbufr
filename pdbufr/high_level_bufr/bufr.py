@@ -36,6 +36,8 @@ class BufrMessage(CodesMessage):
         super(self.__class__, self).__init__(codes_file, clone, sample, headers_only)
         # self._unpacked = False
 
+        self._is_coord_cache = dict()
+
     # def get(self, key, ktype=None):
     #    """Return requested value, unpacking data values if necessary."""
     #    # TODO: Only do this if accessing arrays that need unpacking
@@ -89,6 +91,31 @@ class BufrMessage(CodesMessage):
     def copy_data(self, destMsg):
         """Copy data values from this message to another message"""
         return eccodes.codes_bufr_copy_data(self.codes_id, destMsg.codes_id)
+
+    def is_coord(self, key, name=None):
+        if name is None:
+            name = key
+
+        c = self._is_coord_cache.get(name, None)
+        if c is None:
+            try:
+                c = self._get(name + "->code", int)
+                try:
+                    c = self.code_is_coord(c)
+                    self._is_coord_cache[name] = c
+                    return c
+                except:
+                    return False
+            except:
+                return False
+        return c
+
+    @staticmethod
+    def code_is_coord(code) -> bool:
+        try:
+            return code <= 9999
+        except:
+            return int(code[:3]) < 10
 
 
 class BufrFile(CodesFile):

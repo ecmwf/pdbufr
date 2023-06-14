@@ -8,7 +8,6 @@
 
 import collections
 import datetime
-import re
 import typing as T
 
 import attr
@@ -90,20 +89,53 @@ class UncompressedBufrKey:
 IS_KEY_COORD = {"subsetNumber": True, "operator": False}
 
 
-def message_structure(message: T.Mapping[str, T.Any]) -> T.Iterator[T.Tuple[int, str]]:
+def wrap_message(m: T.Any) -> T.Any:
+    if isinstance(m, BufrMessage):
+        return m
+    else:
+        return MessageWrapper(m)
+
+
+class MessageWrapper:
+    """Makes it possible to use context manager and is_coord methods for all
+    types of messages."""
+
+    def __init__(self, d: T.Any):
+        self.d = d
+
+    def __enter__(self) -> T.Any:
+        return self.d
+
+    def __exit__(self, *args) -> None:  # type: ignore
+        pass
+
+    def __iter__(self):  # type: ignore
+        return self.d.__iter__()
+
+    def is_coord(self, key, name=None):  # type: ignore
+        try:
+            return BufrMessage.code_is_coord(self.d[key + "->code"])
+        except Exception:
+            return False
+
+    def __getattr__(self, fname):  # type: ignore
+        def call_func(*args, **kwargs):  # type: ignore
+            return getattr(self.d, fname, *args, **kwargs)
+
+        return call_func
+
+
+def message_structure(message: T.Any) -> T.Iterator[T.Tuple[int, str]]:
     level = 0
     coords: T.Dict[str, int] = collections.OrderedDict()
+
+    message = wrap_message(message)
     for key in message:
         name = key.rpartition("#")[2]
-
         if name in IS_KEY_COORD:
             is_coord = IS_KEY_COORD[name]
         else:
-            try:
-                code = message[key + "->code"]
-                is_coord = int(code[:3]) < 10
-            except KeyError:
-                is_coord = False
+            is_coord = message.is_coord(key, name)
 
         while is_coord and name in coords:
             _, level = coords.popitem()  # OrderedDict.popitem uses LIFO order
@@ -551,23 +583,6 @@ def test_computed_keys(
     return True
 
 
-class CMWrapper:
-    """Makes it possible to use context manager both with BufrMessage and dict type of messages"""
-
-    def __init__(self, d: T.Any):
-        self.d = d
-
-    def __enter__(self) -> T.Any:
-        if isinstance(self.d, BufrMessage):
-            return self.d.__enter__()  # type: ignore
-        else:
-            return self.d
-
-    def __exit__(self, *args) -> None:  # type: ignore
-        if isinstance(self.d, BufrMessage):
-            self.d.__exit__(*args)  # type: ignore
-
-
 def stream_bufr(
     bufr_file: T.Iterable[T.MutableMapping[str, T.Any]],
     columns: T.Union[T.Sequence[str], str],
@@ -618,7 +633,7 @@ def stream_bufr(
     for count, msg in enumerate(bufr_file, 1):
         # we use a context manager to automatically delete the handle of the BufrMessage.
         # We have to use a wrapper object here because a message can also be a dict
-        with CMWrapper(msg) as message:
+        with wrap_message(msg) as message:
             if "count" in value_filters and not value_filters["count"].match(count):
                 continue
 
@@ -717,7 +732,7 @@ def stream_bufr_flat(
     for count, msg in enumerate(bufr_file, 1):
         # we use a context manager to automatically delete the handle of the BufrMessage.
         # We have to use a wrapper object here because a message can also be a dict
-        with CMWrapper(msg) as message:
+        with wrap_message(msg) as message:
             # count filter
             if count_filter is not None and not count_filter.match(count):
                 continue

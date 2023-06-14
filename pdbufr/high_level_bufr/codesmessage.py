@@ -166,12 +166,21 @@ class CodesMessage(object):
 
     def get(self, key, ktype=None):
         """Get value of a given key as its native or specified type."""
+        # if key.endswith("->code"):
+        #     key = key.rpartition("->")[0]
+        #     name = key.rpartition("#")[2]
+        #     # print(name)
+        #     return self.code(key, name)
+
         with raise_keyerror(key):
             if eccodes.codes_get_size(self.codes_id, key) > 1:
                 ret = eccodes.codes_get_array(self.codes_id, key, ktype)
             else:
                 ret = eccodes.codes_get(self.codes_id, key, ktype)
             return ret
+
+    def _get(self, key, ktype=None):
+        return eccodes.codes_get(self.codes_id, key, ktype)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Release message handle and inform host file of release."""
