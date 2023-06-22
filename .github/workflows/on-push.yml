@@ -23,15 +23,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: mamba-org/setup-micromamba@v1
       with:
-        python-version: ${{ matrix.python }}
-        activate-environment: ${{ matrix.os }}-${{ matrix.python }}${{ matrix.extras }}
+        micromamba-version: '1.4.3-0'
+        environment-name: ${{ matrix.os }}-${{ matrix.python }}${{ matrix.extras }}
         environment-file: tests/environment-${{ matrix.os }}-${{ matrix.python }}${{ matrix.extras }}.yml
+        create-args: python=${{ matrix.python }}
     - name: Test with pytest
       shell: bash -l {0}
       run: |
-        conda install pytest pytest-cov tomli
+        micromamba install pytest pytest-cov tomli
         pip install --no-deps -e .
         pytest -v --cov=. --cov-report=xml -k 'not test_notebooks' .
     - name: Upload coverage to Codecov
@@ -39,7 +40,7 @@ jobs:
     - name: Install test tools for notebooks
       shell: bash -l {0}
       run: |
-        conda install pytest nbformat nbconvert ipykernel
+        micromamba install pytest nbformat nbconvert ipykernel
         pytest -v -k 'test_notebooks' .
 
   docs:
@@ -47,21 +48,22 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: mamba-org/setup-micromamba@v1
       with:
-        python-version: "3.8"
-        activate-environment: ubuntu-3.8
+        micromamba-version: '1.4.3-0'
+        environment-name: ubuntu-3.8
         environment-file: tests/environment-ubuntu-3.8.yml
+        create-args: python=${{ matrix.python }}
     - name: Build documentation with Sphinx
       shell: bash -l {0}
       run: |
-        conda install sphinx
-        conda install sphinx_rtd_theme -c conda-forge
-        conda install ipykernel
-        conda install pandoc
-        conda install nbsphinx
-        conda install ipython_genutils
-        conda install jinja2=3.0.3
+        micromamba install sphinx
+        micromamba install sphinx_rtd_theme -c conda-forge
+        micromamba install ipykernel
+        micromamba install pandoc
+        micromamba install nbsphinx
+        micromamba install ipython_genutils
+        micromamba install jinja2=3.0.3
         pip install --no-deps -e .
         python setup.py build_sphinx
     # - name: Test README with pytest
@@ -76,21 +78,22 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: mamba-org/setup-micromamba@v1
       with:
-        python-version: "3.8"
-        activate-environment: ubuntu-3.8
+        micromamba-version: '1.4.3-0'
+        environment-name: ubuntu-3.8
         environment-file: tests/environment-ubuntu-3.8.yml
+        create-args: python=3.8
     - name: Lint with flake8
       shell: bash -l {0}
       run: |
-        conda install flake8
+        micromamba install flake8
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Type check with mypy
       shell: bash -l {0}
       run: |
-        conda install mypy pytest
+        micromamba install mypy pytest
         mypy --strict .
 
   code-style:
@@ -98,25 +101,41 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - uses: mamba-org/setup-micromamba@v1
+      with:
+        micromamba-version: '1.4.3-0'
+        environment-name: ubuntu-3.8
+        environment-file: tests/environment-ubuntu-3.8.yml
+        create-args: python=3.8
     - name: Check code style with black
+      shell: bash -l {0}
       run: |
-        $CONDA/bin/conda install black
-        $CONDA/bin/black --check .
+        micromamba install black
+        black --check .
     - name: Check code style with isort
+      shell: bash -l {0}
       run: |
-        $CONDA/bin/conda install isort
-        $CONDA/bin/isort --check .
+        micromamba install isort
+        isort --check .
 
   deploy:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
+    - uses: mamba-org/setup-micromamba@v1
+      with:
+        micromamba-version: '1.4.3-0'
+        environment-name: ubuntu-3.8
+        environment-file: tests/environment-ubuntu-3.8.yml
+        create-args: python=3.8
     - name: Check MANIFEST.in
+      shell: bash -l {0}
       run: |
-        $CONDA/bin/conda install -c conda-forge check-manifest
-        $CONDA/bin/check-manifest .
+        micromamba install -c conda-forge check-manifest
+        check-manifest .
     - name: Build distributions
+      shell: bash -l {0}
       run: |
-        $CONDA/bin/conda install pip setuptools wheel
-        $CONDA/bin/python setup.py sdist bdist_wheel
+        micromamba install pip setuptools wheel
+        python setup.py sdist bdist_wheel

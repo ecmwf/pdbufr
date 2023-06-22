@@ -16,12 +16,13 @@ import eccodes
 from .codesfile import CodesFile
 from .codesmessage import CodesMessage
 
- 
+
 def bufr_code_is_coord(code) -> bool:
     try:
         return code <= 9999
     except:
         return int(code[:3]) < 10
+
 
 class BufrMessage(CodesMessage):
     __doc__ = "\n".join(CodesMessage.__doc__.splitlines()[4:]).format(
@@ -41,8 +42,6 @@ class BufrMessage(CodesMessage):
         """
         super(self.__class__, self).__init__(codes_file, clone, sample, headers_only)
         # self._unpacked = False
-
-        self._is_coord_cache = dict()
 
     # def get(self, key, ktype=None):
     #    """Return requested value, unpacking data values if necessary."""
@@ -98,23 +97,15 @@ class BufrMessage(CodesMessage):
         """Copy data values from this message to another message"""
         return eccodes.codes_bufr_copy_data(self.codes_id, destMsg.codes_id)
 
-    def is_coord(self, key, name=None):
-        if name is None:
-            name = key
-
-        c = self._is_coord_cache.get(name, None)
-        if c is None:
+    def is_coord(self, key):
+        try:
+            c = self._get(key + "->code", int)
             try:
-                c = self._get(name + "->code", int)
-                try:
-                    c = bufr_code_is_coord(c)
-                    self._is_coord_cache[name] = c
-                    return c
-                except:
-                    return False
+                return bufr_code_is_coord(c)
             except:
                 return False
-        return c
+        except:
+            return False
 
 
 class BufrFile(CodesFile):

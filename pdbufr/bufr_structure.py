@@ -14,7 +14,7 @@ import attr
 import eccodes  # type: ignore
 import numpy as np
 
-from pdbufr.high_level_bufr.bufr import BufrMessage, bufr_code_is_coord
+from pdbufr.high_level_bufr.bufr import bufr_code_is_coord
 
 from . import bufr_filters
 
@@ -90,42 +90,54 @@ IS_KEY_COORD = {"subsetNumber": True, "operator": False}
 
 
 class MessageWrapper:
-    """Makes it possible to use context manager and the is_coord method for all
+    """Makes it possible to use context manager and is_coord method for all
     types of messages."""
 
-    NO_WRAP = None
+    WRAP: T.Dict[T.Any, T.Any] = {}
 
     def __init__(self, d: T.Any):
         self.d = d
+        self.wrap_enter = not hasattr(d, "__enter__")
+        self.wrap_exit = not hasattr(d, "__exit__")
+        self.wrap_is_coord = not hasattr(d, "is_coord")
 
     @staticmethod
     def wrap(m: T.Any) -> T.Any:
-        if MessageWrapper.NO_WRAP is None:
-            MessageWrapper.NO_WRAP = (
-                hasattr(m, "is_coord")
-                and hasattr(m, "__enter__")
-                and hasattr(m, "__exit__")
+        t = type(m)
+        w = MessageWrapper.WRAP.get(t, None)
+        if w is None:
+            w = not all(
+                [
+                    hasattr(m, "__enter__"),
+                    hasattr(m, "__exit__"),
+                    hasattr(m, "is_coord"),
+                ]
             )
 
-        if MessageWrapper.NO_WRAP:
+            MessageWrapper.WRAP[t] = w
+
+        if not w:
             return m
         else:
             return MessageWrapper(m)
 
     def __enter__(self) -> T.Any:
-        return self.d
+        if self.wrap_enter:
+            return self.d
+        else:
+            return self.d.__enter__()
 
     def __exit__(self, *args) -> None:  # type: ignore
-        pass
+        if self.wrap_exit:
+            pass
+        else:
+            self.d.__exit__(*args)
 
     def __iter__(self):  # type: ignore
         return self.d.__iter__()
 
-    def is_coord(self, key, name=None):  # type: ignore
-        try:
-            return bufr_code_is_coord(self.d[key + "->code"])
-        except Exception:
-            return False
+    def __getitem__(self, key: str) -> T.Any:
+        return self.d[key]
 
     def __getattr__(self, fname):  # type: ignore
         def call_func(*args, **kwargs):  # type: ignore
@@ -133,19 +145,51 @@ class MessageWrapper:
 
         return call_func
 
+    def is_coord(self, key: str) -> bool:
+        if self.wrap_is_coord:
+            try:
+                return bufr_code_is_coord(self.d[key + "->code"])
+            except Exception:
+                return False
+        else:
+            return self.d.is_coord(key)  # type: ignore
+
+
+class IsCoordCache:
+    """Caches if a BUFR key is a coordinate descriptor"""
+
+    def __init__(self, message: T.Any) -> None:
+        self.message = message
+        self.cache: T.Dict[str, bool] = {}
+
+    def check(self, key: str, name: str) -> bool:
+        c = self.cache.get(name, None)
+        if c is None:
+            if name in IS_KEY_COORD:
+                c = IS_KEY_COORD[name]
+                self.cache[name] = c
+                return c
+            else:
+                try:
+                    c = self.message.is_coord(key)
+                    self.cache[name] = c
+                    return c
+                except:
+                    return False
+        return c
+
 
 def message_structure(message: T.Any) -> T.Iterator[T.Tuple[int, str]]:
     level = 0
     coords: T.Dict[str, int] = collections.OrderedDict()
 
     message = MessageWrapper.wrap(message)
+    is_coord_cache = IsCoordCache(message)
+
     for key in message:
         name = key.rpartition("#")[2]
-        if name in IS_KEY_COORD:
-            is_coord = IS_KEY_COORD[name]
-        else:
-            is_coord = message.is_coord(key, name=name)
 
+        is_coord = is_coord_cache.check(key, name)
         while is_coord and name in coords:
             _, level = coords.popitem()  # OrderedDict.popitem uses LIFO order
 
@@ -640,13 +684,12 @@ def stream_bufr(
 
     keys_cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[BufrKey]] = {}
     for count, msg in enumerate(bufr_file, 1):
-        if "count" in value_filters and not value_filters["count"].match(count):
-            continue
-
         # we use a context manager to automatically delete the handle of the BufrMessage.
         # We have to use a wrapper object here because a message can also be a dict
-        # with wrap_message(msg) as message:
         with MessageWrapper.wrap(msg) as message:
+            if "count" in value_filters and not value_filters["count"].match(count):
+                continue
+
             if prefilter_headers:
                 # test header keys for failed matches before unpacking
                 if not bufr_filters.is_match(message, value_filters, required=False):
@@ -740,13 +783,13 @@ def stream_bufr_flat(
         column_info.first_count = 0
 
     for count, msg in enumerate(bufr_file, 1):
-        # count filter
-        if count_filter is not None and not count_filter.match(count):
-            continue
-
         # we use a context manager to automatically delete the handle of the BufrMessage.
-        # We have to use a wrapper object here
+        # We have to use a wrapper object here because a message can also be a dict
         with MessageWrapper.wrap(msg) as message:
+            # count filter
+            if count_filter is not None and not count_filter.match(count):
+                continue
+
             message_value_filters = value_filters_without_computed
             message_required_columns = required_columns
 
@@ -771,8 +814,9 @@ def stream_bufr_flat(
                             if k not in header_keys
                         }
 
+            message["skipExtraKeyAttributes"] = 1
+
             if add_data or message_value_filters or message_required_columns:
-                message["skipExtraKeyAttributes"] = 1
                 message["unpack"] = 1
 
             observation: T.Dict[str, T.Any] = {}
