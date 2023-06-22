@@ -106,7 +106,8 @@ class BufrMessage(CodesMessage):
                 return False
         except:
             return False
-    
+
+
 class BufrFile(CodesFile):
     __doc__ = "\n".join(CodesFile.__doc__.splitlines()[4:]).format(
         prod_type="BUFR", classname="BufrFile", alias="bufr"
