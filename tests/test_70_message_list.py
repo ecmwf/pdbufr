@@ -64,9 +64,7 @@ def build_message_list():
         def __setitem__(self, key, value):
             self.d[key] = value
 
-        def is_coord(self, key, name=None):
-            if name is not None:
-                key = name
+        def is_coord(self, key):
             code = self.codes.get(key, None)
             return code is not None and code < 9999
 
