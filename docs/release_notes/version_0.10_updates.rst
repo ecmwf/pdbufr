@@ -3,6 +3,12 @@ Version 0.10 Updates
 /////////////////////////
 
 
+Version 0.10.3
+===============
+
+- big performance improvement (expect at least a doubling of performance, more for large files) (`#54 <https://github.com/ecmwf/pdbufr/pull/54>`_)
+- documented callable filters (`docs <https://pdbufr.readthedocs.io/en/latest/read_bufr.html#callables>`_)
+
 Version 0.10.2
 ===============
 
