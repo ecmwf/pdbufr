@@ -16,6 +16,12 @@ import eccodes
 from .codesfile import CodesFile
 from .codesmessage import CodesMessage
 
+ 
+def bufr_code_is_coord(code) -> bool:
+    try:
+        return code <= 9999
+    except:
+        return int(code[:3]) < 10
 
 class BufrMessage(CodesMessage):
     __doc__ = "\n".join(CodesMessage.__doc__.splitlines()[4:]).format(
@@ -101,7 +107,7 @@ class BufrMessage(CodesMessage):
             try:
                 c = self._get(name + "->code", int)
                 try:
-                    c = self.code_is_coord(c)
+                    c = bufr_code_is_coord(c)
                     self._is_coord_cache[name] = c
                     return c
                 except:
@@ -109,13 +115,6 @@ class BufrMessage(CodesMessage):
             except:
                 return False
         return c
-
-    @staticmethod
-    def code_is_coord(code) -> bool:
-        try:
-            return code <= 9999
-        except:
-            return int(code[:3]) < 10
 
 
 class BufrFile(CodesFile):

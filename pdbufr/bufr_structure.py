@@ -14,7 +14,7 @@ import attr
 import eccodes  # type: ignore
 import numpy as np
 
-from pdbufr.high_level_bufr.bufr import BufrMessage
+from pdbufr.high_level_bufr.bufr import BufrMessage, bufr_code_is_coord
 
 from . import bufr_filters
 
@@ -89,19 +89,28 @@ class UncompressedBufrKey:
 IS_KEY_COORD = {"subsetNumber": True, "operator": False}
 
 
-def wrap_message(m: T.Any) -> T.Any:
-    if isinstance(m, BufrMessage):
-        return m
-    else:
-        return MessageWrapper(m)
-
-
 class MessageWrapper:
-    """Makes it possible to use context manager and is_coord methods for all
+    """Makes it possible to use context manager and the is_coord method for all
     types of messages."""
+
+    NO_WRAP = None
 
     def __init__(self, d: T.Any):
         self.d = d
+
+    @staticmethod
+    def wrap(m: T.Any) -> T.Any:
+        if MessageWrapper.NO_WRAP is None:
+            MessageWrapper.NO_WRAP = (
+                hasattr(m, "is_coord")
+                and hasattr(m, "__enter__")
+                and hasattr(m, "__exit__")
+            )
+
+        if MessageWrapper.NO_WRAP:
+            return m
+        else:
+            return MessageWrapper(m)
 
     def __enter__(self) -> T.Any:
         return self.d
@@ -114,7 +123,7 @@ class MessageWrapper:
 
     def is_coord(self, key, name=None):  # type: ignore
         try:
-            return BufrMessage.code_is_coord(self.d[key + "->code"])
+            return bufr_code_is_coord(self.d[key + "->code"])
         except Exception:
             return False
 
@@ -129,13 +138,13 @@ def message_structure(message: T.Any) -> T.Iterator[T.Tuple[int, str]]:
     level = 0
     coords: T.Dict[str, int] = collections.OrderedDict()
 
-    message = wrap_message(message)
+    message = MessageWrapper.wrap(message)
     for key in message:
         name = key.rpartition("#")[2]
         if name in IS_KEY_COORD:
             is_coord = IS_KEY_COORD[name]
         else:
-            is_coord = message.is_coord(key, name)
+            is_coord = message.is_coord(key, name=name)
 
         while is_coord and name in coords:
             _, level = coords.popitem()  # OrderedDict.popitem uses LIFO order
@@ -631,12 +640,13 @@ def stream_bufr(
 
     keys_cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[BufrKey]] = {}
     for count, msg in enumerate(bufr_file, 1):
+        if "count" in value_filters and not value_filters["count"].match(count):
+            continue
+
         # we use a context manager to automatically delete the handle of the BufrMessage.
         # We have to use a wrapper object here because a message can also be a dict
-        with wrap_message(msg) as message:
-            if "count" in value_filters and not value_filters["count"].match(count):
-                continue
-
+        # with wrap_message(msg) as message:
+        with MessageWrapper.wrap(msg) as message:
             if prefilter_headers:
                 # test header keys for failed matches before unpacking
                 if not bufr_filters.is_match(message, value_filters, required=False):
@@ -730,13 +740,13 @@ def stream_bufr_flat(
         column_info.first_count = 0
 
     for count, msg in enumerate(bufr_file, 1):
-        # we use a context manager to automatically delete the handle of the BufrMessage.
-        # We have to use a wrapper object here because a message can also be a dict
-        with wrap_message(msg) as message:
-            # count filter
-            if count_filter is not None and not count_filter.match(count):
-                continue
+        # count filter
+        if count_filter is not None and not count_filter.match(count):
+            continue
 
+        # we use a context manager to automatically delete the handle of the BufrMessage.
+        # We have to use a wrapper object here
+        with MessageWrapper.wrap(msg) as message:
             message_value_filters = value_filters_without_computed
             message_required_columns = required_columns
 
@@ -761,9 +771,8 @@ def stream_bufr_flat(
                             if k not in header_keys
                         }
 
-            message["skipExtraKeyAttributes"] = 1
-
             if add_data or message_value_filters or message_required_columns:
+                message["skipExtraKeyAttributes"] = 1
                 message["unpack"] = 1
 
             observation: T.Dict[str, T.Any] = {}
