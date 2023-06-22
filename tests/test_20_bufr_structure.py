@@ -426,7 +426,7 @@ def test_code_is_coord() -> None:
     """Ensures that the different ways of identifying a coordinate key from
     the BUFR descriptor/code agree"""
 
-    from pdbufr.high_level_bufr.bufr import BufrMessage
+    from pdbufr.high_level_bufr.bufr import bufr_code_is_coord
 
     data = {
         "000300": True,
@@ -439,5 +439,5 @@ def test_code_is_coord() -> None:
     }
 
     for k, v in data.items():
-        assert BufrMessage.code_is_coord(k) == v
-        assert BufrMessage.code_is_coord(int(k)) == v
+        assert bufr_code_is_coord(k) == v
+        assert bufr_code_is_coord(int(k)) == v
