@@ -9,14 +9,16 @@
 import typing as T
 
 import numpy as np
-import pandas as pd
+import pytest
+
+pd = pytest.importorskip("pandas")
 
 from pdbufr import read_bufr
 
 assert_frame_equal = pd.testing.assert_frame_equal
 
 
-def build_message_list():
+def build_message_list() -> T.Any:
     messages = [
         {
             "edition": 3,
@@ -40,7 +42,7 @@ def build_message_list():
     ]
 
     class _Msg:
-        def __init__(self, d):
+        def __init__(self, d: T.Any) -> None:
             self.d = d
             self.codes = {
                 "blockNumber": 1001,
@@ -49,30 +51,30 @@ def build_message_list():
                 "dewpointTemperature": 12003,
             }
 
-        def __enter__(self):
+        def __enter__(self) -> T.Any:
             return self
 
-        def __exit__(self, a, b, c):
+        def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # type: ignore
             pass
 
-        def __iter__(self):
+        def __iter__(self) -> T.Any:
             return iter(self.d)
 
-        def __getitem__(self, key):
+        def __getitem__(self, key: str) -> T.Any:
             return self.d[key]
 
-        def __setitem__(self, key, value):
+        def __setitem__(self, key: str, value: T.Any) -> None:
             self.d[key] = value
 
-        def is_coord(self, key):
+        def is_coord(self, key: str) -> bool:
             code = self.codes.get(key, None)
             return code is not None and code < 9999
 
     class _MsgList:
-        def __init__(self, d):
+        def __init__(self, d: T.Any) -> None:
             self.d = d
 
-        def __iter__(self):
+        def __iter__(self) -> T.Any:
             return iter(self.d)
 
     lst = _MsgList([_Msg(messages[0]), _Msg(messages[1])])
