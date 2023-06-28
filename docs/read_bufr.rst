@@ -288,7 +288,7 @@ Flat mode
 
       See the :ref:`/examples/flat_dump.ipynb` notebook for more details.
 
-.. _message_list_object:
+.. _message-list-object-section:
 
 Message list object
 ------------------------
