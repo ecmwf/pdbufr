@@ -4,3 +4,4 @@ dependencies: |
   ecmwf/eccodes
 dependency_branch: develop
 parallelism_factor: 8
+self_build: false
