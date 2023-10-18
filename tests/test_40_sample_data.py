@@ -734,6 +734,14 @@ def test_ens_compressed() -> None:
 
 
 def test_sat_compressed_1() -> None:
+    def timestamp(s: str) -> T.Any:
+        ts = pd.Timestamp(s)
+        try:
+            ts = ts.as_unit("ns")
+        except:
+            pass
+        return ts
+
     columns = [
         "data_datetime",
         "latitude",
@@ -745,7 +753,7 @@ def test_sat_compressed_1() -> None:
     ]
 
     expected_first_row = {
-        "data_datetime": pd.Timestamp("2015-08-21 01:59:05"),
+        "data_datetime": timestamp("2015-08-21 01:59:05"),
         "latitude": -44.83389,
         "longitude": 171.1635,
         "nonCoordinateLatitude": -44.82399,
@@ -755,7 +763,7 @@ def test_sat_compressed_1() -> None:
     }
 
     expected_second_row = {
-        "data_datetime": pd.Timestamp("2015-08-21 01:59:05"),
+        "data_datetime": timestamp("2015-08-21 01:59:05"),
         "latitude": -44.83389,
         "longitude": 171.1635,
         "nonCoordinateLatitude": -44.82399,
@@ -765,7 +773,7 @@ def test_sat_compressed_1() -> None:
     }
 
     expected_12_row = {
-        "data_datetime": pd.Timestamp("2015-08-21 01:59:05"),
+        "data_datetime": timestamp("2015-08-21 01:59:05"),
         "latitude": -44.83389,
         "longitude": 171.1635,
         "nonCoordinateLatitude": -44.82399,
@@ -775,7 +783,7 @@ def test_sat_compressed_1() -> None:
     }
 
     expected_13_row = {
-        "data_datetime": pd.Timestamp("2015-08-21 01:59:06"),
+        "data_datetime": timestamp("2015-08-21 01:59:06"),
         "latitude": -44.77121,
         "longitude": 171.1515,
         "nonCoordinateLatitude": -44.76132,
