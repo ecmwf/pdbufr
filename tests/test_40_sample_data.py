@@ -734,7 +734,6 @@ def test_ens_compressed() -> None:
 
 
 def test_sat_compressed_1() -> None:
-
     def timestamp(s: str) -> T.Any:
         ts = pd.Timestamp(s)
         try:
