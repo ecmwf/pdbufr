@@ -40,7 +40,7 @@ setuptools.setup(
     url="https://github.com/ecmwf/pdbufr",
     packages=setuptools.find_packages(),
     include_package_data=True,
-    install_requires=["attrs", "eccodes", "pandas"],
+    install_requires=["attrs", "eccodes", "pandas", "hypothesis"],
     extras_require={"tests": ["flake8", "pytest", "pytest-cov", "requests"]},
     zip_safe=True,
     keywords="eccodes bufr pandas",
