@@ -16,7 +16,6 @@ dependencies:
 - pytest-cov
 - requests
 - sphinx
-- sphinx-autoapi
 - sphinx_rtd_theme
 - sphinxcontrib-apidoc
 - nbformat
