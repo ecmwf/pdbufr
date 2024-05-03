@@ -27,7 +27,6 @@ def read_bufr(
     """
     Read selected observations from a BUFR file into DataFrame.
     """
-
     if isinstance(path_or_messages, (str, bytes, os.PathLike)):
         with BufrFile(path_or_messages) as bufr_file:  # type: ignore
             return _read_bufr(
@@ -88,7 +87,12 @@ def _read_bufr(
             ori_formatwarning = warnings.formatwarning
             warnings.formatwarning = lambda msg, *args, **kwargs: f"Warning: {msg}\n"
             warnings.warn(
-                f"not all BUFR messages/subsets have the same structure in the input file. Non-overlapping columns (starting with column[{column_info.first_count-1}] = {df.columns[column_info.first_count-1]}) were added to end of the resulting dataframe altering the original column order for these messages."
+                (
+                    "not all BUFR messages/subsets have the same structure in the input file. "
+                    "Non-overlapping columns (starting with column[{column_info.first_count-1}] ="
+                    f"{df.columns[column_info.first_count-1]}) were added to end of the resulting dataframe"
+                    "altering the original column order for these messages."
+                )
             )
             warnings.formatwarning = ori_formatwarning
 

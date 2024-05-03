@@ -738,7 +738,7 @@ def test_sat_compressed_1() -> None:
         ts = pd.Timestamp(s)
         try:
             ts = ts.as_unit("ns")
-        except:
+        except Exception:
             pass
         return ts
 

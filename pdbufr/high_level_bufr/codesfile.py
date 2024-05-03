@@ -14,7 +14,6 @@ import eccodes
 
 
 class CodesFile(io.FileIO):
-
     """
     An abstract class to specify and/or implement common behaviour that files
     read by ecCodes should implement.
@@ -24,15 +23,16 @@ class CodesFile(io.FileIO):
     Individual messages can be accessed using the ``next`` method. Of course,
     it is also possible to iterate over each message in the file::
 
-        >>> with {classname}(filename) as {alias}:
+        >>> with {classname}(filename) as alias:
         ...     # Print number of messages in file
-        ...     len({alias})
+        ...     len(alias)
         ...     # Open all messages in file
-        ...     for msg in {alias}:
+        ...     for msg in alias:
         ...         print(msg[key_name])
-        ...     len({alias}.open_messages)
+        ...     len(alias.open_messages)
+        ...
         >>> # When the file is closed, any open messages are closed
-        >>> len({alias}.open_messages)
+        >>> len(alias.open_messages)
     """
 
     #: Type of messages belonging to this file

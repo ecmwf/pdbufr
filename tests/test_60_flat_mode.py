@@ -75,19 +75,19 @@ def test_read_flat_bufr_args() -> None:
         assert len(res.columns) == 103
         assert len(res) == 50
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError):
         res = pdbufr.read_bufr(TEST_DATA_1, "a", flat=True)
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError):
         res = pdbufr.read_bufr(TEST_DATA_1, ["a", "a"], flat=True)
 
-    with pytest.raises(TypeError) as exc_t:
+    with pytest.raises(TypeError):
         res = pdbufr.read_bufr(TEST_DATA_1, 3, flat=True)  # type: ignore
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError):
         res = pdbufr.read_bufr(TEST_DATA_1, [3], flat=True)  # type: ignore
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError):
         res = pdbufr.read_bufr(TEST_DATA_1, [3, 4], flat=True)  # type: ignore
 
 
