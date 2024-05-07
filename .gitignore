@@ -93,3 +93,6 @@ _dev
 
 # docs
 docs/examples/*.bufr
+
+# generated version
+src/pdbufr/version.py
