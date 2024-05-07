@@ -13,7 +13,7 @@ import pytest
 
 pd = pytest.importorskip("pandas")
 
-from pdbufr import read_bufr
+from pdbufr import read_bufr  # noqa: E402
 
 assert_frame_equal = pd.testing.assert_frame_equal
 

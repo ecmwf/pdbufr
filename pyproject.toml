@@ -1,13 +1,12 @@
-[tool.isort]
-profile = "black"
-
-[tool.pytest.ini_options]
-norecursedirs = [
-    "build",
-    "docs",
-    ".tox",
-]
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
 
 [tool.coverage.run]
 branch = true
-omit = ["setup.py"]
+
+[tool.isort]
+profile = "black"
+
+[tool.pydocstyle]
+add_ignore = ["D1", "D200", "D205", "D400", "D401", "D403"]
+convention = "numpy"

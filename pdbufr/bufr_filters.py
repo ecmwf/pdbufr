@@ -9,7 +9,7 @@
 import logging
 import typing as T
 
-import attr
+import attr  # type: ignore
 
 LOG = logging.getLogger(__name__)
 

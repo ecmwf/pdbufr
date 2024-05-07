@@ -10,9 +10,9 @@ import collections
 import datetime
 import typing as T
 
-import attr
+import attr  # type: ignore
 import eccodes  # type: ignore
-import numpy as np
+import numpy as np  # type: ignore
 
 from pdbufr.high_level_bufr.bufr import bufr_code_is_coord
 
@@ -65,7 +65,7 @@ class UncompressedBufrKey:
                 rank = int(rank_text[1:])
             else:
                 rank = 0
-        except:
+        except Exception:
             rank = 0
 
         return cls(rank, 0, name)
@@ -91,7 +91,8 @@ IS_KEY_COORD = {"subsetNumber": True, "operator": False}
 
 class MessageWrapper:
     """Makes it possible to use context manager and is_coord method for all
-    types of messages."""
+    types of messages.
+    """
 
     WRAP: T.Dict[T.Any, T.Any] = {}
 
@@ -174,7 +175,7 @@ class IsCoordCache:
                     c = self.message.is_coord(key)
                     self.cache[name] = c
                     return c
-                except:
+                except Exception:
                     return False
         return c
 
@@ -653,7 +654,6 @@ def stream_bufr(
         ``True`` means all ``columns`` are required (default ``True``)
     :param prefilter_headers: filter the header keys before unpacking the data section (default ``False``)
     """
-
     if isinstance(columns, str):
         columns = (columns,)
 
@@ -742,10 +742,10 @@ def stream_bufr_flat(
     elif len(columns) == 0 or columns[0] == "":
         columns = ("all",)
     elif len(columns) != 1:
-        raise ValueError(f"when columns is an iterable it can have maximum 1 element")
+        raise ValueError("when columns is an iterable it can have maximum 1 element")
 
     if columns[0] not in ["all", "header", "data"]:
-        raise ValueError(f"columns must be all, header or data")
+        raise ValueError("columns must be all, header or data")
 
     add_header = columns[0] in ["all", "header"]
     add_data = columns[0] in ["all", "data"]

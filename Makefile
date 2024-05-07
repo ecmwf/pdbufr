@@ -1,40 +1,29 @@
 
 environment := PDBUFR
 
+setup:
+	pre-commit install
+
 default:
 	@echo No default
 
-code-quality:
-	flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-	mypy --strict .
+qa:
+	pre-commit run --all-files
 
-code-style:
-	black .
-	isort .
-
-tests:
+unit-tests:
 	pytest -v --cov=. --cov-report=html README.rst tests
 
-deploy:
-	check-manifest .
-	python setup.py sdist bdist_wheel
+conda-env-update:
+	$(CONDA) env update $(CONDAFLAGS) -f environment.yml
 
-env-create:
-	conda env create -n $(environment) -f environment.in.yml
-	conda install -n $(environment) -y pytest pytest-cov black flake8 mypy isort wheel
-	conda install -n $(environment) -c conda-forge -y check-manifest
+docker-build:
+	docker build -t $(PROJECT) .
 
-env-update:
-	conda env update -n $(environment) -f environment.in.yml
+docker-run:
+	docker run --rm -ti -v $(PWD):/srv $(PROJECT)
 
-testclean:
-	$(RM) -r */__pycache__ .coverage .cache tests/.ipynb_checkpoints *.lprof
+template-update:
+	pre-commit run --all-files cruft -c .pre-commit-config-weekly.yaml
 
-clean: testclean
-	$(RM) -r */*.pyc htmlcov dist build .eggs
-
-distclean: clean
-	$(RM) -r *.egg-info
-
-
-.PHONY: code-quality code-style tests env-create env-update
+docs-build:
+	cd docs && rm -fr _api && make clean && make html
