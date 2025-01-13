@@ -12,7 +12,8 @@ import eccodes  # type: ignore
 import numpy as np
 import pytest
 
-from pdbufr import bufr_filters, bufr_structure
+from pdbufr import bufr_filters
+from pdbufr import bufr_structure
 
 
 def test_BufrKey() -> None:
@@ -199,9 +200,7 @@ def test_datetime_from_bufr() -> None:
 
 
 def test_wmo_station_id_from_bufr() -> None:
-    res = bufr_structure.wmo_station_id_from_bufr(
-        {"b": "01", "s": "20"}, "", ["b", "s"]
-    )
+    res = bufr_structure.wmo_station_id_from_bufr({"b": "01", "s": "20"}, "", ["b", "s"])
 
     assert res == 1020
 
@@ -248,17 +247,13 @@ def test_extract_observations_medium() -> None:
         {"count": 1, "pressure": 90, "temperature": None},
     ]
 
-    res = bufr_structure.extract_observations(
-        message, filtered_keys, filters, {"count": 1}
-    )
+    res = bufr_structure.extract_observations(message, filtered_keys, filters, {"count": 1})
 
     assert list(res) == expected
 
     filters = {"pressure": bufr_filters.BufrFilter(slice(95, 100))}
 
-    res = bufr_structure.extract_observations(
-        message, filtered_keys, filters, {"count": 1}
-    )
+    res = bufr_structure.extract_observations(message, filtered_keys, filters, {"count": 1})
 
     assert list(res) == expected[:1]
 
@@ -400,11 +395,7 @@ def test_stream_bufr() -> None:
     assert len(res) == 1
     assert res == expected[1:]
 
-    res = list(
-        bufr_structure.stream_bufr(
-            messages, columns, filters={"edition": 3}, prefilter_headers=True
-        )
-    )
+    res = list(bufr_structure.stream_bufr(messages, columns, filters={"edition": 3}, prefilter_headers=True))
 
     assert len(res) == 1
     assert res == expected[:1]
