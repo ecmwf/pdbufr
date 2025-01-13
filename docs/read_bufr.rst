@@ -16,11 +16,16 @@ read_bufr
     :type columns: str, sequence[str]
     :param filters: defines the conditions when to extract the specified ``columns``. The individual conditions are combined together with the logical AND operator to form the filter. See :ref:`filters-section` for details.
     :type filters: dict
-    :param required_columns: the list of ecCodes BUFR keys that are required to be present in the BUFR message/subset. Bool values are interpreted as follows:
+    :param required_columns: the list of ecCodes BUFR keys that are required to be present in the BUFR message/subset. It has a twofold meaning:
+
+        * if any of the keys in ``required_columns`` is missing in the message/subset the whole message/subset is skipped
+        * if all the keys in ``required_columns`` are present, the message/subset is processed even if some key from ``columns`` are missing (supposing the filter conditions are met)
+
+        Bool values are interpreted as follows:
 
         * if ``flat`` is False:
 
-          * True means all the keys in ``columns`` are required
+          * True means all the keys in ``columns`` are required. It means that if any of the keys in ``columns`` missing in the message/subset the whole message/subset is skipped.
           * False means no columns are required
 
         * if ``flat`` is True either bool value means no columns are required

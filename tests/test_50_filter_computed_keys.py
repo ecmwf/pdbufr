@@ -22,6 +22,8 @@ TEST_DATA_GEOPANDAS = os.path.join(
     SAMPLE_DATA_FOLDER,
     "Z__C_EDZW_20210516120400_bda01,synop_bufr_GER_999999_999999__MW_466.bufr",
 )
+TEST_DATA_SYNOP_WMOID = os.path.join(SAMPLE_DATA_FOLDER, "syn_new.bufr")
+TEST_DATA_SYNOP_WIGOS = os.path.join(SAMPLE_DATA_FOLDER, "synop_wigos.bufr")
 
 
 def distance(center: T.List[float], position: T.List[float]) -> float:
@@ -113,3 +115,45 @@ def test_computedKeys_Filter_without_latlon() -> None:
     assert len(rs) == 7
     for station in rs.to_records():
         assert distance(center, station["geometry"]) < radius
+
+
+def test_computedKeys_Filter_with_valid_value_1() -> None:
+    columns = ["latitude", "longitude", "WMO_station_id", "airTemperature"]
+    filters = {"WMO_station_id": 11766}
+
+    # the input file contains 1 message with with valid WMO_station_ids m
+    rs = pdbufr.read_bufr(TEST_DATA_SYNOP_WMOID, columns, filters=filters)
+    assert isinstance(rs, pd.DataFrame)
+    assert len(rs) == 1
+
+
+def test_computedKeys_Filter_with_valid_value_2() -> None:
+    columns = ["latitude", "longitude", "WMO_station_id", "airTemperature"]
+    filters = {"WMO_station_id": 11766}
+    required_columns = ["airTemperature"]
+
+    # the input file contains message with valid WMO_station_ids
+    rs = pdbufr.read_bufr(TEST_DATA_SYNOP_WMOID, columns, filters=filters, required_columns=required_columns)
+    assert isinstance(rs, pd.DataFrame)
+    assert len(rs) == 1
+
+
+def test_computedKeys_Filter_with_missing_value_1() -> None:
+    columns = ["latitude", "longitude", "WMO_station_id", "airTemperature"]
+    filters = {"WMO_station_id": "1001"}
+
+    # the input file contains 1 message with missing WMO_station_id
+    rs = pdbufr.read_bufr(TEST_DATA_SYNOP_WIGOS, columns, filters=filters)
+    assert isinstance(rs, pd.DataFrame)
+    assert len(rs) == 0
+
+
+def test_computedKeys_Filter_with_missing_value_2() -> None:
+    columns = ["latitude", "longitude", "WMO_station_id", "airTemperature"]
+    filters = {"WMO_station_id": "1001"}
+    required_columns = ["airTemperature"]
+
+    # the input file contains 1 message with missing WMO_station_id
+    rs = pdbufr.read_bufr(TEST_DATA_SYNOP_WIGOS, columns, filters=filters, required_columns=required_columns)
+    assert isinstance(rs, pd.DataFrame)
+    assert len(rs) == 0
