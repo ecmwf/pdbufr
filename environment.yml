@@ -1,23 +1,24 @@
 name: pdbufr
 channels:
-- conda-forge
-- nodefaults
+  - conda-forge
+  - nodefaults
 dependencies:
-- attrs
-- pip
-- numpy
-- pandas
-- make
-- mypy
-- myst-parser
-- pre-commit
-- pydata-sphinx-theme
-- pytest
-- pytest-cov
-- sphinx
-- sphinx_rtd_theme
-- sphinxcontrib-apidoc
-- nbformat
-- nbconvert
-- nbsphinx
-- ipykernel
+  - attrs
+  - pip
+  - numpy
+  - pandas
+  - make
+  - mypy
+  - myst-parser
+  - pre-commit
+  - pydata-sphinx-theme
+  - pytest
+  - pytest-cov
+  - sphinx
+  - sphinx_rtd_theme
+  - sphinx-issues
+  - sphinxcontrib-apidoc
+  - nbformat
+  - nbconvert
+  - nbsphinx
+  - ipykernel
