@@ -16,9 +16,7 @@ from .high_level_bufr.bufr import BufrFile
 
 
 def read_bufr(
-    path_or_messages: T.Union[
-        str, bytes, "os.PathLike[T.Any]", T.Iterable[T.MutableMapping[str, T.Any]]
-    ],
+    path_or_messages: T.Union[str, bytes, "os.PathLike[T.Any]", T.Iterable[T.MutableMapping[str, T.Any]]],
     columns: T.Union[T.Sequence[str], str] = [],
     filters: T.Mapping[str, T.Any] = {},
     required_columns: T.Union[bool, T.Iterable[str]] = True,

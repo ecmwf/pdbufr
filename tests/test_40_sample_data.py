@@ -77,15 +77,11 @@ def test_read_bufr_one_subset_one_filters() -> None:
     assert "latitude" in res
     assert len(res) == 50
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_1, columns=("latitude",), filters={"rdbtimeTime": "115557"}
-    )
+    res = pdbufr.read_bufr(TEST_DATA_1, columns=("latitude",), filters={"rdbtimeTime": "115557"})
 
     assert len(res) == 6
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_1, columns=("latitude"), filters={"rdbtimeTime": "115557"}
-    )
+    res = pdbufr.read_bufr(TEST_DATA_1, columns=("latitude"), filters={"rdbtimeTime": "115557"})
 
     assert len(res) == 6
 
@@ -93,15 +89,11 @@ def test_read_bufr_one_subset_one_filters() -> None:
 
     assert len(res) == 1
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_1, columns=("latitude",), filters={"stationNumber": 894}
-    )
+    res = pdbufr.read_bufr(TEST_DATA_1, columns=("latitude",), filters={"stationNumber": 894})
 
     assert len(res) == 1
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_1, columns=("latitude",), filters={"stationNumber": [894, 103]}
-    )
+    res = pdbufr.read_bufr(TEST_DATA_1, columns=("latitude",), filters={"stationNumber": [894, 103]})
 
     assert len(res) == 2
 
@@ -143,21 +135,15 @@ def test_read_bufr_multiple_uncompressed_subsets_one_observation() -> None:
     assert "latitude" in dict(res)
     assert len(res) == 12
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_2, columns=("latitude",), filters={"observedData": 1}
-    )
+    res = pdbufr.read_bufr(TEST_DATA_2, columns=("latitude",), filters={"observedData": 1})
 
     assert len(res) == 12
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_2, columns=("latitude",), filters={"stationNumber": 27}
-    )
+    res = pdbufr.read_bufr(TEST_DATA_2, columns=("latitude",), filters={"stationNumber": 27})
 
     assert len(res) == 1
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_2, columns=("latitude",), filters={"stationNumber": [27, 84]}
-    )
+    res = pdbufr.read_bufr(TEST_DATA_2, columns=("latitude",), filters={"stationNumber": [27, 84]})
 
     assert len(res) == 2
 
@@ -181,15 +167,11 @@ def test_read_bufr_multiple_uncompressed_subsets_one_observation() -> None:
 
 
 def test_read_bufr_one_subsets_multiple_observations_filters() -> None:
-    res = pdbufr.read_bufr(
-        TEST_DATA_3, columns=("latitude",), filters={"stationNumber": 907}
-    )
+    res = pdbufr.read_bufr(TEST_DATA_3, columns=("latitude",), filters={"stationNumber": 907})
 
     assert len(res) == 1
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_3, columns=("latitude",), filters={"pressure": [100000, 26300]}
-    )
+    res = pdbufr.read_bufr(TEST_DATA_3, columns=("latitude",), filters={"pressure": [100000, 26300]})
 
     assert len(res) == 425
 
@@ -234,15 +216,11 @@ def test_read_bufr_one_subsets_multiple_observations_data() -> None:
 
 
 def test_read_bufr_multiple_compressed_subsets_multiple_observations_filters() -> None:
-    res = pdbufr.read_bufr(
-        TEST_DATA_4, columns=("latitude",), filters={"hour": 11, "minute": 48}
-    )
+    res = pdbufr.read_bufr(TEST_DATA_4, columns=("latitude",), filters={"hour": 11, "minute": 48})
 
     assert len(res) == 56
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_4, columns=("latitude",), filters={"hour": 11, "minute": [48, 49]}
-    )
+    res = pdbufr.read_bufr(TEST_DATA_4, columns=("latitude",), filters={"hour": 11, "minute": [48, 49]})
 
     assert len(res) == 616
 
@@ -797,9 +775,7 @@ def test_sat_compressed_1() -> None:
     ref_12 = pd.DataFrame(expected_12_row, index=[11])
     ref_13 = pd.DataFrame(expected_13_row, index=[12])
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_8, columns=columns, filters={"firstOrderStatistics": 15}
-    )
+    res = pdbufr.read_bufr(TEST_DATA_8, columns=columns, filters={"firstOrderStatistics": 15})
 
     assert len(res) == 128 * 12 * 3
     assert_frame_equal(res[0:1], ref_1[res.columns])
@@ -835,24 +811,12 @@ def test_bufr_header() -> None:
     assert_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderCentre", 98, ref)
     assert_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderCentre", 1, None)
     # assert_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderCentre", "ecmf", ref)
-    assert_simple_key_core(
-        TEST_DATA_10, "heightOfStation", "bufrHeaderSubCentre", 0, ref
-    )
-    assert_simple_key_core(
-        TEST_DATA_10, "heightOfStation", "bufrHeaderSubcentre", 1, None
-    )
-    assert_simple_key_core(
-        TEST_DATA_10, "heightOfStation", "masterTablesVersionNumber", 13, ref
-    )
-    assert_simple_key_core(
-        TEST_DATA_10, "heightOfStation", "masterTablesVersionNumber", 1, None
-    )
-    assert_simple_key_core(
-        TEST_DATA_10, "heightOfStation", "localTablesVersionNumber", 1, ref
-    )
-    assert_simple_key_core(
-        TEST_DATA_10, "heightOfStation", "localTablesVersionNumber", 2, None
-    )
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderSubCentre", 0, ref)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "bufrHeaderSubcentre", 1, None)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "masterTablesVersionNumber", 13, ref)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "masterTablesVersionNumber", 1, None)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "localTablesVersionNumber", 1, ref)
+    assert_simple_key_core(TEST_DATA_10, "heightOfStation", "localTablesVersionNumber", 2, None)
     assert_simple_key_core(TEST_DATA_10, "heightOfStation", "dataCategory", 2, ref)
     assert_simple_key_core(TEST_DATA_10, "heightOfStation", "dataCategory", 1, None)
     assert_simple_key_core(TEST_DATA_10, "heightOfStation", "dataSubCategory", 101, ref)
@@ -862,9 +826,7 @@ def test_bufr_header() -> None:
 
 
 def test_ident() -> None:
-    assert_simple_key_core(
-        TEST_DATA_10, "airTemperature", "ident", "91348", np.array([298.4]), part=True
-    )
+    assert_simple_key_core(TEST_DATA_10, "airTemperature", "ident", "91348", np.array([298.4]), part=True)
 
     assert_simple_key_core(
         TEST_DATA_10,
@@ -977,9 +939,7 @@ def test_temp_profile() -> None:
             ]
         ),
     )
-    assert_temp_profile_core(
-        TEST_DATA_10, "airTemperature", 68, np.array([258.3]), np.array([100300])
-    )
+    assert_temp_profile_core(TEST_DATA_10, "airTemperature", 68, np.array([258.3]), np.array([100300]))
     assert_temp_profile_core(TEST_DATA_10, "airTemperature", 0, None, None)
 
 
@@ -1143,9 +1103,7 @@ def test_new_synop_data() -> None:
     filters = {
         "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": slice(1, 20),
     }
-    res = pdbufr.read_bufr(
-        TEST_DATA_12, columns=columns_2, filters=filters, required_columns=False
-    )
+    res = pdbufr.read_bufr(TEST_DATA_12, columns=columns_2, filters=filters, required_columns=False)
 
     assert len(res) == 14
 

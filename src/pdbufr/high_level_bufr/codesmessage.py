@@ -95,12 +95,7 @@ class CodesMessage(object):
         :param clone: A valid ``CodesMessage``
         :param sample: A valid sample path to create ``CodesMessage`` from
         """
-        if (
-            not other_args_found
-            and codes_file is None
-            and clone is None
-            and sample is None
-        ):
+        if not other_args_found and codes_file is None and clone is None and sample is None:
             raise RuntimeError("CodesMessage initialization parameters not " "present.")
         #: Unique ID, for ecCodes interface
         self.codes_id = None

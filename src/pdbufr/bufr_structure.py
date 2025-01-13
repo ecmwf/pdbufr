@@ -271,9 +271,7 @@ def datetime_from_bufr(
     return datetime.datetime(*datetime_list)
 
 
-def wmo_station_id_from_bufr(
-    observation: T.Dict[str, T.Any], prefix: str, keys: T.List[str]
-) -> int:
+def wmo_station_id_from_bufr(observation: T.Dict[str, T.Any], prefix: str, keys: T.List[str]) -> int:
     block_number = int(observation[prefix + keys[0]])
     station_number = int(observation[prefix + keys[1]])
     return block_number * 1000 + station_number
@@ -284,15 +282,11 @@ def wmo_station_position_from_bufr(
 ) -> T.List[float]:
     longitude = float(observation[prefix + keys[0]])  # easting (X)
     latitude = float(observation[prefix + keys[1]])  # northing (Y)
-    heightOfStationGroundAboveMeanSeaLevel = float(
-        observation.get(prefix + keys[2], 0.0)
-    )
+    heightOfStationGroundAboveMeanSeaLevel = float(observation.get(prefix + keys[2], 0.0))
     return [longitude, latitude, heightOfStationGroundAboveMeanSeaLevel]
 
 
-def CRS_from_bufr(
-    observation: T.Dict[str, T.Any], prefix: str, keys: T.List[str]
-) -> T.Optional[str]:
+def CRS_from_bufr(observation: T.Dict[str, T.Any], prefix: str, keys: T.List[str]) -> T.Optional[str]:
     bufr_CRS = int(observation.get(prefix + keys[0], 0))
     CRS_choices = {
         0: "EPSG:4326",  # WGS84
@@ -402,15 +396,13 @@ def extract_observations(
 
             # TODO: make into a function
             if all(name in current_observation for name in filters) and (
-                level < current_levels[-1]
-                or (level == current_levels[-1] and name in current_observation)
+                level < current_levels[-1] or (level == current_levels[-1] and name in current_observation)
             ):
                 # copy the content of current_items
                 yield dict(current_observation)
 
             while len(current_observation) and (
-                level < current_levels[-1]
-                or (level == current_levels[-1] and name in current_observation)
+                level < current_levels[-1] or (level == current_levels[-1] and name in current_observation)
             ):
                 current_observation.popitem()  # OrderedDict.popitem uses LIFO order
                 current_levels.pop()
@@ -490,8 +482,7 @@ def extract_message(
         "delayedDescriptorReplicationFactor",
         "extendedDelayedDescriptorReplicationFactor",
         "delayedDescriptorAndDataRepetitionFactor",
-        "extendedDelayedDescriptorAndDataRepetitionFactor"
-        "associatedFieldSignificance",
+        "extendedDelayedDescriptorAndDataRepetitionFactor" "associatedFieldSignificance",
         "dataPresentIndicator",
         "operator",
     }
@@ -528,10 +519,7 @@ def extract_message(
 
                     # only keep the header keys in the result because they are the
                     # same for all the subsets
-                    while (
-                        len(current_observation)
-                        and "subsetNumber" in current_observation
-                    ):
+                    while len(current_observation) and "subsetNumber" in current_observation:
                         # OrderedDict.popitem uses LIFO orde
                         current_observation.popitem()
 
@@ -586,11 +574,7 @@ def extract_message(
             current_observation[key] = value
 
         # yield the last observation
-        if (
-            current_observation
-            and all(filters_match.values())
-            and all(required_columns_match.values())
-        ):
+        if current_observation and all(filters_match.values()) and all(required_columns_match.values()):
             yield dict(current_observation)
 
 
@@ -714,9 +698,7 @@ def stream_bufr(
                 value_filters_without_computed,
                 observation,
             ):
-                augmented_observation = add_computed_keys(
-                    observation, included_keys, value_filters
-                )
+                augmented_observation = add_computed_keys(observation, included_keys, value_filters)
                 data = {k: v for k, v in augmented_observation.items() if k in columns}
                 if required_columns.issubset(data):
                     yield data
@@ -775,9 +757,7 @@ def stream_bufr_flat(
 
     # prepare computed keys
     computed_keys = [x for _, x, _ in COMPUTED_KEYS]
-    value_filters_without_computed = {
-        k: v for k, v in value_filters.items() if k not in computed_keys
-    }
+    value_filters_without_computed = {k: v for k, v in value_filters.items() if k not in computed_keys}
 
     if column_info is not None:
         column_info.first_count = 0
@@ -802,16 +782,12 @@ def stream_bufr_flat(
 
                 # test header keys for failed matches before unpacking
                 if prefilter_headers:
-                    if not bufr_filters.is_match(
-                        message, value_filters, required=False
-                    ):
+                    if not bufr_filters.is_match(message, value_filters, required=False):
                         continue
                     # remove already tested filters
                     else:
                         message_value_filters = {
-                            k: v
-                            for k, v in value_filters.items()
-                            if k not in header_keys
+                            k: v for k, v in value_filters.items() if k not in header_keys
                         }
 
             message["skipExtraKeyAttributes"] = 1
@@ -837,9 +813,7 @@ def stream_bufr_flat(
                         for key in data_keys:
                             observation.pop(key, None)
 
-                if observation and test_computed_keys(
-                    observation, value_filters, "#1#"
-                ):
+                if observation and test_computed_keys(observation, value_filters, "#1#"):
                     if column_info is not None and column_info.first_count == 0:
                         column_info.first_count = len(observation)
                     yield observation

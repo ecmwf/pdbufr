@@ -32,10 +32,7 @@ def distance(center: T.List[float], position: T.List[float]) -> float:
     lon1 = math.radians(center[1])
     lon2 = math.radians(position[1])
     return (
-        math.acos(
-            math.sin(lat1) * math.sin(lat2)
-            + math.cos(lat1) * math.cos(lat2) * math.cos(lon2 - lon1)
-        )
+        math.acos(math.sin(lat1) * math.sin(lat2) + math.cos(lat1) * math.cos(lat2) * math.cos(lon2 - lon1))
         * RadiusEarth
     )
 
