@@ -585,19 +585,29 @@ def add_computed_keys(
 ) -> T.Dict[str, T.Any]:
     augmented_observation = observation.copy()
     for keys, computed_key, getter in COMPUTED_KEYS:
-        if computed_key not in included_keys:
-            continue
-        computed_value = None
-        try:
-            computed_value = getter(observation, "", keys)
-        except Exception:
-            pass
-        if computed_value:
-            if computed_key in filters:
-                if filters[computed_key].match(computed_value):
-                    augmented_observation[computed_key] = computed_value
-            else:
+        if computed_key not in filters:
+            if computed_key not in included_keys:
+                continue
+            computed_value = None
+            try:
+                computed_value = getter(observation, "", keys)
+            except Exception:
+                pass
+            if computed_value:
                 augmented_observation[computed_key] = computed_value
+        else:
+            if computed_key not in included_keys:
+                return {}
+            computed_value = None
+            try:
+                computed_value = getter(observation, "", keys)
+            except Exception:
+                pass
+            if filters[computed_key].match(computed_value):
+                augmented_observation[computed_key] = computed_value
+            else:
+                return {}
+
     return augmented_observation
 
 
