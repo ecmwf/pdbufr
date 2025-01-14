@@ -122,11 +122,20 @@ class WigosValueBufrFilter(ValueBufrFilter):
 
 
 class WIGOSId:
-    def __init__(self, series: int, issuer: int, number: int, local: T.Union[str, int]) -> None:
-        self.series = int(series) if series is not None else None
-        self.issuer = int(issuer) if issuer is not None else None
-        self.number = int(number) if number is not None else None
-        self.local = str(local) if local is not None else None
+    _types = (int, int, int, str)
+
+    def __init__(
+        self,
+        series: T.Union[str, int],
+        issuer: T.Union[str, int],
+        number: T.Union[str, int],
+        local: T.Union[str, int],
+    ) -> None:
+        self.series, self.issuer, self.number, self.local = WIGOSId._convert((series, issuer, number, local))
+
+    @staticmethod
+    def _convert(v):
+        return [t(x) if v is not None else None for t, x in zip(WIGOSId._types, v)]
 
     @classmethod
     def from_str(cls, v: str) -> "WIGOSId":
@@ -134,15 +143,7 @@ class WIGOSId:
         if len(v) != 4:
             raise ValueError("Invalid WIGOS ID string")
 
-        def _convert_int(v):
-            return int(v) if v != "*" else None
-
-        v[0] = _convert_int(v[0])
-        v[1] = _convert_int(v[1])
-        v[2] = _convert_int(v[2])
-        v[3] = v[3] if v[3] != "*" else None
-
-        return cls(*v)
+        return cls(*WIGOSId._convert(v))
 
     @classmethod
     def from_iterable(cls, v):
