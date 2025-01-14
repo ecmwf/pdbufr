@@ -168,12 +168,11 @@ Single value
           filters = {"WMO_station_id": 12925}
 
           # The "WIGOS_station_id" can be specified in various ways
-          # When tuple/list is used the first 3 values must be integers, the last one a string.
+          # When tuple/list is used the first 3 values must be integers, the last one must be a string.
           filters = {"WIGOS_station_id": "0-705-0-1931"}
           filters = {"WIGOS_station_id": (0, 705, 0, "1931")}
 
-          # However, implicit type conversion is done when possible, so these are also valid.
-          filters = {"WIGOS_station_id": (0, 705, 0, 1931)}
+          # However, implicit str to int  conversion is done for the first 3 values, so this is also valid.
           filters = {"WIGOS_station_id": ("0", "705", "0", "1931")}
 
 List/tuple/set of values
@@ -188,12 +187,11 @@ List/tuple/set of values
          filters = {"WMO_station_id": [12925, 12843]}
 
          # The "WIGOS_station_id" can be specified in various ways.
-         # When tuple/list is used in an id the first 3 values must be integers, the last one a string.
+         # When tuple/list is used in an id the first 3 values must be integers, the last one must be a string.
          filters = {"WIGOS_station_id": ["0-705-0-1931", "0-705-0-1932"]}
          filters = {"WIGOS_station_id": ((0, 705, 0, "1931"), (0, 705, 0, "1932"))}
 
-         # However, implicit type conversion is done when possible, so these are also valid.
-         filters = {"WIGOS_station_id": [(0, 705, 0, 1931), (0, 705, 0, 1932)]}
+         # However, implicit str to int conversion is done for the first 3 values, so this is also valid.
          filters = {
              "WIGOS_station_id": [("0", "705", "0", "1931"), ("0", "705", "0", "1932")]
          }

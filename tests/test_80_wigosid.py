@@ -20,6 +20,7 @@ from pdbufr import WIGOSId
         WIGOSId.from_str("0-705-0-1931"),
         WIGOSId.from_iterable([0, 705, 0, "1931"]),
         WIGOSId.from_iterable((0, 705, 0, "1931")),
+        WIGOSId.from_iterable(("0", "705", "0", "1931")),
     ],
 )
 def test_wigos_id_core(wid) -> None:
@@ -31,17 +32,42 @@ def test_wigos_id_core(wid) -> None:
 
 
 @pytest.mark.parametrize(
-    "wid",
+    "wid,err",
     [
-        (0, 705, 0, "1931"),
-        [0, 705, 0, "1931"],
-        ("0", "705", "0", "1931"),
-        (0, 705, "0", 1931),
-        "0-705-0-1931",
+        ((0, 705, 0, "1931"), None),
+        ([0, 705, 0, "1931"], None),
+        (("0", "705", "0", "1931"), None),
+        ((0, 705, "0", "1931"), None),
+        ((0, 705, "0", 1931), ValueError),
+        ((0, 705, 0, 1931), ValueError),
+        ("0-705-0-1931", None),
+        ("705-0-1931", ValueError),
+        ("-0---0-1931", ValueError),
     ],
 )
-def test_wigos_id_from_user(wid) -> None:
-    w = WIGOSId.from_user(wid)
+def test_wigos_id_from_user(wid, err) -> None:
+    if err is None:
+        w = WIGOSId.from_user(wid)
 
-    assert w.as_str() == "0-705-0-1931"
-    assert w == WIGOSId(0, 705, 0, "1931")
+        assert w.as_str() == "0-705-0-1931"
+        assert w == WIGOSId(0, 705, 0, "1931")
+    else:
+        with pytest.raises(err):
+            WIGOSId.from_user(wid)
+
+
+@pytest.mark.parametrize(
+    "wid1,wid2,eq",
+    [
+        ((0, 705, 0, "1931"), (0, 705, 0, "01931"), False),
+        ((0, 705, 0, "1931"), (0, 705, "00", "1931"), True),
+        ((0, 705, 0, "1931"), (0, "0705", "00", "1931"), True),
+    ],
+)
+def test_wigos_id_eq(wid1, wid2, eq) -> None:
+    w1 = WIGOSId.from_user(wid1)
+    w2 = WIGOSId.from_user(wid2)
+    if eq:
+        assert w1 == w2
+    else:
+        assert w1 != w2

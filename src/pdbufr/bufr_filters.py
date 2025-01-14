@@ -122,20 +122,24 @@ class WigosValueBufrFilter(ValueBufrFilter):
 
 
 class WIGOSId:
-    _types = (int, int, int, str)
-
     def __init__(
         self,
         series: T.Union[str, int],
         issuer: T.Union[str, int],
         number: T.Union[str, int],
-        local: T.Union[str, int],
+        local: str,
     ) -> None:
-        self.series, self.issuer, self.number, self.local = WIGOSId._convert((series, issuer, number, local))
 
-    @staticmethod
-    def _convert(v):
-        return [t(x) if v is not None else None for t, x in zip(WIGOSId._types, v)]
+        def _convert(v):
+            return int(v) if v is not None else None
+
+        self.series = _convert(series)
+        self.issuer = _convert(issuer)
+        self.number = _convert(number)
+        self.local = local
+
+        if not isinstance(self.local, str) and self.local is not None:
+            raise ValueError("Invalid WIGOS local identifier={self.local}. Must be a string")
 
     @classmethod
     def from_str(cls, v: str) -> "WIGOSId":
@@ -159,7 +163,7 @@ class WIGOSId:
                 )
             )
         elif isinstance(value, (list, tuple)) and len(value) == 4:
-            return all(x == y for x, y in zip(self.as_tuple(), value))
+            return self == WIGOSId.from_iterable(value)
         elif isinstance(value, str):
             return self.as_str() == value
         return False
