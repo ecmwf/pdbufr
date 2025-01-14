@@ -286,6 +286,18 @@ def wmo_station_position_from_bufr(
     return [longitude, latitude, heightOfStationGroundAboveMeanSeaLevel]
 
 
+def wigos_id_from_bufr(observation: T.Dict[str, T.Any], prefix: str, keys: T.List[str]) -> str:
+    try:
+        wigos_series = observation.get(prefix + keys[0], "")
+        wigos_issuer = observation.get(prefix + keys[1], "")
+        wigos_issuer_number = observation.get(prefix + keys[2], "")
+        wigos_local_name = observation.get(prefix + keys[3], "")
+        wid = bufr_filters.WIGOSId(wigos_series, wigos_issuer, wigos_issuer_number, wigos_local_name)
+        return wid.as_str()
+    except Exception:
+        pass
+
+
 def CRS_from_bufr(observation: T.Dict[str, T.Any], prefix: str, keys: T.List[str]) -> T.Optional[str]:
     bufr_CRS = int(observation.get(prefix + keys[0], 0))
     CRS_choices = {
@@ -353,6 +365,16 @@ COMPUTED_KEYS = [
         ],
         "geometry",  # WMO_station_position (predefined to geometry for geopandas)
         wmo_station_position_from_bufr,
+    ),
+    (
+        [
+            "wigosIdentifierSeries",
+            "wigosIssuerOfIdentifier",
+            "wigosIssueNumber",
+            "wigosLocalIdentifierCharacter",
+        ],
+        "WIGOS_station_id",
+        wigos_id_from_bufr,
     ),
     (
         [
@@ -662,7 +684,7 @@ def stream_bufr(
 
     filters = dict(filters)
 
-    value_filters = {k: bufr_filters.BufrFilter.from_user(filters[k]) for k in filters}
+    value_filters = {k: bufr_filters.BufrFilter.from_user(filters[k], key=k) for k in filters}
     included_keys = set(value_filters)
     included_keys |= set(columns)
     computed_keys = []
@@ -755,7 +777,7 @@ def stream_bufr_flat(
 
     # compile filters
     filters = dict(filters)
-    value_filters = {k: bufr_filters.BufrFilter.from_user(filters[k]) for k in filters}
+    value_filters = {k: bufr_filters.BufrFilter.from_user(filters[k], key=k) for k in filters}
 
     # prepare count filter
     if "count" in value_filters:

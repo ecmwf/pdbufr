@@ -205,6 +205,14 @@ def test_wmo_station_id_from_bufr() -> None:
     assert res == 1020
 
 
+def test_wigos_id_from_bufr() -> None:
+    res = bufr_structure.wigos_id_from_bufr(
+        {"s": 0, "ii": 705, "in": 0, "l": "1931"}, "", ["s", "ii", "in", "l"]
+    )
+
+    assert res == "0-705-0-1931"
+
+
 def test_extract_observations_simple() -> None:
     message = {
         "#1#pressure": 100,
@@ -224,7 +232,7 @@ def test_extract_observations_simple() -> None:
 
     assert list(res) == expected
 
-    filters = {"pressure": bufr_filters.BufrFilter(slice(95, None))}
+    filters = {"pressure": bufr_filters.BufrFilter.from_user(slice(95, None))}
 
     res = bufr_structure.extract_observations(message, filtered_keys, filters)
 
@@ -241,7 +249,7 @@ def test_extract_observations_medium() -> None:
         "#2#pressure->code": "005002",
     }
     filtered_keys = list(bufr_structure.filter_keys(message))[:-2]
-    filters = {"count": bufr_filters.BufrFilter({1})}
+    filters = {"count": bufr_filters.BufrFilter.from_user({1})}
     expected = [
         {"count": 1, "pressure": 100, "temperature": 300.0},
         {"count": 1, "pressure": 90, "temperature": None},
@@ -251,7 +259,7 @@ def test_extract_observations_medium() -> None:
 
     assert list(res) == expected
 
-    filters = {"pressure": bufr_filters.BufrFilter(slice(95, 100))}
+    filters = {"pressure": bufr_filters.BufrFilter.from_user(slice(95, 100))}
 
     res = bufr_structure.extract_observations(message, filtered_keys, filters, {"count": 1})
 
@@ -289,7 +297,7 @@ def test_extract_observations_complex() -> None:
 
     assert list(res) == expected
 
-    filters = {"latitude": bufr_filters.BufrFilter(slice(None))}
+    filters = {"latitude": bufr_filters.BufrFilter.from_user(slice(None))}
     expected = [
         {"latitude": 42, "pressure": 100, "temperature": 300.0},
         {"latitude": 42, "pressure": 90, "temperature": None},
@@ -335,7 +343,7 @@ def test_extract_observations_subsets_simple() -> None:
 
     assert list(res) == expected
 
-    filters = {"pressure": bufr_filters.BufrFilter(slice(95, None))}
+    filters = {"pressure": bufr_filters.BufrFilter.from_user(slice(95, None))}
 
     res = bufr_structure.extract_observations(message, filtered_keys, filters)
 

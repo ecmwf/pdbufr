@@ -54,6 +54,9 @@ TEST_DATA_12 = os.path.join(SAMPLE_DATA_FOLDER, "syn_new.bufr")
 # contains compressed aircraft messages with strings
 TEST_DATA_13 = os.path.join(SAMPLE_DATA_FOLDER, "aircraft_mrar_compressed.bufr")
 
+# contains a single synop message with WIGOS id (not WMO id)
+TEST_DATA_14 = os.path.join(SAMPLE_DATA_FOLDER, "synop_wigos.bufr")
+
 
 def download_test_data(filename: str) -> str:
     import requests  # type: ignore
@@ -1173,3 +1176,101 @@ def test_message_structure_cache() -> None:
 
     assert len(res) == 6
     assert res.to_dict() == ref
+
+
+def test_synop_wigos_id_1() -> None:
+    columns = [
+        "WIGOS_station_id",
+        "longitude",
+        "latitude",
+        "airTemperature",
+    ]
+
+    expected_count = 3
+
+    expected_row = {
+        "WIGOS_station_id": "0-705-0-1931",
+        "latitude": 46.1984,
+        "longitude": 14.9113,
+        "airTemperature": 280.15,
+    }
+
+    ref = pd.DataFrame([expected_row])
+
+    res = pdbufr.read_bufr(TEST_DATA_14, columns=columns)
+    assert len(res) == expected_count
+
+    res = res.iloc[[0]].reset_index(drop=True)
+    assert_frame_equal(res, ref[res.columns])
+
+
+@pytest.mark.parametrize(
+    "wid",
+    [
+        pdbufr.WIGOSId(0, 705, 0, "1931"),
+        pdbufr.WIGOSId(series=0, issuer=705, number=0, local="1931"),
+        pdbufr.WIGOSId.from_str("0-705-0-1931"),
+        pdbufr.WIGOSId.from_iterable([0, 705, 0, "1931"]),
+        pdbufr.WIGOSId.from_iterable((0, 705, 0, "1931")),
+        (0, 705, 0, "1931"),
+        [0, 705, 0, "1931"],
+        "0-705-0-1931",
+    ],
+)
+def test_synop_wigos_id_2(wid) -> None:
+    columns = [
+        "WIGOS_station_id",
+        "longitude",
+        "latitude",
+        "airTemperature",
+    ]
+    filters = {"WIGOS_station_id": wid}
+
+    expected_count = 1
+
+    expected_row = {
+        "WIGOS_station_id": "0-705-0-1931",
+        "latitude": 46.1984,
+        "longitude": 14.9113,
+        "airTemperature": 280.15,
+    }
+
+    ref = pd.DataFrame([expected_row])
+
+    res = pdbufr.read_bufr(TEST_DATA_14, columns=columns, filters=filters)
+    assert len(res) == expected_count
+
+    res = res.iloc[[0]].reset_index(drop=True)
+    assert_frame_equal(res, ref[res.columns])
+
+
+def test_synop_wigos_id_3() -> None:
+    columns = [
+        "WIGOS_station_id",
+        "longitude",
+        "latitude",
+        "airTemperature",
+    ]
+    filters = {"WIGOS_station_id": ("0-705-0-1931", "0-705-0-1932")}
+    expected_count = 2
+
+    expected_row_1 = {
+        "WIGOS_station_id": "0-705-0-1931",
+        "latitude": 46.1984,
+        "longitude": 14.9113,
+        "airTemperature": 280.15,
+    }
+    expected_row_2 = {
+        "WIGOS_station_id": "0-705-0-1932",
+        "latitude": 46.4328,
+        "longitude": 13.7478,
+        "airTemperature": 273.55,
+    }
+
+    ref = pd.DataFrame([expected_row_1, expected_row_2])
+
+    res = pdbufr.read_bufr(TEST_DATA_14, columns=columns, filters=filters)
+    assert len(res) == expected_count
+
+    res = res.iloc[[0, 1]].reset_index(drop=True)
+    assert_frame_equal(res, ref[res.columns])
