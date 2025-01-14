@@ -143,7 +143,7 @@ class WIGOSId:
         if len(v) != 4:
             raise ValueError("Invalid WIGOS ID string")
 
-        return cls(*WIGOSId._convert(v))
+        return cls(*v)
 
     @classmethod
     def from_iterable(cls, v):
