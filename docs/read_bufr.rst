@@ -51,20 +51,73 @@ BUFR keys
 
    The "count" generated key, which refers to the message index, is also supported but please note that message indexing starts at 1 and not at 0!
 
+Computed BUFR keys
+-------------------
+
    There is also a set of **computed keys** that can be used for :func:`read_bufr`:
 
-    * "data_datetime" (datetime.datetime): generated from the "year", "month", "day", "hour", "minute", "second" keys in the BUFR data section.
-    * "typical_datetime" (datetime.datetime): generated from the "typicalYear", "typicalMonth", "typicalDay", "typicalHour", "typicalMinute", "typicalSecond" keys in the BUFR header section.
-    * "WMO_station_id": generated from the "blockNumber" and "stationNumber" keys as::
+
+.. _key_data_datetime:
+
+data_datetime
++++++++++++++++
+
+    Generated from the "year", "month", "day", "hour", "minute", "second" keys in the BUFR data section. The values are converted to a **datetime.datetime** object.
+
+
+.. _key_typical_datetime:
+
+typical_datetime
++++++++++++++++++
+
+    Generated from the "typicalYear", "typicalMonth", "typicalDay", "typicalHour", "typicalMinute", "typicalSecond" keys in the BUFR header section. The values are converted to a **datetime.datetime** object.
+
+
+.. _key_wmo_station_id:
+
+WMO_station_id
+++++++++++++++++
+
+    Generated from the "blockNumber" and "stationNumber" keys as::
 
           blockNumber*1000+stationNumber
 
-    * "geometry": values extracted as a list of::
+
+.. _key_wigos_station_id:
+
+WIGOS_station_id
+++++++++++++++++++
+
+    *New in version 0.12.0*
+
+    Generated from the "wigosIdentifierSeries", "wigosIssuerOfIdentifier",  "wigosIssueNumber" and  "wigosLocalIdentifierCharacter" keys as a str in the following format::
+
+          "{wigosIdentifierSeries}-{wigosIssuerOfIdentifier}-{wigosIssueNumber}-{wigosLocalIdentifierCharacter}
+
+
+    For example: "0-705-0-1931".
+
+    When using "WIGOS_station_id" in ``filters`` the value can be given as a str or as a tuple/list of 4 values. See: :ref:`filters-section`.
+
+    Details about the WIGOS identifiers can be found `here <https://community.wmo.int/en/activity-areas/WIGOS/implementation-WIGOS/FAQ-WSI>`_.
+
+.. _key_geometry:
+
+geometry
+++++++++++
+
+    Values extracted as a list of::
 
           [longitude,latitude,heightOfStationGroundAboveMeanSeaLevel]
 
-      as required for geopandas.
-    * "CRS": generated from the "coordinateReferenceSystem" key using the following mapping:
+    as required for geopandas.
+
+.. _crs:
+
+CRS
+++++
+
+    Generated from the "coordinateReferenceSystem" key using the following mapping:
 
           .. list-table::
              :header-rows: 1
@@ -91,9 +144,11 @@ BUFR keys
                - EPSG:4326
 
 
-     .. note::
 
-          The computed keys do not preserve their position in ``columns`` but are placed to the end of the resulting DataFrame.
+.. note::
+
+    Computed keys do not preserve their position in ``columns`` but are placed to the end of the resulting DataFrame.
+
 
 .. _filters-section:
 
@@ -110,16 +165,38 @@ Single value
       .. code-block:: python
 
           filters = {"blockNumber": 12}
+          filters = {"WMO_station_id": 12925}
 
-List of values
-++++++++++++++
+          # The "WIGOS_station_id" can be specified in various ways
+          # When tuple/list is used the first 3 values must be integers, the last one a string.
+          filters = {"WIGOS_station_id": "0-705-0-1931"}
+          filters = {"WIGOS_station_id": (0, 705, 0, "1931")}
 
-    A list of values specifies an "in" relation:
+          # However, implicit type conversion is done when possible, so these are also valid.
+          filters = {"WIGOS_station_id": (0, 705, 0, 1931)}
+          filters = {"WIGOS_station_id": ("0", "705", "0", "1931")}
+
+List/tuple/set of values
+++++++++++++++++++++++++++
+
+    A list/tuple/set of values specifies an "in" relation:
 
      .. code-block:: python
 
          filters = {"stationNumber": [843, 925]}
          filters = {"blockNumber": range(10, 13)}
+         filters = {"WMO_station_id": [12925, 12843]}
+
+         # The "WIGOS_station_id" can be specified in various ways.
+         # When tuple/list is used in an id the first 3 values must be integers, the last one a string.
+         filters = {"WIGOS_station_id": ["0-705-0-1931", "0-705-0-1932"]}
+         filters = {"WIGOS_station_id": ((0, 705, 0, "1931"), (0, 705, 0, "1932"))}
+
+         # However, implicit type conversion is done when possible, so these are also valid.
+         filters = {"WIGOS_station_id": [(0, 705, 0, 1931), (0, 705, 0, 1932)]}
+         filters = {
+             "WIGOS_station_id": [("0", "705", "0", "1931"), ("0", "705", "0", "1932")]
+         }
 
 Slices
 ++++++++

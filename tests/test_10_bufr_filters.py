@@ -76,9 +76,9 @@ def test_BufrFilter_callable() -> None:
 
 def test_is_match() -> None:
     compile_filters = {
-        "station": bufr_filters.BufrFilter({234}),
-        "level": bufr_filters.BufrFilter(set(range(1, 12))),
-        "height": bufr_filters.BufrFilter(slice(1.5, 2.1)),
+        "station": bufr_filters.BufrFilter.from_user({234}),
+        "level": bufr_filters.BufrFilter.from_user(set(range(1, 12))),
+        "height": bufr_filters.BufrFilter.from_user(slice(1.5, 2.1)),
     }
 
     message: T.Dict[str, T.Any] = {"station": 233}
