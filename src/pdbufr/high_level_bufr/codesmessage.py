@@ -25,7 +25,6 @@ def raise_keyerror(key):
 
 
 class CodesMessage(object):
-
     """
     An abstract class to specify and/or implement common behaviour that
     messages read by ecCodes should implement.
@@ -47,9 +46,9 @@ class CodesMessage(object):
 
     Usage::
 
-        >>> with {parent}(filename) as {alias}:
+        >>> with {parent}(filename) as alias:
         ...     # Access a key from each message
-        ...     for msg in {alias}:
+        ...     for msg in alias:
         ...         print(msg[key_name])
         ...     # Report number of keys in message
         ...     len(msg)
@@ -71,6 +70,7 @@ class CodesMessage(object):
         ...     msg2 = {classname}(clone=msg)
         ...     # If desired, messages can be closed manually or used in with
         ...     msg.close()
+        ...
     """
 
     #: ecCodes enum-like PRODUCT constant
@@ -95,12 +95,7 @@ class CodesMessage(object):
         :param clone: A valid ``CodesMessage``
         :param sample: A valid sample path to create ``CodesMessage`` from
         """
-        if (
-            not other_args_found
-            and codes_file is None
-            and clone is None
-            and sample is None
-        ):
+        if not other_args_found and codes_file is None and clone is None and sample is None:
             raise RuntimeError("CodesMessage initialization parameters not " "present.")
         #: Unique ID, for ecCodes interface
         self.codes_id = None

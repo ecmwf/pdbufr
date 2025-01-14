@@ -1,13 +1,53 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [ "setuptools>=61", "setuptools-scm[toml]>=8" ]
+
+[project]
+name = "pdbufr"
+description = "Pandas reader for the BUFR format using ecCodes."
+readme = "README.md"
+keywords = [ "bufr", "eccodes", "pandas" ]
+license = { text = "Apache License Version 2.0" }
+authors = [
+  { name = "European Centre for Medium-Range Weather Forecasts (ECMWF)", email = "software.support@ecmwf.int" },
+]
+requires-python = ">=3.6"
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.6",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: Implementation :: CPython",
+]
+dynamic = [ "version" ]
+dependencies = [ "attrs", "eccodes", "pandas" ]
+optional-dependencies.tests = [ "flake8", "pytest", "pytest-cov", "requests" ]
+urls.Documentation = "https://pdbufr.readthedocs.io/en/latest/"
+urls.Homepage = "https://github.com/ecmwf/pdbufr"
+
+[tool.setuptools_scm]
+write_to = "src/pdbufr/version.py"
+write_to_template = '''
+# Do not change! Do not track in version control!
+__version__ = "{version}"
+'''
+
 [tool.isort]
 profile = "black"
 
-[tool.pytest.ini_options]
-norecursedirs = [
-    "build",
-    "docs",
-    ".tox",
-]
-
 [tool.coverage.run]
 branch = true
-omit = ["setup.py"]
+
+[tool.pydocstyle]
+add_ignore = [ "D1", "D200", "D205", "D400", "D401", "D403" ]
+convention = "numpy"

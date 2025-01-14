@@ -1,1 +1,7 @@
 requests
+# for testing
+pytest
+pytest-cov
+nbformat
+nbconvert
+ipykernel

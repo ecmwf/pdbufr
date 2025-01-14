@@ -1,8 +1,9 @@
 ipykernel
-nbsphinx<=0.8.12
-docutils<=0.16.0
+nbsphinx
+docutils
 Pygments>=2.6.1
-Sphinx>=4.4.0
+Sphinx>=7.3.7
 setuptools>=51.0.0
 alabaster>=0.7.12
 sphinx-rtd-theme>=0.5.0
+sphinx-issues

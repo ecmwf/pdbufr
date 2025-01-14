@@ -16,4 +16,3 @@ Here is a list of example notebooks to illustrate how to extract BUFR data using
     examples/synop
     examples/tropical_cyclone
     examples/flat_dump
-

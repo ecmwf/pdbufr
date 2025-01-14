@@ -53,9 +53,7 @@ def MISSING(*modules: str) -> bool:
     reason="python package nbformat not installed",
 )
 @pytest.mark.skipif(not IN_GITHUB, reason="Not on GITHUB")
-@pytest.mark.skipif(
-    sys.platform == "win32", reason="Cannot execute notebooks on Windows"
-)
+@pytest.mark.skipif(sys.platform == "win32", reason="Cannot execute notebooks on Windows")
 @pytest.mark.parametrize("path", notebooks_list())
 def test_notebook(path: str) -> None:
     import nbformat

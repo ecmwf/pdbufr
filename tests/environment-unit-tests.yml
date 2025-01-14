@@ -14,6 +14,7 @@ dependencies:
 - pydata-sphinx-theme
 - pytest
 - pytest-cov
+- requests
 - sphinx
 - sphinx_rtd_theme
 - sphinx-issues

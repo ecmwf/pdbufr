@@ -10,4 +10,3 @@ recursive-include tests *.yml
 recursive-include tests *.csv
 recursive-include docs *
 recursive-include tests *.txt
-

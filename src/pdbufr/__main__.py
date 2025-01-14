@@ -20,9 +20,7 @@ def main(argv: T.Optional[T.List[str]] = None) -> None:
         print("Found: ecCodes v%s." % eccodes.codes_get_api_version())
         print("Your system is ready.")
     else:
-        raise RuntimeError(
-            "Command not recognised %r. See usage with --help." % args.command
-        )
+        raise RuntimeError("Command not recognised %r. See usage with --help." % args.command)
 
 
 if __name__ == "__main__":

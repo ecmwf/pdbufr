@@ -88,8 +88,11 @@ _dev
 *.sublime-workspace
 .vscode
 
-# mac 
+# mac
 .DS_Store
 
 # docs
 docs/examples/*.bufr
+
+# generated version
+src/pdbufr/version.py
