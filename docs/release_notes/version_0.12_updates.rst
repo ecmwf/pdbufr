@@ -3,7 +3,7 @@ Version 0.12 Updates
 /////////////////////////
 
 
-Version 0.12.0
+Version 0.12.2
 ===============
 
 - implemented the ``WIGOS_station_id`` computed key for the `WIGOS station identifier <https://community.wmo.int/en/activity-areas/WIGOS/implementation-WIGOS/FAQ-WSI>`_. See details :ref:`here <key_wigos_station_id>`.

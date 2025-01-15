@@ -3,13 +3,13 @@ name: legacy-ci
 on:
   push:
     branches:
-    - main
+    - master
     - develop
     tags:
     - "*"
   pull_request:
     branches:
-    - main
+    - master
     - develop
   pull_request_target:
     types: [labeled]
