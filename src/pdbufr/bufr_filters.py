@@ -112,6 +112,16 @@ class ValueBufrFilter(BufrFilter):
         return max(self.set)
 
 
+class NotValueBufrFilter(ValueBufrFilter):
+    def match(self, value: T.Any) -> bool:
+        if value is None:
+            return False
+        return value not in self.set
+
+    def max(self) -> T.Any:
+        return None
+
+
 class WigosValueBufrFilter(ValueBufrFilter):
     def match(self, value: T.Any) -> bool:
         if value is None:

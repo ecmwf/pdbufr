@@ -34,7 +34,7 @@ repos:
     additional_dependencies: [black==23.3.0]
     exclude: xr_engine_profile_rst\.py
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.6.9
+  rev: v0.9.9
   hooks:
   - id: ruff
     exclude: '(dev/.*|.*_)\.py$'

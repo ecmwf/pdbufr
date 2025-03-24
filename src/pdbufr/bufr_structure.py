@@ -853,3 +853,86 @@ def stream_bufr_flat(
             # optimisation: skip decoding messages above max_count
             if max_count is not None and count >= max_count:
                 break
+
+
+# def _get_synop(path):
+#     import pandas as pd
+
+#     observations = get_synop(path)
+#     return pd.DataFrame.from_records(observations)
+
+
+# def _get_temp(path):
+#     import pandas as pd
+
+#     observations = get_temp(path)
+#     return pd.DataFrame.from_records(observations)
+
+
+# def stream_bufr_synop(
+#     bufr_file: T.Iterable[T.MutableMapping[str, T.Any]],
+#     columns: T.Union[T.Sequence[str], str],
+#     filters: T.Mapping[str, T.Any] = {},
+# ):
+#     value_filters = {}
+
+#     # prepare count filter
+#     if "count" in value_filters:
+#         max_count = value_filters["count"].max()
+#     else:
+#         max_count = None
+
+#     count_filter = value_filters.pop("count", None)
+
+#     from .bufr_types.bufr_station import get_synop_station
+
+#     for count, msg in enumerate(bufr_file, 1):
+#         # we use a context manager to automatically delete the handle of the BufrMessage.
+#         # We have to use a wrapper object here because a message can also be a dict
+#         with MessageWrapper.wrap(msg) as message:
+#             # count filter
+#             if count_filter is not None and not count_filter.match(count):
+#                 continue
+
+#             if message["dataCategory"] != 0:
+#                 continue
+
+#             # message["skipExtraKeyAttributes"] = 1
+#             message["unpack"] = 1
+
+#             for obs in get_synop_station(message):
+#                 yield obs
+
+
+# def get_temp(
+#     bufr_file: T.Iterable[T.MutableMapping[str, T.Any]],
+# ):
+#     value_filters = {}
+
+#     # prepare count filter
+#     if "count" in value_filters:
+#         max_count = value_filters["count"].max()
+#     else:
+#         max_count = None
+
+#     count_filter = value_filters.pop("count", None)
+
+#     from .bufr_types.bufr_station import get_temp_station
+
+#     for count, msg in enumerate(bufr_file, 1):
+#         # we use a context manager to automatically delete the handle of the BufrMessage.
+#         # We have to use a wrapper object here because a message can also be a dict
+#         with MessageWrapper.wrap(msg) as message:
+
+#             # count filter
+#             if count_filter is not None and not count_filter.match(count):
+#                 continue
+
+#             if message["dataCategory"] != 2:
+#                 continue
+
+#             # message["skipExtraKeyAttributes"] = 1
+#             message["unpack"] = 1
+
+#             for obs in get_temp_station(message):
+#                 yield obs
