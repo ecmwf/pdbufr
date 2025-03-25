@@ -36,7 +36,7 @@ class CustomReader(Reader):
                 else:
                     raise ValueError(f"Unknown parameter in units: {k}")
 
-    def _read(self, bufr_obj, add_height=False, units=None, add_units=False, **kwargs):
+    def _read(self, bufr_obj, units=None, **kwargs):
         value_filters = {}
 
         units_converter = None
@@ -68,7 +68,5 @@ class CustomReader(Reader):
                 # message["skipExtraKeyAttributes"] = 1
                 message["unpack"] = 1
 
-                for d in self.read_message(
-                    message, add_height=add_height, units_converter=units_converter, add_units=add_units
-                ):
+                for d in self.read_message(message, units_converter=units_converter):
                     yield d

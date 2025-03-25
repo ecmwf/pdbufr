@@ -26,6 +26,12 @@ class Parameter:
         # register
         PARAMETERS[name] = self
 
+    def is_period(self):
+        return False
+
+    def __repr__(self):
+        return f"Parameter({self.name}, label={self.label}, units={self.units}"
+
     # def check_units(self, value, units, target_units):
     #     if self.units is None:
     #         return value
@@ -40,6 +46,21 @@ class Parameter:
     #     Q_ = ureg.Quantity
     #     pv = Q_(value, PINT_UNITS.get(units, units))
     #     return pv.to(PINT_UNITS.get(target_u, target_u)).magnitude
+
+
+class PeriodParameter(Parameter):
+    def __init__(self, name, bufr_key, desc=None, label=None, units=None):
+        super().__init__(name, desc, label, units)
+        self.bufr_key = bufr_key
+
+    def is_period(self):
+        return True
+
+
+class FixedParameter(Parameter):
+    def __init__(self, name, value, desc=None, label=None, units=None):
+        super().__init__(name, desc, label, units)
+        self.value = value
 
 
 # station related parameters

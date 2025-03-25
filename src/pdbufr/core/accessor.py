@@ -38,8 +38,6 @@ class Accessor(metaclass=ABCMeta):
         else:
             self.keys = keys
 
-        print("Accessor.__init__", self.__class__.__name__)
-
         assert isinstance(self.keys, dict)
 
         if self.param is None:
@@ -65,35 +63,8 @@ class Accessor(metaclass=ABCMeta):
     def collect(self, collector, **kwargs):
         pass
 
-    @staticmethod
-    def _output(name, value):
-        if isinstance(name, str):
-            return {name: value}
-        elif isinstance(name, (tuple, list)):
-            return dict(zip(name, value))
-
-    def collect_first(self, labels, keys, collector):
-        value = None
-        print("collect keys=", keys)
-        for v in collector.collect(keys, {}):
-            print("collect v=", v)
-            value = v
-            break
-
-        if value is None:
-            value = {}
-
-        r = {}
-        for kv, lv in zip(keys, labels):
-            if labels is not None:
-                r[lv] = value.get(kv, None)
-        return r
-
 
 class SimpleAccessor(Accessor):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
     def empty_result(self):
         return dict(zip(self.labels, [None] * len(self.labels)))
 
@@ -102,75 +73,22 @@ class SimpleAccessor(Accessor):
         return self.bufr_keys
 
     def collect(self, collector, raise_on_missing=False, units_converter=None, add_units=False, **kwargs):
-        return self.collect_first(
+        return self.collect_any(
             collector,
             raise_on_missing=raise_on_missing,
             units_converter=units_converter,
             add_units=add_units,
             **kwargs,
         )
-        # value = None
-        # units_keys = None
 
-        # if units_converter is not None or add_units:
-        #     units_keys = self.key_names
-
-        # for v in collector.collect(self.key_names, {}, units_keys=units_keys):
-        #     value = v
-        #     break
-
-        # if value is None:
-        #     value = {}
-
-        # r = {}
-        # for key, param in self.keys.items():
-        #     if param is not None:
-        #         label = param.label
-        #         v = value.get(key, None)
-
-        #         units = None
-        #         if v is not None and units_converter is not None and param.units:
-        #             units = value.get(key + "->units", "")
-        #             v = units_converter.convert(label, v, units)
-
-        #         r[label] = v
-
-        #         if add_units and param.units:
-        #             if units is None:
-        #                 units = value.get(key + "->units", "")
-        #             r[label + "_units"] = units
-
-        # if raise_on_missing and all(v is None for v in value.values()):
-        #     raise ValueError(f"Missing value for {self.name}")
-
-        # return r
-
-    def collect_first(
-        self,
-        collector,
-        mandatory=None,
-        skip=None,
-        raise_on_missing=False,
-        units_converter=None,
-        add_units=False,
-        **kwargs,
-    ):
-        value = None
-        units_keys = None
-        mandatory = mandatory or []
-        skip = skip or []
-
-        if units_converter is not None or add_units:
-            units_keys = self.key_names
-
-        for v in collector.collect(self.key_names, {}, mandatory_keys=mandatory, units_keys=units_keys):
-            value = v
-            break
-
+    def parse_collected(self, value, skip, units_converter, add_units, raise_on_missing):
         if value is None:
             value = {}
 
-        r = {}
+        if raise_on_missing and (not value or all(v is None for v in value.values())):
+            raise ValueError(f"Missing value for {self.name}")
+
+        res = {}
         for key, param in self.keys.items():
             if param is not None:
                 label = param.label
@@ -179,22 +97,69 @@ class SimpleAccessor(Accessor):
 
                 v = value.get(key, None)
 
+                # convert units
                 units = None
                 if v is not None and units_converter is not None and param.units:
                     units = value.get(key + "->units", "")
                     v = units_converter.convert(label, v, units)
 
-                r[label] = v
+                # handle period
+                if param.is_period():
+                    period = v
+                    if period is not None:
+                        period = str(-period)
+                        units = value.get(key + "->units", "")
+                        period = period + units
+                        v = period
 
+                    # print(f"{label=} {period=} {value=}")
+
+                res[label] = v
+
+                # add units column
                 if add_units and param.units:
                     if units is None:
                         units = value.get(key + "->units", "")
-                    r[label + "_units"] = units
+                    res[label + "_units"] = units
 
-        if raise_on_missing and all(v is None for v in value.values()):
-            raise ValueError(f"Missing value for {self.name}")
+        return res
 
-        return r
+    def collect_any(
+        self,
+        collector,
+        mandatory=None,
+        skip=None,
+        raise_on_missing=False,
+        units_keys=None,
+        units_converter=None,
+        add_units=False,
+        first=True,
+        **kwargs,
+    ):
+        value = None
+        mandatory = mandatory or []
+        skip = skip or []
+
+        units_keys = units_keys or []
+        if units_converter is not None or add_units:
+            units_keys.extend(self.bufr_keys)
+
+        multi_res = []
+
+        for v in collector.collect(self.bufr_keys, {}, mandatory_keys=mandatory, units_keys=units_keys):
+            value = v
+            res = self.parse_collected(value, skip, units_converter, add_units, raise_on_missing)
+            if first:
+                return res
+            else:
+                multi_res.append(res)
+
+        if first:
+            if raise_on_missing:
+                raise ValueError(f"Missing value for {self.name}")
+            return {}
+        else:
+            return multi_res
 
 
 class ComputedKeyAccessor(Accessor):
@@ -241,23 +206,11 @@ class ComputedKeyAccessor(Accessor):
 
 
 class ValueAtCoordAccessor(SimpleAccessor):
-    coord_name = None
-
-    def __init__(self, coord_bufr_key=None, **kwargs):
+    def __init__(self, coord_key=None, coord_suffix="_level", **kwargs):
         super().__init__(**kwargs)
-        self.coord = PARAMS.Param(self.labels[0] + "_level", coord_bufr_key)
-        self.keys = {**self.keys, self.coord.label: self.coord}
-        self.bufr_keys = [self.coord.key, *self.bufr_keys]
-        # self.coord_label = self.labels[0] + "_level"
-
-    # def empty_result(self):
-    #     name = [*self.labels, self.coord.label]
-    #     value = [None] * (len(name) + 1)
-    #     return self._output(name, value)
-
-    # @property
-    # def needed_keys(self):
-    #     return [*self.bufr_keys, self.coord.key]
+        self.coord = PARAMS.Parameter(self.labels[0] + coord_suffix)
+        self.keys = {**self.keys, coord_key: self.coord}
+        self.bufr_keys = [coord_key, *self.bufr_keys]
 
     def collect(
         self,
@@ -268,13 +221,13 @@ class ValueAtCoordAccessor(SimpleAccessor):
         add_units=False,
         **kwargs,
     ):
-
+        skip = []
         if not add_height:
             skip = [self.coord]
 
-        mandatory = [self.bufr_keys]
+        mandatory = self.bufr_keys
 
-        return self.collect_first(
+        return self.collect_any(
             collector,
             mandatory=mandatory,
             skip=skip,
@@ -284,161 +237,86 @@ class ValueAtCoordAccessor(SimpleAccessor):
             **kwargs,
         )
 
-        # print("collect ValueAtCoordAccessor", self.keys)
 
-        # value = {}
-        # # keys = [self.coord_bufr_key, *self.keys]
-        # # labels = self.labels
-        # # labels = [*labels, self.coord_label]
+class ValueAtFixedCoordAccessor(SimpleAccessor):
+    def __init__(self, fixed_coord=None, coord_suffix="_level", **kwargs):
+        super().__init__(**kwargs)
+        self.coord = PARAMS.FixedParameter(self.labels[0] + coord_suffix, fixed_coord)
 
-        # units_keys = None
-        # if units_converter is not None or add_units:
-        #     units_keys = self.bufr_keys
-
-        # for v in collector.collect(keys, {}, mandatory_keys=keys, units_keys=units_keys):
-        #     value = v
-        #     break
-
-        # keys = [*self.keys, self.coord_key]
-        # # labels = [*self.labels, self.coord_name]
-        # r = {}
-        # for key, lv in zip(
-        #     keys,
-        # ):
-        #     if labels is not None:
-        #         v = value.get(kv, None)
-        #         units = None
-
-        #         if v is not None and units_converter is not None and param.units:
-        #             units = value.get(key + "->units", "")
-        #             v = units_converter.convert(label, v, units)
-
-        #         r[lv] = v
-
-        #         if add_units and kv in self.keys:
-        #             units = value.get(kv + "->units", "")
-        #             r[lv + "_units"] = units
-
-        # r = {lv: value.get(kv, None) for kv, lv in zip(keys, labels)}
-
-        # if raise_on_missing and all(v is None for v in r.values()):
-        #     raise ValueError(f"Missing value for {self.labels}")
-        # # name = [*self.name, self.coord_name]
-
-        # return r
-
-        # value = collector.collect_at_coord(self.keys, self.coord_key)
-        # print("  -> value=", value)
-        # if raise_on_missing and all(v is None for v in value[:-1]):
-        #     raise ValueError(f"Missing value for {self.name}")
-        # name = [*self.name, self.coord_name]
-        # return self._output(name, value)
+    def collect(self, collector, add_coord=False, **kwargs):
+        r = super().collect(collector, **kwargs)
+        if add_coord:
+            r[self.coord.label] = self.coord.value
+        return r
 
 
 class ValueInPeriodAccessor(SimpleAccessor):
     coord_name = None
 
-    def __init__(self, coord_key=None, coord_label=None, period_key=None, **kwargs):
+    def __init__(self, coord_key=None, coord_suffix="_level", period_key=None, **kwargs):
         super().__init__(**kwargs)
-        print("ValueInPeriodAccessor.__init__", self.keys)
-        self.coord_key = coord_key
-        self.coord_label = coord_label or self.labels[0] + "_level"
-        self.period_key = period_key
+        self.coord = None
+        self.period = None
 
-    @property
-    def needed_keys(self):
-        v = [*self.keys, self.coord_key, self.period_key]
-        return [x for x in v if x is not None]
+        if coord_key:
+            self.coord = PARAMS.Parameter(self.labels[0] + "_<p>" + coord_suffix)
+            self.keys[coord_key] = self.coord
+            self.bufr_keys = [coord_key, *self.bufr_keys]
 
-    def collect(self, collector, coord_label=None, raise_on_missing=False, labels=None, **kwargs):
-        print("collect ValueInPeriodAccessor", self.keys)
+        if period_key:
+            self.period = PARAMS.PeriodParameter("_period", period_key)
+            self.keys[period_key] = self.period
+            self.bufr_keys = [period_key, *self.bufr_keys]
+        else:
+            raise ValueError("period_key is required for ValueInPeriodAccessor")
 
-        # value = {}
-        keys = [self.coord_key, self.period_key, *self.keys]
-        keys = [k for k in keys if k is not None]
-        if labels is None:
-            labels = self.labels
+    def collect(
+        self,
+        collector,
+        raise_on_missing=False,
+        add_coord=False,
+        units_converter=None,
+        add_units=False,
+        **kwargs,
+    ):
+        skip = []
+        if not add_coord and self.coord:
+            skip = [self.coord]
 
-        r = []
+        mandatory = self.bufr_keys
+        units_keys = [self.period.bufr_key]
 
-        obs = {}
-        print("collect keys=", keys)
-        for v in collector.collect(keys, {}, mandatory_keys=self.keys, units_keys=[self.period_key]):
-            print("collect v=", v)
-            period = v.get(self.period_key, None)
-            if period is not None:
-                period = str(-period)
-                units = v.get(self.period_key + "->units", "")
-                period = period + units
+        value = self.collect_any(
+            collector,
+            mandatory=mandatory,
+            skip=skip,
+            raise_on_missing=raise_on_missing,
+            units_keys=units_keys,
+            units_converter=units_converter,
+            add_units=add_units,
+            first=False,
+            **kwargs,
+        )
 
-            for label, key in zip(labels, self.keys):
-                label = label + "_" + period
-                obs[label] = v.get(key, None)
+        # encode period into the labels
+        res = {}
+        for r in value:
+            period = r.pop("_period", None)
+            if not period or period is None:
+                period = "nan"
 
-            r.append(obs)
-            print("  - >obs=", obs)
+            for k, v in r.items():
+                if self.coord and k == self.coord.label:
+                    label = self.coord.label.replace("<p>", period)
+                    res[label] = v
+                elif add_units and k.endswith("_units"):
+                    label = k[:-6] + "_" + period + "_units"
+                    res[label] = v
+                else:
+                    label = k + "_" + period
+                    res[label] = v
 
-        # print("  - >value=", value)
-        # keys = [*self.keys, self.coord_key]
-        # # labels = [*self.labels, self.coord_name]
-        # r = {lv: value.get(kv, None) for kv, lv in zip(keys, labels)}
-        # print("  -> r=", r)
-
-        # if raise_on_missing and all(v is None for v in r.values()):
-        #     raise ValueError(f"Missing value for {self.labels}")
-        # # name = [*self.name, self.coord_name]
-
-        return obs
-
-
-class ValueAtFixedCoordAccessor(SimpleAccessor):
-    def __init__(self, fixed_coord=None, **kwargs):
-        super().__init__(**kwargs)
-        self.coord = PARAMS.FixedParam(self.labels[0] + "_level", value=fixed_coord)
-
-        # self.fixed_coord = fixed_coord
-        # self.coord_name = coord_name or self.labels[0] + "_level"
-
-    # def collect(
-    #     self,
-    #     collector,
-    #     raise_on_missing=False,
-    #     add_height=False,
-    #     units_converter=None,
-    #     add_units=False,
-    #     **kwargs,
-    # ):
-
-    #     if not add_height:
-    #         skip = [self.coord]
-
-    #     mandatory = [self.bufr_keys]
-
-    #     return self.collect_first(
-    #         collector,
-    #         mandatory=mandatory,
-    #         skip=skip,
-    #         raise_on_missing=raise_on_missing,
-    #         units_converter=units_converter,
-    #         add_units=add_units,
-    #         **kwargs,
-    #     )
-
-    # def empty_result(self):
-    #     name = [*self.labels, self.coord_name]
-    #     return self._output(name, [None] * (len(self.labels) + 1))
-
-    def collect(self, collector, add_height=False, **kwargs):
-        r = super().collect(collector, **kwargs)
-        if add_height:
-            r[self.coord.label] = self.coord.value
-        return r
-
-        # # if raise_on_missing and all(v is None for v in value):
-        # #     raise ValueError(f"Missing value for {self.labels}")
-
-        # name = [*self.labels, self.coord_name]
-        # return self._output(name, value + [self.fixed_coord])
+        return res
 
 
 class MultiTryAccessor(Accessor):
@@ -458,7 +336,8 @@ class MultiTryAccessor(Accessor):
         for a in self.accessors:
             print("  p=", a)
             try:
-                r = a.collect(collector, raise_on_missing=True)
+                r = a.collect(collector, raise_on_missing=True, **kwargs)
+                print("  -> r=", r)
                 return r
             except Exception as e:
                 print("MultiTryAccessor.collect  exception", e)

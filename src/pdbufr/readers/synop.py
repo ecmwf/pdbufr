@@ -35,7 +35,8 @@ class T2mAccessor(MultiTryAccessor):
             coord_key="heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
         ),
         ValueAtCoordAccessor(
-            keys={"temperature": PARAMS.T2M}, coord_key="heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform"
+            keys={"temperature": PARAMS.T2M},
+            coord_key="heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
         ),
     ]
 
@@ -188,7 +189,7 @@ class SynopReader(CustomReader):
         params=None,
         m2=None,
         m10=None,
-        add_height=False,
+        add_level=False,
         units_converter=None,
         add_units=False,
     ):
@@ -213,7 +214,7 @@ class SynopReader(CustomReader):
             for ac in accessors.values():
                 r = ac.collect(
                     collector,
-                    add_height=add_height,
+                    add_coord=add_level,
                     units_converter=units_converter,
                     add_units=add_units,
                 )
