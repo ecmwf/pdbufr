@@ -18,9 +18,9 @@ from .codesmessage import CodesMessage
 
 
 def bufr_code_is_coord(code) -> bool:
-    try:
+    if isinstance(code, int):
         return code <= 9999
-    except Exception:
+    else:
         return int(code[:3]) < 10
 
 
@@ -100,10 +100,7 @@ class BufrMessage(CodesMessage):
     def is_coord(self, key):
         try:
             c = self._get(key + "->code", int)
-            try:
-                return bufr_code_is_coord(c)
-            except Exception:
-                return False
+            return bufr_code_is_coord(c)
         except Exception:
             return False
 
