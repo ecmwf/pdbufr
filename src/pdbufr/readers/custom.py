@@ -68,5 +68,5 @@ class CustomReader(Reader):
                 # message["skipExtraKeyAttributes"] = 1
                 message["unpack"] = 1
 
-                for d in self.read_message(message, units_converter=units_converter):
+                for d in self.read_message(message, units_converter=units_converter, **kwargs):
                     yield d

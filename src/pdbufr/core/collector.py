@@ -256,3 +256,118 @@ class Collector:
         if current_observation and all(name in current_observation for name in filters):
             if not mandatory_keys or all(name in current_observation for name in mandatory_keys):
                 yield dict(current_observation)
+
+    def collect_a(self, accessor, keys, coords, units_keys=None):
+        value_cache = {}
+        # current_observation: T.Dict[str, T.Any]
+        # current_levels: T.List[int] = [0]
+        # failed_match_level: T.Optional[int] = None
+
+        # current_observation: T.Dict[str, T.Any]
+        # current_observation = collections.OrderedDict({})
+
+        current_coords = {k: None for k in coords}
+
+        for bufr_key in self.filtered_keys:
+            name = bufr_key.name
+
+            if not (name in keys or name in coords):
+                continue
+
+            level = bufr_key.level
+
+            if bufr_key.key not in value_cache:
+                try:
+                    value_cache[bufr_key.key] = self.message[bufr_key.key]
+                except KeyError:
+                    value_cache[bufr_key.key] = None
+            value = value_cache[bufr_key.key]
+
+            # extract compressed BUFR values. They are either numpy arrays (for numeric types)
+            # or lists of strings
+            if (
+                self.is_compressed
+                and name != "unexpandedDescriptors"
+                and isinstance(value, (np.ndarray, list))
+                and len(value) == self.subset_count
+            ):
+                value = value[self.subset]
+
+            if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
+                value = None
+            elif isinstance(value, int) and value == eccodes.CODES_MISSING_LONG:
+                value = None
+
+            units = None
+            if units_keys and name in units_keys:
+                try:
+                    units = self.message[bufr_key.key + "->units"]
+                except KeyError:
+                    units = None
+
+            if name in coords:
+                current_coords[name] = (value, level, units)
+
+            if name in keys:
+                c = dict(name, (value, level, units))
+                for k, v in current_coords.items():
+                    if v is not None:
+                        if v[1] <= level:
+                            c[k] = v[0]
+
+                yield c
+
+            # if name in filters:
+            #     if filters[name].match(value):
+            #         failed_match_level = None
+            #     else:
+            #         failed_match_level = level
+            #         continue
+
+    def collect_b(self, accessors, units_keys=None):
+        value_cache = {}
+        # current_observation: T.Dict[str, T.Any]
+        # current_levels: T.List[int] = [0]
+        # failed_match_level: T.Optional[int] = None
+
+        # current_observation: T.Dict[str, T.Any]
+        # current_observation = collections.OrderedDict({})
+
+        for bufr_key in self.filtered_keys:
+            name = bufr_key.name
+            level = bufr_key.level
+
+            if bufr_key.key not in value_cache:
+                try:
+                    value_cache[bufr_key.key] = self.message[bufr_key.key]
+                except KeyError:
+                    value_cache[bufr_key.key] = None
+            value = value_cache[bufr_key.key]
+
+            # extract compressed BUFR values. They are either numpy arrays (for numeric types)
+            # or lists of strings
+            if (
+                self.is_compressed
+                and name != "unexpandedDescriptors"
+                and isinstance(value, (np.ndarray, list))
+                and len(value) == self.subset_count
+            ):
+                value = value[self.subset]
+
+            if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
+                value = None
+            elif isinstance(value, int) and value == eccodes.CODES_MISSING_LONG:
+                value = None
+
+            units = None
+            if units_keys and name in units_keys:
+                try:
+                    units = self.message[bufr_key.key + "->units"]
+                except KeyError:
+                    units = None
+
+            for a in accessors:
+                a._collect(name, value, level, units)
+
+        for a in accessors:
+            a._last_collect()

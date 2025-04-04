@@ -18,6 +18,7 @@ from pdbufr.core.accessor import SidAccessor
 from pdbufr.core.accessor import SimpleAccessor
 from pdbufr.core.accessor import ValueAtCoordAccessor
 from pdbufr.core.accessor import ValueAtFixedCoordAccessor
+from pdbufr.core.accessor import ValueInFixedPeriodAccessor
 from pdbufr.core.accessor import ValueInPeriodAccessor
 from pdbufr.core.collector import Collector
 from pdbufr.core.subset import BufrSubset
@@ -114,6 +115,65 @@ class TotalPrecipAccessor(MultiTryAccessor):
     ]
 
 
+class TotalPrecip24hAccessor(MultiTryAccessor):
+    param = PARAMS.PRECIPITATION
+
+    accessors = [
+        ValueInFixedPeriodAccessor(
+            keys={"totalPrecipitationPast24Hours": PARAMS.PRECIPITATION},
+            coord_key="heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
+            fixed_period="24h",
+        ),
+        ValueInFixedPeriodAccessor(
+            keys={"totalPrecipitationPast24Hours": PARAMS.PRECIPITATION},
+            coord_key=None,
+            fixed_period="24h",
+        ),
+    ]
+
+
+# class TotalPrecipAccessor1(ComplexAccessor):
+#     param = PARAMS.PRECIPITATION
+#     parts = [
+#         {
+#             "keys": "totalPrecipitationOrTotalWaterEquivalent",
+#             "coords": ["heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "timePeriod"],
+#             "period": "timePeriod",
+#             "mandatory_coords": False,
+#         },
+#         {
+#             "keys": "totalPrecipitationPast1Hours",
+#             "coords": "totalPrecipitationOrTotalWaterEquivalent",
+#             "fixed_period": "1h",
+#             "mandatory_coords": False,
+#         },
+#         {
+#             "keys": "totalPrecipitationPast3Hours",
+#             "coords": "totalPrecipitationOrTotalWaterEquivalent",
+#             "fixed_period": "3h",
+#             "mandatory_coords": False,
+#         },
+#         {
+#             "keys": "totalPrecipitationPast6Hours",
+#             "coords": "totalPrecipitationOrTotalWaterEquivalent",
+#             "fixed_period": "6h",
+#             "mandatory_coords": False,
+#         },
+#         {
+#             "keys": "totalPrecipitationPast12Hours",
+#             "coords": "totalPrecipitationOrTotalWaterEquivalent",
+#             "fixed_period": "12h",
+#             "mandatory_coords": False,
+#         },
+#         {
+#             "keys": "totalPrecipitationPast24Hours",
+#             "coords": "totalPrecipitationOrTotalWaterEquivalent",
+#             "fixed_period": "24h",
+#             "mandatory_coords": False,
+#         },
+#     ]
+
+
 class MinTAccessor(MultiTryAccessor):
     param = PARAMS.MIN_T2M
     accessors = [
@@ -166,6 +226,7 @@ USER_ACCESSORS = [
     PresentWeatherAccessor,
     PastWeatherAccessor,
     TotalPrecipAccessor,
+    TotalPrecip24hAccessor,
     MinTAccessor,
     MaxTAccessor,
     MslpAccessor,
@@ -173,6 +234,7 @@ USER_ACCESSORS = [
     SnowDepthAccessor,
     HorizontalVisibilityAccessor,
 ]
+
 MANAGER = AccessorManager(CORE_ACCESSORS, USER_ACCESSORS)
 
 

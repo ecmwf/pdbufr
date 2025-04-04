@@ -57,6 +57,12 @@ class PeriodParameter(Parameter):
         return True
 
 
+class CoordParameter(Parameter):
+    def __init__(self, name, desc=None, label=None, units=None, suffix=None):
+        super().__init__(name, desc, label, units)
+        self.suffix = suffix
+
+
 class FixedParameter(Parameter):
     def __init__(self, name, value, desc=None, label=None, units=None):
         super().__init__(name, desc, label, units)
@@ -98,6 +104,7 @@ CLOUD_COVER = Parameter("cloud_cover", desc="total cloud cover", units="%")
 MAX_T2M = Parameter("max_t2m", desc="max 2m temperature", units="K")
 MIN_T2M = Parameter("min_t2m", desc="min 2m temperature", units="K")
 PRECIPITATION = Parameter("precipitation", desc="precipitation", units="m")
+PRECIPITATION_24h = Parameter("precipitation_24h", desc="precipitation", units="m")
 SNOW_DEPTH = Parameter("snow_depth", desc="snow depth", units="m")
 
 
