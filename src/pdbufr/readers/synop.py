@@ -10,80 +10,73 @@ import typing as T
 
 import pdbufr.core.param as PARAMS
 from pdbufr.core.accessor import AccessorManager
+from pdbufr.core.accessor import CoordAccessor
 from pdbufr.core.accessor import DatetimeAccessor
 from pdbufr.core.accessor import ElevationAccessor
 from pdbufr.core.accessor import LatLonAccessor
-from pdbufr.core.accessor import MultiTryAccessor
+from pdbufr.core.accessor import MultiAllAccessor
+from pdbufr.core.accessor import MultiFirstAccessor
 from pdbufr.core.accessor import SidAccessor
 from pdbufr.core.accessor import SimpleAccessor
-from pdbufr.core.accessor import ValueAtCoordAccessor
-from pdbufr.core.accessor import ValueAtFixedCoordAccessor
-from pdbufr.core.accessor import ValueInFixedPeriodAccessor
-from pdbufr.core.accessor import ValueInPeriodAccessor
-from pdbufr.core.collector import Collector
-from pdbufr.core.subset import BufrSubset
+from pdbufr.core.subset import BufrSubsetReader
 
 from ..bufr_structure import filter_keys_cached
 from .custom import CustomReader
 
 
-class T2mAccessor(MultiTryAccessor):
+class T2mAccessor(MultiFirstAccessor):
     param = PARAMS.T2M
     accessors = [
-        ValueAtFixedCoordAccessor(keys={"airTemperatureAt2M": PARAMS.T2M}, fixed_coord=2),
-        ValueAtCoordAccessor(
+        CoordAccessor(keys={"airTemperatureAt2M": PARAMS.T2M}, fixed_coords=2),
+        CoordAccessor(
             keys={"airTemperature": PARAMS.T2M},
-            coord_key="heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
-        ),
-        ValueAtCoordAccessor(
-            keys={"temperature": PARAMS.T2M},
-            coord_key="heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
         ),
     ]
 
 
-class RHU2mAccessor(MultiTryAccessor):
+class RHU2mAccessor(MultiFirstAccessor):
     param = PARAMS.RH2M
     accessors = [
-        ValueAtFixedCoordAccessor(keys={"relativeHumidityAt2M": PARAMS.RH2M}, fixed_coord=2),
-        ValueAtCoordAccessor(
+        CoordAccessor(keys={"relativeHumidityAt2M": PARAMS.RH2M}, fixed_coords=2),
+        CoordAccessor(
             keys={"relativeHumidity": PARAMS.RH2M},
-            coord_key="heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
         ),
     ]
 
 
-class Td2mAccessor(MultiTryAccessor):
+class Td2mAccessor(MultiFirstAccessor):
     param = PARAMS.TD2M
     accessors = [
-        ValueAtFixedCoordAccessor(keys={"dewpointTemperatureAt2M": PARAMS.TD2M}, fixed_coord=2),
-        ValueAtCoordAccessor(
+        CoordAccessor(keys={"dewpointTemperatureAt2M": PARAMS.TD2M}, fixed_coords=2),
+        CoordAccessor(
             keys={"dewpointTemperature": PARAMS.TD2M},
-            coord_key="heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
         ),
     ]
 
 
-class Wind10mAccessor(MultiTryAccessor):
+class Wind10mAccessor(MultiFirstAccessor):
     param = PARAMS.WIND10
     accessors = [
-        ValueAtFixedCoordAccessor(
-            keys={"windSpeedAt10M": PARAMS.WSPEED10M, "windDirectionAt10M": PARAMS.WDIR10M}, fixed_coord=10
+        CoordAccessor(
+            keys={"windSpeedAt10M": PARAMS.WSPEED10M, "windDirectionAt10M": PARAMS.WDIR10M}, fixed_coords=10
         ),
-        ValueAtCoordAccessor(
+        CoordAccessor(
             keys={"windSpeed": PARAMS.WSPEED10M, "windDirection": PARAMS.WDIR10M},
-            coord_key="heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
         ),
     ]
 
 
-class WindGustAccessor(MultiTryAccessor):
+class WindGustAccessor(MultiFirstAccessor):
     param = PARAMS.WGUST
     accessors = [
-        ValueInPeriodAccessor(
+        CoordAccessor(
             keys={"maximumWindGustSpeed": PARAMS.WSPEEDGUST, "maximumWindGustDirection": PARAMS.WDIRGUST},
-            coord_key="heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
-            period_key="timePeriod",
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
+            period="timePeriod",
         ),
     ]
 
@@ -93,105 +86,73 @@ class PresentWeatherAccessor(SimpleAccessor):
     keys = {"presentWeather": PARAMS.PRESENT_WEATHER}
 
 
-class PastWeatherAccessor(ValueInPeriodAccessor):
+class PastWeatherAccessor(CoordAccessor):
     param = PARAMS.PAST_WEATHER
     keys = {"pastWeather1": PARAMS.PAST_WEATHER_1, "pastWeather2": PARAMS.PAST_WEATHER_2}
 
     def __init__(self, **kwargs):
         super().__init__(
-            period_key="timePeriod",
+            period="timePeriod",
             **kwargs,
         )
 
 
-class TotalPrecipAccessor(MultiTryAccessor):
+class TotalPrecipAccessor(MultiAllAccessor):
     param = PARAMS.PRECIPITATION
     accessors = [
-        ValueInPeriodAccessor(
+        CoordAccessor(
             keys={"totalPrecipitationOrTotalWaterEquivalent": PARAMS.PRECIPITATION},
-            coord_key="heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
-            period_key="timePeriod",
-        )
+            coords=[
+                ("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False),
+            ],
+            period="timePeriod",
+        ),
+        CoordAccessor(
+            keys={"totalPrecipitationPast1Hours": PARAMS.PRECIPITATION},
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
+            fixed_period="1h",
+        ),
+        CoordAccessor(
+            keys={"totalPrecipitationPast3Hours": PARAMS.PRECIPITATION},
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
+            fixed_period="3h",
+        ),
+        CoordAccessor(
+            keys={"totalPrecipitationPast6Hours": PARAMS.PRECIPITATION},
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
+            fixed_period="6h",
+        ),
+        CoordAccessor(
+            keys={"totalPrecipitationPast12Hours": PARAMS.PRECIPITATION},
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
+            fixed_period="12h",
+        ),
+        CoordAccessor(
+            keys={"totalPrecipitationPast24Hours": PARAMS.PRECIPITATION},
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
+            fixed_period="24h",
+        ),
     ]
 
 
-class TotalPrecip24hAccessor(MultiTryAccessor):
-    param = PARAMS.PRECIPITATION
-
-    accessors = [
-        ValueInFixedPeriodAccessor(
-            keys={"totalPrecipitationPast24Hours": PARAMS.PRECIPITATION},
-            coord_key="heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
-            fixed_period="24h",
-        ),
-        ValueInFixedPeriodAccessor(
-            keys={"totalPrecipitationPast24Hours": PARAMS.PRECIPITATION},
-            coord_key=None,
-            fixed_period="24h",
-        ),
-    ]
-
-
-# class TotalPrecipAccessor1(ComplexAccessor):
-#     param = PARAMS.PRECIPITATION
-#     parts = [
-#         {
-#             "keys": "totalPrecipitationOrTotalWaterEquivalent",
-#             "coords": ["heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "timePeriod"],
-#             "period": "timePeriod",
-#             "mandatory_coords": False,
-#         },
-#         {
-#             "keys": "totalPrecipitationPast1Hours",
-#             "coords": "totalPrecipitationOrTotalWaterEquivalent",
-#             "fixed_period": "1h",
-#             "mandatory_coords": False,
-#         },
-#         {
-#             "keys": "totalPrecipitationPast3Hours",
-#             "coords": "totalPrecipitationOrTotalWaterEquivalent",
-#             "fixed_period": "3h",
-#             "mandatory_coords": False,
-#         },
-#         {
-#             "keys": "totalPrecipitationPast6Hours",
-#             "coords": "totalPrecipitationOrTotalWaterEquivalent",
-#             "fixed_period": "6h",
-#             "mandatory_coords": False,
-#         },
-#         {
-#             "keys": "totalPrecipitationPast12Hours",
-#             "coords": "totalPrecipitationOrTotalWaterEquivalent",
-#             "fixed_period": "12h",
-#             "mandatory_coords": False,
-#         },
-#         {
-#             "keys": "totalPrecipitationPast24Hours",
-#             "coords": "totalPrecipitationOrTotalWaterEquivalent",
-#             "fixed_period": "24h",
-#             "mandatory_coords": False,
-#         },
-#     ]
-
-
-class MinTAccessor(MultiTryAccessor):
+class MinTAccessor(MultiFirstAccessor):
     param = PARAMS.MIN_T2M
     accessors = [
-        ValueInPeriodAccessor(
+        CoordAccessor(
             keys={"minimumTemperatureAtHeightAndOverPeriodSpecified": PARAMS.MIN_T2M},
-            coord_key="heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
-            period_key="timePeriod",
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
+            period="timePeriod",
         )
     ]
 
 
-class MaxTAccessor(MultiTryAccessor):
+class MaxTAccessor(MultiFirstAccessor):
     param = PARAMS.MAX_T2M
     accessors = [
-        ValueInPeriodAccessor(
+        CoordAccessor(
             keys={"maximumTemperatureAtHeightAndOverPeriodSpecified": PARAMS.MAX_T2M},
-            coord_key="heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
-            period_key="timePeriod",
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
+            period="timePeriod",
         )
     ]
 
@@ -226,7 +187,6 @@ USER_ACCESSORS = [
     PresentWeatherAccessor,
     PastWeatherAccessor,
     TotalPrecipAccessor,
-    TotalPrecip24hAccessor,
     MinTAccessor,
     MaxTAccessor,
     MslpAccessor,
@@ -238,9 +198,30 @@ USER_ACCESSORS = [
 MANAGER = AccessorManager(CORE_ACCESSORS, USER_ACCESSORS)
 
 
+class MultiFilter:
+    def __init__(self, filters):
+        self.filters = filters or {}
+
+    # def match(self, name, value):
+    #     if name in self.filters:
+    #         if self.filters[name].match(value):
+    #             return True
+    #         else:
+    #             return False
+    #     return True
+
+    def match(self, data):
+        for k, v in data.items():
+            if k in self.filters:
+                if not self.filters[k].match(v):
+                    return False
+        return True
+
+
 class SynopReader(CustomReader):
     def match_category(self, message):
-        return message["dataCategory"] == 0
+        c = message["dataCategory"]
+        return c == 0 or c == 1
 
     # params: T.Union[T.Sequence[str], T.Any] = None,
     # filters: T.Mapping[str, T.Any] = {},
@@ -254,24 +235,30 @@ class SynopReader(CustomReader):
         add_level=False,
         units_converter=None,
         add_units=False,
+        filters=None,
     ):
         accessors = MANAGER.get(params)
 
+        filters = MultiFilter(filters)
         keys_cache = {}
 
         included_keys = set()
         for _, p in accessors.items():
             included_keys |= set(p.needed_keys)
 
-        print("included_keys=", included_keys)
+        included_keys.add("subsetNumber")
+
+        # print("included_keys=", included_keys)
 
         filtered_keys = filter_keys_cached(message, keys_cache, included_keys)
 
-        subsets = BufrSubset(message, filtered_keys)
+        subsets = BufrSubsetReader(message, filtered_keys)
+        # collector = Collector(message, filtered_keys, subsets)
 
-        for s in subsets.subsets():
-            keys, subset = s
-            collector = Collector(message, keys, subset)
+        for collector in subsets.subsets():
+            # keys, subset = s
+            # collector.set_current_subset(subset)
+            # collector = Collector(message, keys, subset)
             d = {}
             for ac in accessors.values():
                 r = ac.collect(
@@ -279,13 +266,23 @@ class SynopReader(CustomReader):
                     add_coord=add_level,
                     units_converter=units_converter,
                     add_units=add_units,
+                    filters=filters,
                 )
-                d.update(r)
+                r_1 = {}
+                if isinstance(r, list):
+                    for rr in r:
+                        r_1.update(rr)
+                    r = r_1
+
+                if filters.match(r):
+                    d.update(r)
+                else:
+                    break
 
             if d:
                 yield d
 
-        print(f"d={d}")
+        # print(f"d={d}")
 
 
 reader = SynopReader

@@ -24,6 +24,7 @@ PINT_UNITS = {
     # "K m s-1": "K m/s",
     "kg kg-1": "kg/kg",
     "km h-1": "km/h",
+    "kg m-2": "kg/m^2",
     "m s-1": "m/s",
     "m s-2": "m/s^2",
     "m s-3": "m/s^3",
@@ -107,7 +108,8 @@ class SIUnitsConverter(UnitsConverter):
     def convert(self, label, value, units):
         print("SIUnitsConverter.convert", label, value, units)
         pv = self._Q(value, self.pint_units(units))
-        return pv.to_base_units().magnitude
+        r = pv.to_base_units()
+        return r.magnitude, f"{r.units:~}"
 
 
 class SimpleUnitsConverter(SIUnitsConverter):
@@ -122,12 +124,12 @@ class SimpleUnitsConverter(SIUnitsConverter):
         if label in self.target_units:
             t_units = self.target_units[label]
             if t_units == units:
-                return value
+                return value, units
             else:
-                t_units = self.pint_units(t_units)
-                units = self.pint_units(units)
-                if t_units == units:
-                    return value
-                return self._Q(value, units).to(t_units).magnitude
+                p_t_units = self.pint_units(t_units)
+                p_s_units = self.pint_units(units)
+                if p_t_units == p_s_units:
+                    return value, units
+                return self._Q(value, p_s_units).to(p_t_units).magnitude, t_units
         else:
             return super().convert(label, value, units)

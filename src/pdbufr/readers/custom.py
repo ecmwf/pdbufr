@@ -24,21 +24,14 @@ class CustomReader(Reader):
     def match_category(self, message):
         pass
 
-    def create_units_checker(self, params, units):
-        if units is None:
-            return None
+    def _read(self, bufr_obj, units=None, filters=None, **kwargs):
+        from .. import bufr_filters
 
-        if isinstance(units, dict):
-            r_units = {}
-            for k, v in units.items():
-                if k in self.ACCESSOR_MANAGER.accessors:
-                    r_units[k] = v
-                else:
-                    raise ValueError(f"Unknown parameter in units: {k}")
+        filters = filters or {}
+        filters = dict(filters)
+        value_filters = {k: bufr_filters.BufrFilter.from_user(filters[k], key=k) for k in filters}
 
-    def _read(self, bufr_obj, units=None, **kwargs):
-        value_filters = {}
-
+        # create units converter
         units_converter = None
         if units is not None:
             from ..utils.units import UnitsConverter
@@ -46,10 +39,10 @@ class CustomReader(Reader):
             units_converter = UnitsConverter.make(units)
 
         # prepare count filter
-        # if "count" in value_filters:
-        #     max_count = value_filters["count"].max()
-        # else:
-        #     max_count = None
+        if "count" in value_filters:
+            max_count = value_filters["count"].max()
+        else:
+            max_count = None
 
         count_filter = value_filters.pop("count", None)
 
@@ -57,6 +50,10 @@ class CustomReader(Reader):
             # we use a context manager to automatically delete the handle of the BufrMessage.
             # We have to use a wrapper object here because a message can also be a dict
             with MessageWrapper.wrap(msg) as message:
+                # skip decoding messages above max_count
+                if max_count is not None and count > max_count:
+                    break
+
                 # count filter
                 if count_filter is not None and not count_filter.match(count):
                     continue
@@ -68,5 +65,7 @@ class CustomReader(Reader):
                 # message["skipExtraKeyAttributes"] = 1
                 message["unpack"] = 1
 
-                for d in self.read_message(message, units_converter=units_converter, **kwargs):
+                for d in self.read_message(
+                    message, units_converter=units_converter, filters=value_filters, **kwargs
+                ):
                     yield d

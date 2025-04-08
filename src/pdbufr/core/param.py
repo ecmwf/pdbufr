@@ -29,6 +29,9 @@ class Parameter:
     def is_period(self):
         return False
 
+    def is_fixed(self):
+        return False
+
     def __repr__(self):
         return f"Parameter({self.name}, label={self.label}, units={self.units}"
 
@@ -67,6 +70,9 @@ class FixedParameter(Parameter):
     def __init__(self, name, value, desc=None, label=None, units=None):
         super().__init__(name, desc, label, units)
         self.value = value
+
+    def is_fixed(self):
+        return True
 
 
 # station related parameters
