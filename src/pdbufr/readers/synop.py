@@ -77,6 +77,7 @@ class WindGustAccessor(MultiFirstAccessor):
             keys={"maximumWindGustSpeed": PARAMS.WSPEEDGUST, "maximumWindGustDirection": PARAMS.WDIRGUST},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             period="timePeriod",
+            first=False,
         ),
     ]
 
@@ -93,6 +94,7 @@ class PastWeatherAccessor(CoordAccessor):
     def __init__(self, **kwargs):
         super().__init__(
             period="timePeriod",
+            first=False,
             **kwargs,
         )
 
@@ -106,31 +108,37 @@ class TotalPrecipAccessor(MultiAllAccessor):
                 ("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False),
             ],
             period="timePeriod",
+            first=False,
         ),
         CoordAccessor(
             keys={"totalPrecipitationPast1Hours": PARAMS.PRECIPITATION},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             fixed_period="1h",
+            first=False,
         ),
         CoordAccessor(
             keys={"totalPrecipitationPast3Hours": PARAMS.PRECIPITATION},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             fixed_period="3h",
+            first=False,
         ),
         CoordAccessor(
             keys={"totalPrecipitationPast6Hours": PARAMS.PRECIPITATION},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             fixed_period="6h",
+            first=False,
         ),
         CoordAccessor(
             keys={"totalPrecipitationPast12Hours": PARAMS.PRECIPITATION},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             fixed_period="12h",
+            first=False,
         ),
         CoordAccessor(
             keys={"totalPrecipitationPast24Hours": PARAMS.PRECIPITATION},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             fixed_period="24h",
+            first=False,
         ),
     ]
 
@@ -142,6 +150,7 @@ class MinTAccessor(MultiFirstAccessor):
             keys={"minimumTemperatureAtHeightAndOverPeriodSpecified": PARAMS.MIN_T2M},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             period="timePeriod",
+            first=False,
         )
     ]
 
@@ -153,6 +162,7 @@ class MaxTAccessor(MultiFirstAccessor):
             keys={"maximumTemperatureAtHeightAndOverPeriodSpecified": PARAMS.MAX_T2M},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             period="timePeriod",
+            first=False,
         )
     ]
 

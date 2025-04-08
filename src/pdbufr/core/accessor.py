@@ -156,7 +156,7 @@ class SimpleAccessor(Accessor):
 
         if first:
             if raise_on_missing:
-                raise ValueError(f"Missing value for {self.name}")
+                raise ValueError(f"Missing value for {self.name} {self.bufr_keys}")
             return {}
         else:
             return multi_res
@@ -205,10 +205,11 @@ class ComputedKeyAccessor(Accessor):
 class CoordAccessor(SimpleAccessor):
     period_placeholder = "<p>"
 
-    def __init__(self, coords=None, fixed_coords=None, period=None, fixed_period=None, **kwargs):
+    def __init__(self, coords=None, fixed_coords=None, period=None, fixed_period=None, first=True, **kwargs):
         super().__init__(**kwargs)
 
         self.mandatory = [*self.bufr_keys]
+        self.first = first
 
         # period coords
         # self.fixed_period = fixed_period
@@ -307,7 +308,7 @@ class CoordAccessor(SimpleAccessor):
             units_keys=units_keys,
             units_converter=units_converter,
             add_units=add_units,
-            first=False,
+            first=self.first,
             **kwargs,
         )
 
@@ -350,7 +351,7 @@ class MultiAllAccessor(MultiAccessorBase):
     def collect(self, collector, **kwargs):
         res = {}
         for a in self.accessors:
-            r = a.collect(collector, raise_on_missing=True, **kwargs)
+            r = a.collect(collector, raise_on_missing=False, **kwargs)
             if r:
                 res.update(r)
 
@@ -425,7 +426,7 @@ class AccessorManager:
                     else:
                         raise ValueError(f"Unsupported parameter '{p}'")
 
-                cache_key[cache_key] = accessors
+                self.cache[cache_key] = accessors
 
         assert accessors is not None
 

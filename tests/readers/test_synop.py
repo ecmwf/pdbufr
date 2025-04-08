@@ -21,11 +21,11 @@ REF = [
         "lon": -134.96533,
         "elevation": 91.0,
         "time": datetime.datetime.fromisoformat("2020-03-15T00:00:00.000"),
-        "t2m": 0.1,
-        "rh2m": 1,
+        "t2m": 300.45,
+        "rh2m": 73,
         "td2m": 295.15,
-        "wspeed10m": None,
-        "wdir10m": None,
+        "wspeed10m": 1.6,
+        "wdir10m": 100,
         "wspeedgust_10min": 5.3,
         "wdirgust_10min": 110.0,
         "wspeedgust_60min": 5.3,
@@ -128,6 +128,29 @@ REF = [
     },
 ]
 
+REF_PARAMS_1 = [
+    {
+        "sid": 91948,
+        "lat": -23.13017,
+        "lon": -134.96533,
+        "elevation": 91.0,
+        "time": datetime.datetime.fromisoformat("2020-03-15T00:00:00.000"),
+        "t2m": 300.45,
+    }
+]
+
+REF_PARAMS_2 = [
+    {
+        "sid": 91948,
+        "lat": -23.13017,
+        "lon": -134.96533,
+        "elevation": 91.0,
+        "time": datetime.datetime.fromisoformat("2020-03-15T00:00:00.000"),
+        "t2m": 300.45,
+        "rh2m": 73,
+    }
+]
+
 
 def test_synop_reader():
     df = pdbufr.read_bufr(
@@ -146,6 +169,44 @@ def test_synop_reader():
     # print("parsed=", parsed)
 
     df_ref = pd.DataFrame.from_dict(REF)
+    df_ref.reset_index(drop=True, inplace=True)
+
+    df = df.replace(np.nan, None)
+
+    try:
+        pd.testing.assert_frame_equal(
+            df, df_ref, check_dtype=False, check_index_type=False, check_datetimelike_compat=True
+        )
+    except Exception as e:
+        print("e=", e)
+        raise
+
+
+def test_synop_params_1():
+    df = pdbufr.read_bufr(
+        sample_test_data_path("syn_new.bufr"), reader="synop", filters={"count": 1}, params=["t2m"]
+    )
+
+    df_ref = pd.DataFrame.from_dict(REF_PARAMS_1)
+    df_ref.reset_index(drop=True, inplace=True)
+
+    df = df.replace(np.nan, None)
+
+    try:
+        pd.testing.assert_frame_equal(
+            df, df_ref, check_dtype=False, check_index_type=False, check_datetimelike_compat=True
+        )
+    except Exception as e:
+        print("e=", e)
+        raise
+
+
+def test_synop_params_2():
+    df = pdbufr.read_bufr(
+        sample_test_data_path("syn_new.bufr"), reader="synop", filters={"count": 1}, params=["t2m", "rh2m"]
+    )
+
+    df_ref = pd.DataFrame.from_dict(REF_PARAMS_2)
     df_ref.reset_index(drop=True, inplace=True)
 
     df = df.replace(np.nan, None)
