@@ -67,46 +67,11 @@ class UnitsConverter(metaclass=ABCMeta):
         raise ValueError(f"Cannot create units converter for {target_units=}")
 
 
-# class SimpleUnitsChecker(UnitsChecker):
-#     def __init__(self, target_units=None):
-#         super().__init__()
-#         self.target_units = target_units or {}
-
-#     def check(self, label, value, units):
-#         if not self.target_units:
-#             return value
-
-#         if label in self.target_units:
-#             t_units = self.target_units[label]
-#             if t_units == units:
-#                 return value
-#             else:
-#                 t_units = self.pint_units(t_units)
-#                 units = self.pint_units(units)
-#                 if t_units == units:
-#                     return value
-#                 return self._Q(value, units).to(t_units).magnitude
-#         else:
-
-
-#         t_units = self.target_units.get(units, units)
-#         if t_units == units:
-#             return value
-
-#         t_units = self.pint_units(t_units)
-#         units = self.pint_units(units)
-#         if t_units == units:
-#             return value
-
-#         return self._Q(value, units).to(t_units).magnitude
-
-
 class SIUnitsConverter(UnitsConverter):
     def __init__(self):
         super().__init__()
 
     def convert(self, label, value, units):
-        print("SIUnitsConverter.convert", label, value, units)
         pv = self._Q(value, self.pint_units(units))
         r = pv.to_base_units()
         return r.magnitude, f"{r.units:~}"
