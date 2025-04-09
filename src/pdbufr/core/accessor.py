@@ -398,7 +398,6 @@ class AccessorManager:
         self.accessors = set([*core_accessors, *user_accessors, *default_user_accessors])
         aa = {}
         for a in self.accessors:
-            print("a=", a, "param=", a.param)
             aa[a.param.label] = a()
         self.accessors = aa
         # self.accessors = {a.param.label: a() for a in self.accessors}
