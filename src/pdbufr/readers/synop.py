@@ -20,7 +20,6 @@ from pdbufr.core.accessor import SidAccessor
 from pdbufr.core.accessor import SimpleAccessor
 from pdbufr.core.subset import BufrSubsetReader
 
-from ..bufr_structure import filter_keys_cached
 from .custom import CustomReader
 
 
@@ -208,28 +207,8 @@ USER_ACCESSORS = [
 MANAGER = AccessorManager(CORE_ACCESSORS, USER_ACCESSORS)
 
 
-class MultiFilter:
-    def __init__(self, filters):
-        self.filters = filters or {}
-
-    # def match(self, name, value):
-    #     if name in self.filters:
-    #         if self.filters[name].match(value):
-    #             return True
-    #         else:
-    #             return False
-    #     return True
-
-    def match(self, data):
-        for k, v in data.items():
-            if k in self.filters:
-                if not self.filters[k].match(v):
-                    return False
-        return True
-
-
 class SynopReader(CustomReader):
-    def match_category(self, message):
+    def filter_header(self, message):
         c = message["dataCategory"]
         return c == 0 or c == 1
 
@@ -249,30 +228,15 @@ class SynopReader(CustomReader):
     ):
         accessors = MANAGER.get(params)
 
-        filters = MultiFilter(filters)
-        keys_cache = {}
+        filtered_keys = self.get_filtered_keys(message, accessors)
 
-        included_keys = set()
-        for _, p in accessors.items():
-            included_keys |= set(p.needed_keys)
+        reader = BufrSubsetReader(message, filtered_keys)
 
-        included_keys.add("subsetNumber")
-
-        # print("included_keys=", included_keys)
-
-        filtered_keys = filter_keys_cached(message, keys_cache, included_keys)
-
-        subsets = BufrSubsetReader(message, filtered_keys)
-        # collector = Collector(message, filtered_keys, subsets)
-
-        for collector in subsets.subsets():
-            # keys, subset = s
-            # collector.set_current_subset(subset)
-            # collector = Collector(message, keys, subset)
+        for subset in reader.subsets():
             d = {}
             for ac in accessors.values():
                 r = ac.collect(
-                    collector,
+                    subset,
                     add_coord=add_level,
                     units_converter=units_converter,
                     add_units=add_units,

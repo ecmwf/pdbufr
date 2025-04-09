@@ -80,21 +80,23 @@ class SIUnitsConverter(UnitsConverter):
 class SimpleUnitsConverter(SIUnitsConverter):
     def __init__(self, target_units=None):
         super().__init__()
-        self.target_units = target_units or {}
+        self.bufr_target_units = target_units or {}
+        self.pint_target_units = {k: self.pint_units(v) for k, v in self.bufr_target_units.items()}
 
     def convert(self, label, value, units):
-        if value is None or not self.target_units:
+        print("SimpleUnitsConverter", label, value, units)
+        if value is None or not self.bufr_target_units:
             return value
 
-        if label in self.target_units:
-            t_units = self.target_units[label]
-            if t_units == units:
+        p_t_units = self.pint_target_units.get(label, None)
+        if p_t_units is not None:
+            b_t_units = self.bufr_target_units[label]
+            if b_t_units == units:
                 return value, units
             else:
-                p_t_units = self.pint_units(t_units)
                 p_s_units = self.pint_units(units)
                 if p_t_units == p_s_units:
                     return value, units
-                return self._Q(value, p_s_units).to(p_t_units).magnitude, t_units
+                return self._Q(value, p_s_units).to(p_t_units).magnitude, b_t_units
         else:
             return super().convert(label, value, units)

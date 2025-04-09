@@ -9,7 +9,10 @@
 import logging
 from abc import abstractmethod
 
-from ..bufr_structure import MessageWrapper
+from pdbufr.bufr_filters import MultiFilter
+from pdbufr.bufr_structure import MessageWrapper
+from pdbufr.bufr_structure import filter_keys_cached
+
 from . import Reader
 
 LOG = logging.getLogger(__name__)
@@ -21,8 +24,19 @@ class CustomReader(Reader):
         pass
 
     @abstractmethod
-    def match_category(self, message):
+    def filter_header(self, message):
         pass
+
+    @staticmethod
+    def get_filtered_keys(message, accessors):
+        keys_cache = {}
+        included_keys = set()
+        for _, p in accessors.items():
+            included_keys |= set(p.needed_keys)
+
+        included_keys.add("subsetNumber")
+
+        return filter_keys_cached(message, keys_cache, included_keys)
 
     def _read(self, bufr_obj, units=None, filters=None, **kwargs):
         from .. import bufr_filters
@@ -46,6 +60,8 @@ class CustomReader(Reader):
 
         count_filter = value_filters.pop("count", None)
 
+        filters = MultiFilter(filters)
+
         for count, msg in enumerate(bufr_obj, 1):
             # we use a context manager to automatically delete the handle of the BufrMessage.
             # We have to use a wrapper object here because a message can also be a dict
@@ -59,13 +75,13 @@ class CustomReader(Reader):
                     continue
 
                 # this uses the header so can be called before unpacking
-                if not self.match_category(message):
+                if not self.filter_header(message):
                     continue
 
                 # message["skipExtraKeyAttributes"] = 1
                 message["unpack"] = 1
 
                 for d in self.read_message(
-                    message, units_converter=units_converter, filters=value_filters, **kwargs
+                    message, units_converter=units_converter, filters=filters, **kwargs
                 ):
                     yield d

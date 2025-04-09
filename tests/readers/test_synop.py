@@ -230,7 +230,7 @@ def test_synop_units_1():
         units={"mslp": "hPa", "td2m": "degC", "t2m": "degF"},
     )
 
-    ref = {"mslp": 1013.2, "td2m": 22.000000000000057, "t2m": -459.49}
+    ref = {"mslp": 1013.2, "td2m": 22.000000000000057, "t2m": 81.13999999999996}
 
     for k, v in ref.items():
         assert np.isclose(df[k][0], v), f"{k}={df[k][0]} != {v}"
@@ -249,7 +249,7 @@ def test_synop_units_2():
         units={"mslp": "hPa", "td2m": "degC", "t2m": "degF"},
     )
 
-    ref = {"mslp": 1013.2, "td2m": 22.000000000000057, "t2m": -459.49}
+    ref = {"mslp": 1013.2, "td2m": 22.000000000000057, "t2m": 81.13999999999996}
 
     for k, v in ref.items():
         assert np.isclose(df[k][0], v), f"{k}={df[k][0]} != {v}"

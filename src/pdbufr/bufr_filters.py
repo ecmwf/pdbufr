@@ -216,3 +216,15 @@ def is_match(
     if required and matches < len(compiled_filters):
         return False
     return True
+
+
+class MultiFilter:
+    def __init__(self, filters):
+        self.filters = filters or {}
+
+    def match(self, data):
+        for k, v in data.items():
+            if k in self.filters:
+                if not self.filters[k].match(v):
+                    return False
+        return True

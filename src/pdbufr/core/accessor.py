@@ -91,36 +91,38 @@ class SimpleAccessor(Accessor):
 
         res = {}
         for key, param in self.keys.items():
-            if param.is_fixed():
-                res[param.label] = param.value
-            elif param is not None:
-                label = param.label
-                if param in skip:
-                    continue
+            if param is not None:
+                if param.is_fixed():
+                    res[param.label] = param.value
+                else:
+                    label = param.label
+                    if param in skip:
+                        continue
 
-                v, units = value.get(key, None)
+                    v, units = value.get(key, (None, None))
 
-                # convert units
-                if v is not None and units_converter is not None and param.units:
-                    print("units_converter", label, units, v, param.units)
-                    v, units = units_converter.convert(label, v, units)
+                    # convert units
+                    if v is not None and units_converter is not None and param.units:
+                        print("units_converter", label, units, v, param.units)
+                        v, units = units_converter.convert(label, v, units)
 
-                # handle period
-                if param.is_period():
-                    period = v
-                    if period is not None:
-                        period = str(-period)
-                        # units = value.get(key + "->units", "")
-                        period = period + units
-                        v = period
+                    # handle period
+                    if param.is_period():
+                        v = param.concat_units(v, units)
+                        # period = v
+                        # if period is not None:
+                        #     period = str(-period)
+                        #     # units = value.get(key + "->units", "")
+                        #     period = period + units
+                        #     v = period
 
-                    # print(f"{label=} {period=} {value=}")
+                        # print(f"{label=} {period=} {value=}")
 
-                res[label] = v
+                    res[label] = v
 
-                # add units column
-                if add_units and param.units:
-                    res[label + "_units"] = units
+                    # add units column
+                    if add_units and param.units:
+                        res[label + "_units"] = units
 
         return res
 
@@ -221,7 +223,7 @@ class CoordAccessor(SimpleAccessor):
 
         if period:
             self.period_bufr_key = period
-            self.period = PARAMS.PeriodParameter("_period", period)
+            self.period = PARAMS.PeriodParameter("_period")
             self.keys[period] = self.period
             self.bufr_keys = [period, *self.bufr_keys]
             self.mandatory.append(period)
@@ -396,6 +398,7 @@ class AccessorManager:
         self.accessors = set([*core_accessors, *user_accessors, *default_user_accessors])
         aa = {}
         for a in self.accessors:
+            print("a=", a, "param=", a.param)
             aa[a.param.label] = a()
         self.accessors = aa
         # self.accessors = {a.param.label: a() for a in self.accessors}
@@ -418,6 +421,8 @@ class AccessorManager:
             if cache_key in self.cache:
                 accessors = self.cache[cache_key]
             else:
+                if isinstance(params, str):
+                    params = [params]
                 v = list(params)
                 accessors = {**self.core}
                 for p in v:
@@ -431,3 +436,9 @@ class AccessorManager:
         assert accessors is not None
 
         return accessors
+
+    def get_by_object(self, accessor):
+        if not issubclass(accessor, Accessor):
+            raise ValueError(f"Invalid accessor type={type(accessor)}")
+        label = accessor.param.label
+        return self.accessors[label]

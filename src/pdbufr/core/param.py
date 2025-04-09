@@ -52,12 +52,22 @@ class Parameter:
 
 
 class PeriodParameter(Parameter):
-    def __init__(self, name, bufr_key, desc=None, label=None, units=None):
-        super().__init__(name, desc, label, units)
-        self.bufr_key = bufr_key
-
     def is_period(self):
         return True
+
+    def to_timedelta(self, v, units):
+        from pdbufr.utils.convert import period_to_timedelta
+
+        return period_to_timedelta(v, units)
+
+    def concat_units(self, v, units):
+        period = v
+        if period is not None:
+            period = str(-period)
+            # units = value.get(key + "->units", "")
+            period = period + units
+            v = period
+        return v
 
 
 class CoordParameter(Parameter):
@@ -84,12 +94,12 @@ LON = Parameter("lon", desc="longitude", units="deg")
 ELEVATION = Parameter("elevation", desc="elevation", units="m")
 
 # time and location offsets for upper air data where each level can have its own time and location
-TIME_OFFSET = Parameter("time_offset", desc="datetime offset")
+TIME_OFFSET = PeriodParameter("time_offset", desc="datetime offset")
 LAT_OFFSET = Parameter("lat_offset", desc="latitude offset", units="deg")
 LON_OFFSET = Parameter("lon_offset", desc="latitude offset", units="deg")
 
 # surface parameters
-PERIOD = Parameter("period", desc="period")
+PERIOD = PeriodParameter("period", desc="period")
 T2M = Parameter("t2m", desc="2m temperature", units="K")
 TD2M = Parameter("td2m", desc="2m dewpoint temperature", units="K")
 RH2M = Parameter("rh2m", desc="2m relative humidity", units="%")

@@ -7,352 +7,236 @@
 # nor does it submit to any jurisdiction.
 
 
+import logging
 import typing as T
 
-import pdbufr.bufr_types.param as PARAMS
-from pdbufr.bufr_structure import filter_keys_cached
-from pdbufr.utils.convert import period_to_timedelta
+import pdbufr.core.param as PARAMS
+from pdbufr.core.accessor import AccessorManager
+from pdbufr.core.accessor import DatetimeAccessor
+from pdbufr.core.accessor import ElevationAccessor
+from pdbufr.core.accessor import LatLonAccessor
+from pdbufr.core.accessor import SidAccessor
+from pdbufr.core.accessor import SimpleAccessor
+from pdbufr.core.param import Parameter
+from pdbufr.core.subset import BufrSubsetReader
 
-from ..bufr_types.accessor import Accessor
-from ..bufr_types.accessor import AccessorManager
-from ..bufr_types.accessor import DatetimeAccessor
-from ..bufr_types.accessor import ElevationAccessor
-from ..bufr_types.accessor import LatLonAccessor
-from ..bufr_types.accessor import SidAccessor
-from ..bufr_types.collector import Collector
-from ..bufr_types.subset import BufrSubset
 from .custom import CustomReader
 
+LOG = logging.getLogger(__name__)
 
-class PressureLevelAccessor(Accessor):
-    # labels = [
-    #     "p",
-    #     "z",
-    #     "zh",
-    #     "t",
-    #     "td",
-    #     "wdir",
-    #     "wspeed",
-    # ]
 
-    def __init__(self, ref_date=None, ref_lat=None, ref_lon=None, **kwargs):
-        super().__init__(**kwargs)
-        self.keys = {
-            "pressure": PARAMS.PRESSURE,
-            "verticalSoundingSignificance": None,
-            "nonCoordinateGeopotential": PARAMS.Z,
-            "nonCoordinateGeopotentialHeight": PARAMS.ZH,
-            "airTemperature": PARAMS.T,
-            "dewpointTemperature": PARAMS.TD,
-            "windDirection": PARAMS.WDIR,
-            "windSpeed": PARAMS.WSPEED,
-        }
-
-    @property
-    def needed_keys(self):
-        return list(self.keys.keys())
+class PressureLevelAccessor(SimpleAccessor):
+    keys = {
+        "pressure": PARAMS.PRESSURE,
+        "verticalSoundingSignificance": None,
+        "nonCoordinateGeopotential": PARAMS.Z,
+        "nonCoordinateGeopotentialHeight": PARAMS.ZH,
+        "airTemperature": PARAMS.T,
+        "dewpointTemperature": PARAMS.TD,
+        "windDirection": PARAMS.WDIR,
+        "windSpeed": PARAMS.WSPEED,
+    }
+    param = Parameter("plev", "pressure_level")
 
     def empty_result(self):
         return []
 
-    def collect(self, collector, labels=None, ref_date=None, ref_lat=None, ref_lon=None, **kwargs):
-        keys = list(self.keys.keys())
-        # labels = list(self.keys.values())
-        # if labels is None:
-        #     labels = self.labels
-
-        r = []
-        # print("collect keys=", keys)
-        for v in collector.collect(keys, {}, mandatory_keys=["pressure", "verticalSoundingSignificance"]):
-            # print("collect v=", v)
-            obs = {}
-            for k, p in self.keys.items():
-                if p is not None:
-                    obs[p.name] = v.get(k, None)
-
-            # for label, key in zip(labels, self.keys):
-            #     if label is not None:
-            #         obs[label] = v.get(key, None)
-            r.append(obs)
-        return r
+    def collect(
+        self,
+        collector,
+        labels=None,
+        ref_date=None,
+        ref_lat=None,
+        ref_lon=None,
+        raise_on_missing=False,
+        units_converter=None,
+        add_units=False,
+        **kwargs,
+    ):
+        mandatory = ["pressure", "verticalSoundingSignificance"]
+        return self.collect_any(
+            collector,
+            mandatory=mandatory,
+            raise_on_missing=raise_on_missing,
+            units_converter=units_converter,
+            add_units=add_units,
+            first=False,
+            **kwargs,
+        )
 
 
 class OffsetPressureLevelAccessor(PressureLevelAccessor):
-    labels = [
-        "time_offset",
-        "p",
-        "z",
-        "zh",
-        "t",
-        "td",
-        "wdir",
-        "wspeed",
-        "lat_offset",
-        "lon_offset",
-    ]
+    keys = {
+        "timePeriod": PARAMS.TIME_OFFSET,
+        "extendedVerticalSoundingSignificance": None,
+        "pressure": PARAMS.PRESSURE,
+        "nonCoordinateGeopotential": PARAMS.Z,
+        "nonCoordinateGeopotentialHeight": PARAMS.ZH,
+        "airTemperature": PARAMS.T,
+        "dewpointTemperature": PARAMS.TD,
+        "windDirection": PARAMS.WDIR,
+        "windSpeed": PARAMS.WSPEED,
+        "latitudeDisplacement": PARAMS.LAT_OFFSET,
+        "longitudeDisplacement": PARAMS.LON_OFFSET,
+    }
+    param = Parameter("plev_offset", "pressure_level_with_offset")
 
-    def __init__(self, ref_date=None, ref_lat=None, ref_lon=None, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # self.keys = [
-        #     "timePeriod",
-        #     "pressure",
-        #     "nonCoordinateGeopotential",
-        #     "nonCoordinateGeopotentialHeight",
-        #     "airTemperature",
-        #     "dewpointTemperature",
-        #     "windDirection",
-        #     "windSpeed",
-        #     "latitudeDisplacement",
-        #     "longitudeDisplacement",
-        # ]
+        self.time_offset = self.keys["timePeriod"]
+        self.lat_offset = self.keys["latitudeDisplacement"]
+        self.lon_offset = self.keys["longitudeDisplacement"]
 
-        self.keys = {
-            "timePeriod": "time_offset",
-            "extendedVerticalSoundingSignificance": None,
-            "pressure": "p",
-            "nonCoordinateGeopotential": "z",
-            "nonCoordinateGeopotentialHeight": "zh",
-            "airTemperature": "t",
-            "dewpointTemperature": "td",
-            "windDirection": "wdir",
-            "windSpeed": "wspeed",
-            "latitudeDisplacement": "lat_offset",
-            "longitudeDisplacement": "lon_offset",
-        }
+    def parse_collected(self, value, skip, units_converter, add_units, raise_on_missing):
+        if value is None:
+            value = {}
 
-        self.period_key = "timePeriod"
-        # self.latlon_delta_keys = ["latitudeDisplacement", "longitudeDisplacement"]
-        # self.offset_keys = self.period_key + self.delta
+        # if raise_on_missing and (not value or all(v is None for v in value.values())):
+        #     raise ValueError(f"Missing value for {self.name}")
+        res = {}
+        for key, param in self.keys.items():
+            # print(f"key={key} param={param}")
+            if param is not None:
+                label = param.label
+                if param in skip:
+                    continue
 
-    # @property
-    # def needed_keys(self):
-    #     return self.keys
+                v, units = value.get(key, (None, None))
 
-    def empty_result(self):
-        return []
+                # convert units
+                if v is not None and units_converter is not None and param.units:
+                    print("units_converter", label, units, v, param.units)
+                    v, units = units_converter.convert(label, v, units)
 
-    def compute_level_date(self, level_data):
-        if level_data is None:
-            return None
+                # handle period
+                if param.is_period():
+                    v = param.to_timedelta(v, units)
 
-        period = level_data.get(self.period_key, None)
-        if period is not None:
-            period = str(period)
-            units = level_data.get(self.period_key + "->units", "")
-            delta = period_to_timedelta(period, units)
-            # if delta is not None:
-            #     ref_date + delta
-            return delta
+                res[label] = v
 
-    # def compute_level_latlon(self, ref_lat, ref_lon, level_data):
-    #     if ref_lat is None or ref_lon is None or level_data is None:
-    #         return None, None
+                # add units column
+                if add_units and param.units:
+                    res[label + "_units"] = units
 
-    #     delta_lat = level_data.get("latitudeDisplacement", None)
-    #     delta_lon = level_data.get("longitudeDisplacement", None)
-    #     return delta_lat, delta_lon
-    #     # if delta_lat is not None and delta_lon is not None:
-    #     #     return (ref_lat + delta_lat, ref_lon + delta_lon)
+        return res
 
-    def collect(self, collector, labels=None, add_offsets=True, **kwargs):
-        keys = list(self.keys.keys())
-        if labels is None:
-            labels = list(self.keys.values())
+    def collect(
+        self,
+        collector,
+        labels=None,
+        ref_date=None,
+        ref_lat=None,
+        ref_lon=None,
+        raise_on_missing=False,
+        units_converter=None,
+        add_units=False,
+        add_offsets=True,
+        **kwargs,
+    ):
+        mandatory = ["extendedVerticalSoundingSignificance", "pressure"]
 
-        r = []
-        # filters = {"extendedVerticalSoundingSignificance": 0}
-        # !=16384
-        obs = {}
-        print("collect keys=", keys)
-        for v in collector.collect(
-            keys,
-            {},
-            mandatory_keys=["extendedVerticalSoundingSignificance", "pressure"],
-            units_keys=[self.period_key],
-        ):
-            print("collect v=", v)
-            obs = {}
+        units_keys = []
+        if add_offsets:
+            skip = [self.lat_offset, self.lon_offset]
+            units_keys = ["timePeriod"]
+        else:
+            skip = [self.time_offset, self.lat_offset, self.lon_offset]
 
-            date = self.compute_level_date(v)
-            # latlon = self.compute_level_latlon(ref_lat, ref_lon, v)
-
-            for label, key in zip(labels, self.keys):
-                if label is not None:
-                    obs[label] = v.get(key, None)
-
-            if add_offsets:
-                obs["time_offset"] = date
-            else:
-                obs.pop("time_offset", None)
-                obs.pop("lat_offset", None)
-                obs.pop("lon_offset", None)
-
-            # obs["lat_offset"] = date
-            # obs["lon_offset"] = date
-
-            r.append(obs)
-            print("  - >obs=", obs)
-
-        return r
+        return self.collect_any(
+            collector,
+            mandatory=mandatory,
+            skip=skip,
+            raise_on_missing=raise_on_missing,
+            units_converter=units_converter,
+            add_units=add_units,
+            units_keys=units_keys,
+            first=False,
+            **kwargs,
+        )
 
 
-ACCESSORS = {
-    "sid": SidAccessor,
-    "latlon": LatLonAccessor,
-    "elevation": ElevationAccessor,
-    "time": DatetimeAccessor,
-    "plev": PressureLevelAccessor,
-    "plev_offset": OffsetPressureLevelAccessor,
+CORE_ACCESSORS = [SidAccessor, LatLonAccessor, ElevationAccessor, DatetimeAccessor]
+USER_ACCESSORS = [PressureLevelAccessor, OffsetPressureLevelAccessor]
+MANAGER = AccessorManager(CORE_ACCESSORS, USER_ACCESSORS)
+
+STATION_ACCESSORS = [MANAGER.get_by_object(ac) for ac in CORE_ACCESSORS]
+UPPER_ACCESSORS = {
+    "standard": MANAGER.get_by_object(PressureLevelAccessor),
+    "extended": MANAGER.get_by_object(OffsetPressureLevelAccessor),
 }
-
-STATION_PARAMS = ["sid", "latlon", "elevation", "time"]
-UPPER_PARAMS = ["plev", "plev_offset"]
-
-
-STATION_ACCESSORS = {k: ACCESSORS[k]() for k in STATION_PARAMS}
-UPPER_ACCESSORS = {"standard": ACCESSORS["plev"](), "extended": ACCESSORS["plev_offset"]()}
-DEFAULT_ACCESSORS = {**STATION_ACCESSORS, **UPPER_ACCESSORS}
-
-MANAGER = AccessorManager(ACCESSORS, DEFAULT_ACCESSORS, {})
-
-
-def find_key(keys, name):
-    for k in keys:
-        if k.name == name:
-            return True
-    return False
-
-
-# def get_temp_station(message: T.Mapping[str, T.Any], included_keys, add_offsets=True):
-
-#     keys_cache = {}
-
-#     filtered_keys = filter_keys_cached(message, keys_cache, included_keys)
-
-#     if find_key(filtered_keys, "extendedVerticalSoundingSignificance"):
-#         upper_accessor = UPPER_ACCESSORS["extended"]
-#     elif find_key(filtered_keys, "verticalSoundingSignificance"):
-#         upper_accessor = UPPER_ACCESSORS["standard"]
-#     else:
-#         return None
-
-#     # print("filtered_keys")
-#     # for f in filtered_keys:
-#     #     print(" ", f)
-
-#     subsets = BufrSubset(message, filtered_keys)
-
-#     for s in subsets.subsets():
-#         keys, subset = s
-#         collector = Collector(message, keys, subset)
-
-#         station = {}
-#         for ac in STATION_ACCESSORS.values():
-#             r = ac.collect(collector)
-#             station.update(r)
-
-#         r = upper_accessor.collect(collector, add_offsets=add_offsets)
-#         if r:
-#             for x in r:
-#                 obs = {**station, **x}
-#                 if x:
-#                     yield obs
-#         else:
-#             obs = {**station}
-#             yield obs
-
-
-# def stream_bufr_temp(
-#     bufr_file: T.Iterable[T.MutableMapping[str, T.Any]], filters: T.Mapping[str, T.Any] = {}, offsets=True
-# ):
-
-#     value_filters = {}
-
-#     # prepare count filter
-#     if "count" in value_filters:
-#         max_count = value_filters["count"].max()
-#     else:
-#         max_count = None
-
-#     count_filter = value_filters.pop("count", None)
-
-#     # if offsets:
-#     #     upper_accessor = UPPER_ACCESSORS["plev_offset"]
-#     # else:
-#     #     upper_accessor = UPPER_ACCESSORS["plev"]
-
-#     included_keys = set()
-#     for _, p in DEFAULT_ACCESSORS.items():
-#         print("labels=", p.labels, "p.needed_keys=", p.needed_keys)
-#         included_keys |= set(p.needed_keys)
-
-#     for count, msg in enumerate(bufr_file, 1):
-#         # we use a context manager to automatically delete the handle of the BufrMessage.
-#         # We have to use a wrapper object here because a message can also be a dict
-#         with MessageWrapper.wrap(msg) as message:
-
-#             # count filter
-#             if count_filter is not None and not count_filter.match(count):
-#                 continue
-
-#             if message["dataCategory"] != 2:
-#                 continue
-
-#             # message["skipExtraKeyAttributes"] = 1
-#             message["unpack"] = 1
-
-#             for obs in get_temp_station(message, included_keys, add_offsets=offsets):
-#                 yield obs
 
 
 class TempReader(CustomReader):
-    def match_category(self, message):
+    def filter_header(self, message):
         return message["dataCategory"] == 2
 
     # params: T.Union[T.Sequence[str], T.Any] = None,
     # filters: T.Mapping[str, T.Any] = {},
 
-    def read_message(self, message: T.Mapping[str, T.Any], params=None, m2=None, m10=None):
-        accessors = MANAGER.get(params)
-
-        keys_cache = {}
-
-        included_keys = set()
-        for _, p in accessors.items():
-            included_keys |= set(p.needed_keys)
-
-        print("included_keys=", included_keys)
-
-        filtered_keys = filter_keys_cached(message, keys_cache, included_keys)
+    @staticmethod
+    def get_upper_accessor(filtered_keys):
+        def find_key(keys, name):
+            for k in keys:
+                if k.name == name:
+                    return True
+            return False
 
         if find_key(filtered_keys, "extendedVerticalSoundingSignificance"):
-            upper_accessor = UPPER_ACCESSORS["extended"]
+            return UPPER_ACCESSORS["extended"]
         elif find_key(filtered_keys, "verticalSoundingSignificance"):
-            upper_accessor = UPPER_ACCESSORS["standard"]
+            return UPPER_ACCESSORS["standard"]
         else:
             return None
 
-        subsets = BufrSubset(message, filtered_keys)
+    def read_message(
+        self,
+        message: T.Mapping[str, T.Any],
+        params=None,
+        units_converter=None,
+        add_units=False,
+        filters=None,
+    ):
+        # TODO: add param selection
+        params = None
 
+        accessors = MANAGER.get(params)
+
+        filtered_keys = self.get_filtered_keys(message, accessors)
+
+        upper_accessor = self.get_upper_accessor(filtered_keys)
+        if upper_accessor is None:
+            LOG.warning("No upper accessor found")
+            return
+
+        reader = BufrSubsetReader(message, filtered_keys)
+
+        # raise ValueError("No upper accessor found")
         add_offsets = True
-        for s in subsets.subsets():
-            keys, subset = s
-            collector = Collector(message, keys, subset)
-
+        for subset in reader.subsets():
+            # first collect the station data. This will be included in each row
             station = {}
-            for ac in STATION_ACCESSORS.values():
-                r = ac.collect(collector)
+            for ac in STATION_ACCESSORS:
+                r = ac.collect(subset, filters=filters)
                 station.update(r)
 
-            r = upper_accessor.collect(collector, add_offsets=add_offsets)
+            # now collect the upper data
+            r = upper_accessor.collect(
+                subset,
+                add_offsets=add_offsets,
+                units_converter=units_converter,
+                add_units=add_units,
+                filters=filters,
+            )
+
+            # each level is a separate row
             if r:
                 for x in r:
-                    obs = {**station, **x}
+                    d = {**station, **x}
                     if x:
-                        yield obs
+                        yield d
             else:
-                obs = {**station}
-                yield obs
+                d = {**station}
+                yield d
 
 
 reader = TempReader
