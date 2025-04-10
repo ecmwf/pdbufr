@@ -14,24 +14,25 @@ import numpy as np
 import pytest
 
 import pdbufr
+from pdbufr.utils.testing import reference_test_data_path
+from pdbufr.utils.testing import sample_test_data_path
 
 pd = pytest.importorskip("pandas")
 assert_frame_equal = pd.testing.assert_frame_equal
 
 SAMPLE_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "sample-data")
 
-TEST_DATA_1 = os.path.join(SAMPLE_DATA_FOLDER, "obs_3day.bufr")
-TEST_DATA_2 = os.path.join(SAMPLE_DATA_FOLDER, "synop_multi_subset_uncompressed.bufr")
+TEST_DATA_1 = sample_test_data_path("obs_3day.bufr")
+TEST_DATA_2 = sample_test_data_path("synop_multi_subset_uncompressed.bufr")
 
 # contains 1 message - with 51 compressed subsets with multiple timePeriods
-TEST_DATA_9 = os.path.join(SAMPLE_DATA_FOLDER, "ens_multi_subset_compressed.bufr")
+TEST_DATA_9 = sample_test_data_path("ens_multi_subset_compressed.bufr")
 
 # contains 1 message - with 128 compressed subsets with some str values
-TEST_DATA_10 = os.path.join(SAMPLE_DATA_FOLDER, "pgps_110.bufr")
+TEST_DATA_10 = sample_test_data_path("pgps_110.bufr")
 
-REF_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "ref_data")
-REF_DATA_1 = os.path.join(REF_DATA_FOLDER, "obs_3day_ref_1.csv")
-REF_DATA_2 = os.path.join(REF_DATA_FOLDER, "synop_uncompressed_ref_1.csv")
+REF_DATA_1 = reference_test_data_path("obs_3day_ref_1.csv")
+REF_DATA_2 = reference_test_data_path("synop_uncompressed_ref_1.csv")
 
 
 def test_read_flat_bufr_args() -> None:

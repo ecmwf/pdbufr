@@ -41,6 +41,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 tests/url-data
+tests/url_data
 
 # Sphinx documentation
 docs/_build/

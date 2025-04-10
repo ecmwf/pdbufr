@@ -13,6 +13,8 @@ import numpy as np
 import pytest
 
 import pdbufr
+from pdbufr.utils.testing import get_remote_test_data
+from pdbufr.utils.testing import sample_test_data_path
 
 pd = pytest.importorskip("pandas")
 assert_frame_equal = pd.testing.assert_frame_equal
@@ -20,57 +22,41 @@ assert_frame_equal = pd.testing.assert_frame_equal
 SAMPLE_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "sample-data")
 URL_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "url-data")
 
-TEST_DATA_1 = os.path.join(SAMPLE_DATA_FOLDER, "obs_3day.bufr")
-TEST_DATA_2 = os.path.join(SAMPLE_DATA_FOLDER, "synop_multi_subset_uncompressed.bufr")
-TEST_DATA_3 = os.path.join(SAMPLE_DATA_FOLDER, "temp.bufr")
-TEST_DATA_4 = os.path.join(
-    SAMPLE_DATA_FOLDER,
+TEST_DATA_1 = sample_test_data_path("obs_3day.bufr")
+TEST_DATA_2 = sample_test_data_path("synop_multi_subset_uncompressed.bufr")
+TEST_DATA_3 = sample_test_data_path("temp.bufr")
+TEST_DATA_4 = sample_test_data_path(
     "M02-HIRS-HIRxxx1B-NA-1.0-20181122114854.000000000Z-20181122132602-1304602.bufr",
 )
 # contains compressed subsets - each subset with multiple locations
-TEST_DATA_5 = os.path.join(SAMPLE_DATA_FOLDER, "tropical_cyclone.bufr")
+TEST_DATA_5 = sample_test_data_path("tropical_cyclone.bufr")
 
 # contains uncompressed subsets (1 message)
-TEST_DATA_6 = os.path.join(SAMPLE_DATA_FOLDER, "wave_uncompressed.bufr")
+TEST_DATA_6 = sample_test_data_path("wave_uncompressed.bufr")
 
 # contains 1 message - each subset with multiple timePeriods
-TEST_DATA_7 = os.path.join(SAMPLE_DATA_FOLDER, "ens_multi_subset_uncompressed.bufr")
+TEST_DATA_7 = sample_test_data_path("ens_multi_subset_uncompressed.bufr")
 
 # contains 3 messages - each with 128 compressed subsets
-TEST_DATA_8 = os.path.join(SAMPLE_DATA_FOLDER, "compress_3.bufr")
+TEST_DATA_8 = sample_test_data_path("compress_3.bufr")
 
 # contains 1 message - with 51 compressed subsets with multiple timePeriods
-TEST_DATA_9 = os.path.join(SAMPLE_DATA_FOLDER, "ens_multi_subset_compressed.bufr")
+TEST_DATA_9 = sample_test_data_path("ens_multi_subset_compressed.bufr")
 
 # contains 7 temp messages
-TEST_DATA_10 = os.path.join(SAMPLE_DATA_FOLDER, "temp_small.bufr")
+TEST_DATA_10 = sample_test_data_path("temp_small.bufr")
 
 # contains aircraft messages
-TEST_DATA_11 = os.path.join(SAMPLE_DATA_FOLDER, "aircraft_small.bufr")
+TEST_DATA_11 = sample_test_data_path("aircraft_small.bufr")
 
 # contains new types of synop messages
-TEST_DATA_12 = os.path.join(SAMPLE_DATA_FOLDER, "syn_new.bufr")
+TEST_DATA_12 = sample_test_data_path("syn_new.bufr")
 
 # contains compressed aircraft messages with strings
-TEST_DATA_13 = os.path.join(SAMPLE_DATA_FOLDER, "aircraft_mrar_compressed.bufr")
+TEST_DATA_13 = sample_test_data_path("aircraft_mrar_compressed.bufr")
 
 # contains a single synop message with WIGOS id (not WMO id)
-TEST_DATA_14 = os.path.join(SAMPLE_DATA_FOLDER, "synop_wigos.bufr")
-
-
-def download_test_data(filename: str) -> str:
-    import requests  # type: ignore
-
-    target = os.path.join(URL_DATA_FOLDER, filename)
-    if not os.path.exists(target):
-        url_base = "https://get.ecmwf.int/repository/test-data/pdbufr/test-data/"
-        url = os.path.join(url_base, filename)
-        os.makedirs(URL_DATA_FOLDER, mode=0o755, exist_ok=True)
-        target = os.path.join(URL_DATA_FOLDER, filename)
-        r = requests.get(url, allow_redirects=True)
-        r.raise_for_status()
-        open(target, "wb").write(r.content)
-    return target
+TEST_DATA_14 = sample_test_data_path("synop_wigos.bufr")
 
 
 def test_read_bufr_one_subset_one_filters() -> None:
@@ -1171,8 +1157,8 @@ def test_message_structure_cache() -> None:
         },
     }
 
-    f = download_test_data("message_structure_diff_2.bufr")
-    res = pdbufr.read_bufr(f, columns=columns)
+    path = get_remote_test_data("message_structure_diff_2.bufr")
+    res = pdbufr.read_bufr(path, columns=columns)
 
     assert len(res) == 6
     assert res.to_dict() == ref

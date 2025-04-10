@@ -7,23 +7,21 @@
 # nor does it submit to any jurisdiction.
 
 import math
-import os
 import typing as T
 
 import pytest
 
 import pdbufr
+from pdbufr.utils.testing import sample_test_data_path
 
 pd = pytest.importorskip("pandas")
 assert_frame_equal = pd.testing.assert_frame_equal
 
-SAMPLE_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "sample-data")
-TEST_DATA_GEOPANDAS = os.path.join(
-    SAMPLE_DATA_FOLDER,
+TEST_DATA_GEOPANDAS = sample_test_data_path(
     "Z__C_EDZW_20210516120400_bda01,synop_bufr_GER_999999_999999__MW_466.bufr",
 )
-TEST_DATA_SYNOP_WMOID = os.path.join(SAMPLE_DATA_FOLDER, "syn_new.bufr")
-TEST_DATA_SYNOP_WIGOS = os.path.join(SAMPLE_DATA_FOLDER, "synop_wigos.bufr")
+TEST_DATA_SYNOP_WMOID = sample_test_data_path("syn_new.bufr")
+TEST_DATA_SYNOP_WIGOS = sample_test_data_path("synop_wigos.bufr")
 
 
 def distance(center: T.List[float], position: T.List[float]) -> float:
