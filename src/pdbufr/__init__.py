@@ -16,12 +16,10 @@ except ImportError:  # pragma: no cover
     __version__ = "999"
 
 
-from .bufr_filters import WIGOSId
-from .bufr_read import read_bufr_synop
-from .bufr_read import read_bufr_temp
-from .bufr_structure import stream_bufr
+from .core.filters import WIGOSId
+from .readers.generic import stream_bufr
 
-__all__ = ["stream_bufr", "WIGOSId", "read_bufr_synop", "read_bufr_temp"]
+__all__ = ["stream_bufr", "WIGOSId"]
 
 try:
     from .bufr_read import read_bufr

@@ -11,7 +11,7 @@ from abc import ABCMeta
 from abc import abstractmethod
 
 import pdbufr.core.param as PARAMS
-from pdbufr.bufr_structure import COMPUTED_KEYS
+from pdbufr.core.keys import COMPUTED_KEYS
 
 
 class Accessor(metaclass=ABCMeta):

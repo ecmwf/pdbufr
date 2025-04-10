@@ -7,9 +7,14 @@
 # nor does it submit to any jurisdiction.
 
 import logging
-import typing as T
 from abc import ABCMeta
 from abc import abstractmethod
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Iterable
+from typing import Mapping
+from typing import Union
 
 LOG = logging.getLogger(__name__)
 
@@ -32,15 +37,15 @@ def normalise_wigos(value):
 
 class BufrFilter(metaclass=ABCMeta):
     @abstractmethod
-    def match(self, value: T.Any) -> bool:
+    def match(self, value: Any) -> bool:
         pass
 
     @abstractmethod
-    def max(self) -> T.Any:
+    def max(self) -> Any:
         pass
 
     @staticmethod
-    def from_user(value: T.Any, key: str = None) -> "BufrFilter":
+    def from_user(value: Any, key: str = None) -> "BufrFilter":
         if isinstance(value, slice):
             return SliceBufrFilter(value)
         elif callable(value):
@@ -57,10 +62,10 @@ class EmptyBufrFilter(BufrFilter):
     def __init__(self) -> None:
         super().__init__(slice(None, None, None))
 
-    def match(self, value: T.Any) -> bool:
+    def match(self, value: Any) -> bool:
         return True
 
-    def max(self) -> T.Any:
+    def max(self) -> Any:
         return None
 
 
@@ -70,7 +75,7 @@ class SliceBufrFilter(BufrFilter):
         if self.slice.step is not None:
             LOG.warning(f"slice filters ignore the step={self.slice.step} in slice={self.slice}")
 
-    def match(self, value: T.Any) -> bool:
+    def match(self, value: Any) -> bool:
         if value is None:
             return False
         if self.slice.start is not None and value < self.slice.start:
@@ -79,51 +84,51 @@ class SliceBufrFilter(BufrFilter):
             return False
         return True
 
-    def max(self) -> T.Any:
+    def max(self) -> Any:
         return self.slice.stop
 
 
 class CallableBufrFilter(BufrFilter):
-    def __init__(self, v: T.Callable[[T.Any], bool]) -> None:
+    def __init__(self, v: Callable[[Any], bool]) -> None:
         self.callable = v
 
-    def match(self, value: T.Any) -> bool:
+    def match(self, value: Any) -> bool:
         if value is None:
             return False
         return bool(self.callable(value))
 
-    def max(self) -> T.Any:
+    def max(self) -> Any:
         return None
 
 
 class ValueBufrFilter(BufrFilter):
-    def __init__(self, v: T.Any) -> None:
-        if isinstance(v, T.Iterable) and not isinstance(v, str):
+    def __init__(self, v: Any) -> None:
+        if isinstance(v, Iterable) and not isinstance(v, str):
             self.set = set(v)
         else:
             self.set = {v}
 
-    def match(self, value: T.Any) -> bool:
+    def match(self, value: Any) -> bool:
         if value is None:
             return False
         return value in self.set
 
-    def max(self) -> T.Any:
+    def max(self) -> Any:
         return max(self.set)
 
 
 class NotValueBufrFilter(ValueBufrFilter):
-    def match(self, value: T.Any) -> bool:
+    def match(self, value: Any) -> bool:
         if value is None:
             return False
         return value not in self.set
 
-    def max(self) -> T.Any:
+    def max(self) -> Any:
         return None
 
 
 class WigosValueBufrFilter(ValueBufrFilter):
-    def match(self, value: T.Any) -> bool:
+    def match(self, value: Any) -> bool:
         if value is None:
             return False
         if isinstance(value, (str, WIGOSId)):
@@ -134,9 +139,9 @@ class WigosValueBufrFilter(ValueBufrFilter):
 class WIGOSId:
     def __init__(
         self,
-        series: T.Union[str, int],
-        issuer: T.Union[str, int],
-        number: T.Union[str, int],
+        series: Union[str, int],
+        issuer: Union[str, int],
+        number: Union[str, int],
         local: str,
     ) -> None:
 
@@ -179,7 +184,7 @@ class WIGOSId:
         return False
 
     @classmethod
-    def from_user(cls, value: T.Any) -> bool:
+    def from_user(cls, value: Any) -> bool:
         if isinstance(value, WIGOSId):
             return cls.from_id(value)
         elif isinstance(value, str):
@@ -200,9 +205,9 @@ class WIGOSId:
         return f"{_convert_str(self.series)}-{_convert_str(self.issuer)}-{_convert_str(self.number)}-{_convert_str(self.local)}"
 
 
-def is_match(
-    message: T.Mapping[str, T.Any],
-    compiled_filters: T.Dict[str, BufrFilter],
+def filters_match(
+    message: Mapping[str, Any],
+    compiled_filters: Dict[str, BufrFilter],
     required: bool = True,
 ) -> bool:
     matches = 0

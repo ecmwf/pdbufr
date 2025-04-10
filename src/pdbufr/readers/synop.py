@@ -225,6 +225,7 @@ class SynopReader(CustomReader):
         units_converter=None,
         add_units=False,
         filters=None,
+        **kwargs,
     ):
         accessors = MANAGER.get(params)
 

@@ -9,9 +9,10 @@
 import logging
 from abc import abstractmethod
 
-from pdbufr.bufr_filters import MultiFilter
-from pdbufr.bufr_structure import MessageWrapper
-from pdbufr.bufr_structure import filter_keys_cached
+from pdbufr.core.filters import BufrFilter
+from pdbufr.core.filters import MultiFilter
+from pdbufr.core.structure import MessageWrapper
+from pdbufr.core.structure import filter_keys_cached
 
 from . import Reader
 
@@ -39,11 +40,9 @@ class CustomReader(Reader):
         return filter_keys_cached(message, keys_cache, included_keys)
 
     def _read(self, bufr_obj, units=None, filters=None, **kwargs):
-        from .. import bufr_filters
-
         filters = filters or {}
         filters = dict(filters)
-        value_filters = {k: bufr_filters.BufrFilter.from_user(filters[k], key=k) for k in filters}
+        value_filters = {k: BufrFilter.from_user(filters[k], key=k) for k in filters}
 
         # create units converter
         units_converter = None
