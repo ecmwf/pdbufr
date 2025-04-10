@@ -45,7 +45,7 @@ class BufrFilter(metaclass=ABCMeta):
         pass
 
     @staticmethod
-    def from_user(value: Any, key: str = None) -> "BufrFilter":
+    def from_user(value: Any, key: Union[str, None] = None) -> "BufrFilter":
         if isinstance(value, slice):
             return SliceBufrFilter(value)
         elif callable(value):
@@ -58,15 +58,15 @@ class BufrFilter(metaclass=ABCMeta):
                 return ValueBufrFilter(value)
 
 
-class EmptyBufrFilter(BufrFilter):
-    def __init__(self) -> None:
-        super().__init__(slice(None, None, None))
+# class EmptyBufrFilter(BufrFilter):
+#     def __init__(self) -> None:
+#         super().__init__(slice(None, None, None))
 
-    def match(self, value: Any) -> bool:
-        return True
+#     def match(self, value: Any) -> bool:
+#         return True
 
-    def max(self) -> Any:
-        return None
+#     def max(self) -> Any:
+#         return None
 
 
 class SliceBufrFilter(BufrFilter):
@@ -184,13 +184,14 @@ class WIGOSId:
         return False
 
     @classmethod
-    def from_user(cls, value: Any) -> bool:
+    def from_user(cls, value: Any) -> "WIGOSId":
         if isinstance(value, WIGOSId):
             return cls.from_id(value)
         elif isinstance(value, str):
             return cls.from_str(value)
         elif isinstance(value, (list, tuple)):
             return cls.from_iterable(value)
+        raise ValueError(f"Cannot create BufrFilter from value={value} of type={type(value)}")
 
     def __hash__(self):
         return hash(self.as_str())

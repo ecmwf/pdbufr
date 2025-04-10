@@ -8,9 +8,15 @@
 
 
 import logging
-import typing as T
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Mapping
+from typing import Optional
+from typing import Union
 
 import pdbufr.core.param as PARAMS
+from pdbufr.core.accessor import Accessor
 from pdbufr.core.accessor import AccessorManager
 from pdbufr.core.accessor import DatetimeAccessor
 from pdbufr.core.accessor import ElevationAccessor
@@ -19,6 +25,8 @@ from pdbufr.core.accessor import SidAccessor
 from pdbufr.core.accessor import SimpleAccessor
 from pdbufr.core.param import Parameter
 from pdbufr.core.subset import BufrSubsetReader
+from pdbufr.utils.convert import period_to_timedelta
+from pdbufr.utils.units import UnitsConverter
 
 from .custom import CustomReader
 
@@ -26,7 +34,7 @@ LOG = logging.getLogger(__name__)
 
 
 class PressureLevelAccessor(SimpleAccessor):
-    keys = {
+    keys: Dict[str, Optional[Parameter]] = {
         "pressure": PARAMS.PRESSURE,
         "verticalSoundingSignificance": None,
         "nonCoordinateGeopotential": PARAMS.Z,
@@ -36,23 +44,23 @@ class PressureLevelAccessor(SimpleAccessor):
         "windDirection": PARAMS.WDIR,
         "windSpeed": PARAMS.WSPEED,
     }
-    param = Parameter("plev", "pressure_level")
+    param: Parameter = Parameter("plev", "pressure_level")
 
-    def empty_result(self):
+    def empty_result(self) -> List[Any]:
         return []
 
     def collect(
         self,
-        collector,
-        labels=None,
-        ref_date=None,
-        ref_lat=None,
-        ref_lon=None,
-        raise_on_missing=False,
-        units_converter=None,
-        add_units=False,
-        **kwargs,
-    ):
+        collector: Any,
+        labels: Optional[Any] = None,
+        ref_date: Optional[Any] = None,
+        ref_lat: Optional[Any] = None,
+        ref_lon: Optional[Any] = None,
+        raise_on_missing: bool = False,
+        units_converter: Optional[UnitsConverter] = None,
+        add_units: bool = False,
+        **kwargs: Any,
+    ) -> List[Any]:
         mandatory = ["pressure", "verticalSoundingSignificance"]
         return self.collect_any(
             collector,
@@ -66,7 +74,7 @@ class PressureLevelAccessor(SimpleAccessor):
 
 
 class OffsetPressureLevelAccessor(PressureLevelAccessor):
-    keys = {
+    keys: Dict[str, Optional[Parameter]] = {
         "timePeriod": PARAMS.TIME_OFFSET,
         "extendedVerticalSoundingSignificance": None,
         "pressure": PARAMS.PRESSURE,
@@ -79,23 +87,27 @@ class OffsetPressureLevelAccessor(PressureLevelAccessor):
         "latitudeDisplacement": PARAMS.LAT_OFFSET,
         "longitudeDisplacement": PARAMS.LON_OFFSET,
     }
-    param = Parameter("plev_offset", "pressure_level_with_offset")
+    param: Parameter = Parameter("plev_offset", "pressure_level_with_offset")
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
         self.time_offset = self.keys["timePeriod"]
         self.lat_offset = self.keys["latitudeDisplacement"]
         self.lon_offset = self.keys["longitudeDisplacement"]
 
-    def parse_collected(self, value, skip, units_converter, add_units, raise_on_missing):
+    def parse_collected(
+        self,
+        value: Optional[Dict[str, Any]],
+        skip: List[Any],
+        units_converter: Optional[UnitsConverter],
+        add_units: bool,
+        raise_on_missing: bool,
+    ) -> Dict[str, Any]:
         if value is None:
             value = {}
 
-        # if raise_on_missing and (not value or all(v is None for v in value.values())):
-        #     raise ValueError(f"Missing value for {self.name}")
         res = {}
         for key, param in self.keys.items():
-            # print(f"key={key} param={param}")
             if param is not None:
                 label = param.label
                 if param in skip:
@@ -103,18 +115,14 @@ class OffsetPressureLevelAccessor(PressureLevelAccessor):
 
                 v, units = value.get(key, (None, None))
 
-                # convert units
                 if v is not None and units_converter is not None and param.units:
-                    print("units_converter", label, units, v, param.units)
                     v, units = units_converter.convert(label, v, units)
 
-                # handle period
                 if param.is_period():
-                    v = param.to_timedelta(v, units)
+                    v = period_to_timedelta(v, units)
 
                 res[label] = v
 
-                # add units column
                 if add_units and param.units:
                     res[label + "_units"] = units
 
@@ -122,17 +130,17 @@ class OffsetPressureLevelAccessor(PressureLevelAccessor):
 
     def collect(
         self,
-        collector,
-        labels=None,
-        ref_date=None,
-        ref_lat=None,
-        ref_lon=None,
-        raise_on_missing=False,
-        units_converter=None,
-        add_units=False,
-        add_offsets=True,
-        **kwargs,
-    ):
+        collector: Any,
+        labels: Optional[Any] = None,
+        ref_date: Optional[Any] = None,
+        ref_lat: Optional[Any] = None,
+        ref_lon: Optional[Any] = None,
+        raise_on_missing: bool = False,
+        units_converter: Optional[UnitsConverter] = None,
+        add_units: bool = False,
+        add_offsets: bool = True,
+        **kwargs: Any,
+    ) -> List[Any]:
         mandatory = ["extendedVerticalSoundingSignificance", "pressure"]
 
         units_keys = []
@@ -155,26 +163,23 @@ class OffsetPressureLevelAccessor(PressureLevelAccessor):
         )
 
 
-CORE_ACCESSORS = [SidAccessor, LatLonAccessor, ElevationAccessor, DatetimeAccessor]
-USER_ACCESSORS = [PressureLevelAccessor, OffsetPressureLevelAccessor]
-MANAGER = AccessorManager(CORE_ACCESSORS, USER_ACCESSORS)
+CORE_ACCESSORS: tuple = (SidAccessor, LatLonAccessor, ElevationAccessor, DatetimeAccessor)
+USER_ACCESSORS: tuple = (PressureLevelAccessor, OffsetPressureLevelAccessor)
+MANAGER: AccessorManager = AccessorManager(CORE_ACCESSORS, USER_ACCESSORS)
 
-STATION_ACCESSORS = [MANAGER.get_by_object(ac) for ac in CORE_ACCESSORS]
-UPPER_ACCESSORS = {
+STATION_ACCESSORS: List[Accessor] = [MANAGER.get_by_object(ac) for ac in CORE_ACCESSORS]
+UPPER_ACCESSORS: Dict[str, Accessor] = {
     "standard": MANAGER.get_by_object(PressureLevelAccessor),
     "extended": MANAGER.get_by_object(OffsetPressureLevelAccessor),
 }
 
 
 class TempReader(CustomReader):
-    def filter_header(self, message):
+    def filter_header(self, message: Mapping[str, Any]) -> bool:
         return message["dataCategory"] == 2
 
-    # params: T.Union[T.Sequence[str], T.Any] = None,
-    # filters: T.Mapping[str, T.Any] = {},
-
     @staticmethod
-    def get_upper_accessor(filtered_keys):
+    def get_upper_accessor(filtered_keys: List[Any]) -> Optional[Accessor]:
         def find_key(keys, name):
             for k in keys:
                 if k.name == name:
@@ -190,13 +195,12 @@ class TempReader(CustomReader):
 
     def read_message(
         self,
-        message: T.Mapping[str, T.Any],
-        params=None,
-        units_converter=None,
-        add_units=False,
-        filters=None,
-    ):
-        # TODO: add param selection
+        message: Mapping[str, Any],
+        params: Optional[Union[str, List[str]]] = None,
+        units_converter: Optional[UnitsConverter] = None,
+        add_units: bool = False,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> Any:
         params = None
 
         accessors = MANAGER.get(params)
@@ -210,16 +214,13 @@ class TempReader(CustomReader):
 
         reader = BufrSubsetReader(message, filtered_keys)
 
-        # raise ValueError("No upper accessor found")
         add_offsets = True
         for subset in reader.subsets():
-            # first collect the station data. This will be included in each row
             station = {}
             for ac in STATION_ACCESSORS:
                 r = ac.collect(subset, filters=filters)
                 station.update(r)
 
-            # now collect the upper data
             r = upper_accessor.collect(
                 subset,
                 add_offsets=add_offsets,
@@ -228,7 +229,6 @@ class TempReader(CustomReader):
                 filters=filters,
             )
 
-            # each level is a separate row
             if r:
                 for x in r:
                     d = {**station, **x}
@@ -239,4 +239,4 @@ class TempReader(CustomReader):
                 yield d
 
 
-reader = TempReader
+TempReader = TempReader

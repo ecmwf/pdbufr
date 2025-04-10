@@ -9,6 +9,10 @@
 
 from abc import ABCMeta
 from abc import abstractmethod
+from typing import Dict
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
 # Mapping from BUFR units to Pint units
 PINT_UNITS = {
@@ -42,22 +46,22 @@ PINT_UNITS = {
 
 
 class UnitsConverter(metaclass=ABCMeta):
-    def __init__(self):
+    def __init__(self) -> None:
         from pint import UnitRegistry
 
         ureg = UnitRegistry()
         self._Q = ureg.Quantity
 
     @staticmethod
-    def pint_units(units):
+    def pint_units(units: str) -> str:
         return PINT_UNITS.get(units, units)
 
     @abstractmethod
-    def convert(self, label, value, units):
+    def convert(self, label: str, value: Union[int, float], units: str) -> Tuple[Union[int, float], str]:
         pass
 
     @staticmethod
-    def make(target_units=None):
+    def make(target_units: Optional[Union[str, Dict[str, str]]] = None) -> "UnitsConverter":
         if isinstance(target_units, str):
             if target_units.lower() == "si":
                 return SIUnitsConverter()
@@ -68,22 +72,22 @@ class UnitsConverter(metaclass=ABCMeta):
 
 
 class SIUnitsConverter(UnitsConverter):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
-    def convert(self, label, value, units):
+    def convert(self, label: str, value: Union[int, float], units: str) -> Tuple[Union[int, float], str]:
         pv = self._Q(value, self.pint_units(units))
         r = pv.to_base_units()
         return r.magnitude, f"{r.units:~}"
 
 
 class SimpleUnitsConverter(SIUnitsConverter):
-    def __init__(self, target_units=None):
+    def __init__(self, target_units: Optional[Dict[str, str]] = None) -> None:
         super().__init__()
         self.bufr_target_units = target_units or {}
         self.pint_target_units = {k: self.pint_units(v) for k, v in self.bufr_target_units.items()}
 
-    def convert(self, label, value, units):
+    def convert(self, label: str, value: Union[int, float], units: str) -> Tuple[Union[int, float], str]:
         print("SimpleUnitsConverter", label, value, units)
         if value is None or not self.bufr_target_units:
             return value

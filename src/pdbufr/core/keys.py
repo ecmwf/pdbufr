@@ -11,9 +11,10 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Union
 
 import attr  # type: ignore
-import eccodes
+import eccodes  # type: ignore
 
 from pdbufr.core.filters import WIGOSId
 
@@ -113,7 +114,7 @@ def wmo_station_position_from_bufr(observation: Dict[str, Any], prefix: str, key
     return [longitude, latitude, heightOfStationGroundAboveMeanSeaLevel]
 
 
-def wigos_id_from_bufr(observation: Dict[str, Any], prefix: str, keys: List[str]) -> str:
+def wigos_id_from_bufr(observation: Dict[str, Any], prefix: str, keys: List[str]) -> Union[str, None]:
     try:
         wigos_series = observation.get(prefix + keys[0], "")
         wigos_issuer = observation.get(prefix + keys[1], "")
@@ -123,6 +124,8 @@ def wigos_id_from_bufr(observation: Dict[str, Any], prefix: str, keys: List[str]
         return wid.as_str()
     except Exception:
         pass
+
+    return None
 
 
 def CRS_from_bufr(observation: Dict[str, Any], prefix: str, keys: List[str]) -> Optional[str]:

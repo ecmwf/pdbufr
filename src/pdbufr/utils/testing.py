@@ -7,6 +7,9 @@
 # nor does it submit to any jurisdiction.
 
 import os
+from typing import List
+from typing import Optional
+from typing import Union
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 if not os.path.exists(os.path.join(ROOT_DIR, "tests", "data")):
@@ -18,15 +21,15 @@ URL_DATA_DIR = os.path.join(ROOT_DIR, "url_data")
 URL_ROOT = "https://get.ecmwf.int/repository/test-data/pdbufr/test-data"
 
 
-def sample_test_data_path(filename):
+def sample_test_data_path(filename: str) -> str:
     return os.path.join(LOCAL_SAMPLE_DIR, filename)
 
 
-def reference_test_data_path(filename):
+def reference_test_data_path(filename: str) -> str:
     return os.path.join(LOCAL_REF_DIR, filename)
 
 
-def simple_download(url, target):
+def simple_download(url: str, target: str) -> None:
     import requests  # type: ignore
 
     r = requests.get(url, allow_redirects=True)
@@ -34,11 +37,13 @@ def simple_download(url, target):
     open(target, "wb").write(r.content)
 
 
-def get_remote_test_data_path(filename, subfolder=None):
+def get_remote_test_data_path(filename: str, subfolder: str) -> str:
     return os.path.join(URL_ROOT, subfolder, filename)
 
 
-def get_remote_test_data(filename, subfolder=None):
+def get_remote_test_data(
+    filename: Union[str, List[str]], subfolder: Optional[str] = None
+) -> Union[str, List[str]]:
     if not isinstance(filename, list):
         filename = [filename]
 

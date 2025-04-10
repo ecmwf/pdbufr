@@ -9,17 +9,22 @@
 
 from abc import ABCMeta
 from abc import abstractmethod
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
 
 import pdbufr.core.param as PARAMS
 from pdbufr.core.keys import COMPUTED_KEYS
 
 
 class Accessor(metaclass=ABCMeta):
-    keys = None
-    param = None
-    mandatory = None
+    keys: Optional[Dict[str, Any]] = None
+    param: Optional[Any] = None
+    mandatory: Optional[List[str]] = None
 
-    def __init__(self, keys=None):
+    def __init__(self, keys: Optional[Union[Dict[str, Any], str, List[str]]] = None):
         """
         Accessor class to extract values from a BUFR message.
 
@@ -44,36 +49,41 @@ class Accessor(metaclass=ABCMeta):
         if self.param is None:
             if len(self.keys) == 1:
                 self.param = list(self.keys.values())[0]
-            # else:
-            #     raise ValueError("Accessor must define a 'param' member")
 
         self.bufr_keys = list([k for k in self.keys.keys() if not k.startswith("_")])
         self.labels = [v.label for k, v in self.keys.items() if v is not None]
         self.name = self.__class__.__name__
 
     @abstractmethod
-    def empty_result(self):
+    def empty_result(self) -> Any:
         pass
 
     @property
     @abstractmethod
-    def needed_keys(self):
+    def needed_keys(self) -> List[str]:
         pass
 
     @abstractmethod
-    def collect(self, collector, **kwargs):
+    def collect(self, collector: Any, **kwargs: Any) -> Any:
         pass
 
 
 class SimpleAccessor(Accessor):
-    def empty_result(self):
+    def empty_result(self) -> Dict[str, Optional[Any]]:
         return dict(zip(self.labels, [None] * len(self.labels)))
 
     @property
-    def needed_keys(self):
+    def needed_keys(self) -> List[str]:
         return self.bufr_keys
 
-    def collect(self, collector, raise_on_missing=False, units_converter=None, add_units=False, **kwargs):
+    def collect(
+        self,
+        collector: Any,
+        raise_on_missing: bool = False,
+        units_converter: Optional[Any] = None,
+        add_units: bool = False,
+        **kwargs: Any,
+    ) -> Any:
         return self.collect_any(
             collector,
             raise_on_missing=raise_on_missing,
@@ -82,7 +92,14 @@ class SimpleAccessor(Accessor):
             **kwargs,
         )
 
-    def parse_collected(self, value, skip, units_converter, add_units, raise_on_missing):
+    def parse_collected(
+        self,
+        value: Optional[Dict[str, Any]],
+        skip: List[Any],
+        units_converter: Optional[Any],
+        add_units: bool,
+        raise_on_missing: bool,
+    ) -> Dict[str, Any]:
         if value is None:
             value = {}
 
@@ -109,14 +126,6 @@ class SimpleAccessor(Accessor):
                     # handle period
                     if param.is_period():
                         v = param.concat_units(v, units)
-                        # period = v
-                        # if period is not None:
-                        #     period = str(-period)
-                        #     # units = value.get(key + "->units", "")
-                        #     period = period + units
-                        #     v = period
-
-                        # print(f"{label=} {period=} {value=}")
 
                     res[label] = v
 
@@ -128,16 +137,16 @@ class SimpleAccessor(Accessor):
 
     def collect_any(
         self,
-        collector,
-        mandatory=None,
-        skip=None,
-        raise_on_missing=False,
-        units_keys=None,
-        units_converter=None,
-        add_units=False,
-        first=True,
-        **kwargs,
-    ):
+        collector: Any,
+        mandatory: Optional[List[str]] = None,
+        skip: Optional[List[Any]] = None,
+        raise_on_missing: bool = False,
+        units_keys: Optional[List[str]] = None,
+        units_converter: Optional[Any] = None,
+        add_units: bool = False,
+        first: bool = True,
+        **kwargs: Any,
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         value = None
         mandatory = mandatory or []
         skip = skip or []
@@ -165,7 +174,7 @@ class SimpleAccessor(Accessor):
 
 
 class ComputedKeyAccessor(Accessor):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
         key = list(self.keys.keys())[0]
@@ -178,14 +187,14 @@ class ComputedKeyAccessor(Accessor):
         if not hasattr(self, "_meth"):
             raise ValueError(f"Unknown computed key {self.keys[0]}")
 
-    def empty_result(self):
+    def empty_result(self) -> Dict[str, Optional[Any]]:
         return dict(zip(self.labels, [None] * len(self.labels)))
 
     @property
-    def needed_keys(self):
+    def needed_keys(self) -> List[str]:
         return self._keys
 
-    def collect(self, collector, raise_on_missing=False, **kwargs):
+    def collect(self, collector: Any, raise_on_missing: bool = False, **kwargs: Any) -> Dict[str, Any]:
         value = None
         for v in collector.collect(self._keys, {}, value_and_units=False):
             value = v
@@ -205,16 +214,23 @@ class ComputedKeyAccessor(Accessor):
 
 
 class CoordAccessor(SimpleAccessor):
-    period_placeholder = "<p>"
+    period_placeholder: str = "<p>"
 
-    def __init__(self, coords=None, fixed_coords=None, period=None, fixed_period=None, first=True, **kwargs):
+    def __init__(
+        self,
+        coords: Optional[List[Any]] = None,
+        fixed_coords: Optional[Any] = None,
+        period: Optional[str] = None,
+        fixed_period: Optional[Any] = None,
+        first: bool = True,
+        **kwargs: Any,
+    ):
         super().__init__(**kwargs)
 
         self.mandatory = [*self.bufr_keys]
         self.first = first
 
         # period coords
-        # self.fixed_period = fixed_period
         self.period_bufr_key = None
         self.period = None
 
@@ -260,13 +276,13 @@ class CoordAccessor(SimpleAccessor):
             self.coords.append(PARAMS.FixedParameter(label, fixed_coords))
             self.keys["_fixed_coord"] = self.coords[-1]
 
-    def get_period(self, record):
+    def get_period(self, record: Dict[str, Any]) -> str:
         period = record.pop("_period", None)
         if not period or period is None:
             period = "nan"
         return period
 
-    def relabel(self, value):
+    def relabel(self, value: Union[Dict[str, Any], List[Dict[str, Any]]]) -> Dict[str, Any]:
         if isinstance(value, dict):
             value = [value]
 
@@ -285,13 +301,13 @@ class CoordAccessor(SimpleAccessor):
 
     def collect(
         self,
-        collector,
-        raise_on_missing=False,
-        add_coord=False,
-        units_converter=None,
-        add_units=False,
-        **kwargs,
-    ):
+        collector: Any,
+        raise_on_missing: bool = False,
+        add_coord: bool = False,
+        units_converter: Optional[Any] = None,
+        add_units: bool = False,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
         skip = []
         if not add_coord:
             skip = self.coords
@@ -321,13 +337,13 @@ class CoordAccessor(SimpleAccessor):
 
 
 class MultiAccessorBase(Accessor):
-    accessors = []
+    accessors: List[Accessor] = []
 
-    def empty_result(self):
+    def empty_result(self) -> Dict[str, Optional[Any]]:
         return self.accessors[0].empty_result()
 
     @property
-    def needed_keys(self):
+    def needed_keys(self) -> List[str]:
         r = []
         for a in self.accessors:
             r.extend(a.needed_keys)
@@ -335,22 +351,20 @@ class MultiAccessorBase(Accessor):
 
 
 class MultiFirstAccessor(MultiAccessorBase):
-    def collect(self, collector, **kwargs):
+    def collect(self, collector: Any, **kwargs: Any) -> Dict[str, Any]:
         for a in self.accessors:
             try:
                 r = a.collect(collector, raise_on_missing=True, **kwargs)
                 if r:
                     return r
             except Exception:
-                # print("MultiTryAccessor.collect  exception", e)
                 pass
-                # raise
 
         return self.empty_result()
 
 
 class MultiAllAccessor(MultiAccessorBase):
-    def collect(self, collector, **kwargs):
+    def collect(self, collector: Any, **kwargs: Any) -> Dict[str, Any]:
         res = {}
         for a in self.accessors:
             r = a.collect(collector, raise_on_missing=False, **kwargs)
@@ -363,13 +377,13 @@ class MultiAllAccessor(MultiAccessorBase):
 
 
 class LatLonAccessor(SimpleAccessor):
-    param = PARAMS.LATLON
-    keys = {"latitude": PARAMS.LAT, "longitude": PARAMS.LON}
+    param: Any = PARAMS.LATLON
+    keys: Dict[str, Any] = {"latitude": PARAMS.LAT, "longitude": PARAMS.LON}
 
 
 class SidAccessor(MultiFirstAccessor):
-    param = PARAMS.SID
-    accessors = [
+    param: Any = PARAMS.SID
+    accessors: List[Accessor] = [
         ComputedKeyAccessor(keys={"WMO_station_id": PARAMS.SID}),
         ComputedKeyAccessor(keys={"WIGOS_station_id": PARAMS.SID}),
         SimpleAccessor(keys={"shipOrMobileLandStationIdentifier": PARAMS.SID}),
@@ -378,20 +392,25 @@ class SidAccessor(MultiFirstAccessor):
 
 
 class ElevationAccessor(MultiFirstAccessor):
-    param = PARAMS.ELEVATION
-    accessors = [
+    param: Any = PARAMS.ELEVATION
+    accessors: List[Accessor] = [
         SimpleAccessor(keys={"heightOfStationGroundAboveMeanSeaLevel": PARAMS.ELEVATION}),
         SimpleAccessor(keys={"heightOfStation": PARAMS.ELEVATION}),
     ]
 
 
 class DatetimeAccessor(ComputedKeyAccessor):
-    param = PARAMS.TIME
-    keys = {"data_datetime": PARAMS.TIME}
+    param: Any = PARAMS.TIME
+    keys: Dict[str, Any] = {"data_datetime": PARAMS.TIME}
 
 
 class AccessorManager:
-    def __init__(self, core_accessors, user_accessors, default_user_accessors=None):
+    def __init__(
+        self,
+        core_accessors: List[Accessor],
+        user_accessors: List[Accessor],
+        default_user_accessors: Optional[List[Accessor]] = None,
+    ):
         if default_user_accessors is None:
             default_user_accessors = user_accessors
 
@@ -400,7 +419,6 @@ class AccessorManager:
         for a in self.accessors:
             aa[a.param.label] = a()
         self.accessors = aa
-        # self.accessors = {a.param.label: a() for a in self.accessors}
 
         def _build(lst):
             return {a.param.label: self.accessors[a.param.label] for a in lst}
@@ -412,7 +430,7 @@ class AccessorManager:
 
         self.cache = {}
 
-    def get(self, params):
+    def get(self, params: Optional[Union[str, List[str]]]) -> Dict[str, Accessor]:
         if params is None:
             accessors = self.default
         else:
@@ -436,7 +454,7 @@ class AccessorManager:
 
         return accessors
 
-    def get_by_object(self, accessor):
+    def get_by_object(self, accessor: Any) -> Accessor:
         if not issubclass(accessor, Accessor):
             raise ValueError(f"Invalid accessor type={type(accessor)}")
         label = accessor.param.label

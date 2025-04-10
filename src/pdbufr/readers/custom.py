@@ -8,6 +8,10 @@
 
 import logging
 from abc import abstractmethod
+from typing import Any
+from typing import Dict
+from typing import Generator
+from typing import Optional
 
 from pdbufr.core.filters import BufrFilter
 from pdbufr.core.filters import MultiFilter
@@ -21,15 +25,21 @@ LOG = logging.getLogger(__name__)
 
 class CustomReader(Reader):
     @abstractmethod
-    def read_message(self, message):
+    def read_message(
+        self,
+        message: MessageWrapper,
+        units_converter: Optional[Any] = None,
+        filters: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> Generator[Dict[str, Any], None, None]:
         pass
 
     @abstractmethod
-    def filter_header(self, message):
+    def filter_header(self, message: MessageWrapper) -> bool:
         pass
 
     @staticmethod
-    def get_filtered_keys(message, accessors):
+    def get_filtered_keys(message: MessageWrapper, accessors: Dict[str, Any]) -> Dict[str, Any]:
         keys_cache = {}
         included_keys = set()
         for _, p in accessors.items():
@@ -39,7 +49,13 @@ class CustomReader(Reader):
 
         return filter_keys_cached(message, keys_cache, included_keys)
 
-    def _read(self, bufr_obj, units=None, filters=None, **kwargs):
+    def _read(
+        self,
+        bufr_obj: Any,
+        units: Optional[Dict[str, str]] = None,
+        filters: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
+    ) -> Generator[Dict[str, Any], None, None]:
         filters = filters or {}
         filters = dict(filters)
         value_filters = {k: BufrFilter.from_user(filters[k], key=k) for k in filters}

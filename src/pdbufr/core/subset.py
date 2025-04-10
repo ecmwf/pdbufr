@@ -8,13 +8,19 @@
 
 
 import collections
-import typing as T
+from typing import Any
+from typing import Dict
+from typing import Generator
+from typing import List
+from typing import Mapping
+from typing import Optional
+from typing import Tuple
 
-import eccodes
+import eccodes  # type: ignore
 import numpy as np
 
 
-def subset_info(message):
+def subset_info(message: Mapping[str, Any]) -> Tuple[int, bool, bool]:
     is_compressed = False
     is_uncompressed = False
     subset_count = 1
@@ -35,7 +41,7 @@ def subset_info(message):
     return subset_count, is_uncompressed, is_compressed
 
 
-def uncompressed_subset_ranges(filtered_keys, subset_count):
+def uncompressed_subset_ranges(filtered_keys: List[Any], subset_count: int) -> Tuple[List[int], List[int]]:
     subset_start = []
     subset_end = []
     for i, bufr_key in enumerate(filtered_keys):
@@ -52,19 +58,28 @@ def uncompressed_subset_ranges(filtered_keys, subset_count):
 
 
 class BufrSubsetCollector:
-    def __init__(self, owner, filtered_keys, subset_number):
+    def __init__(
+        self,
+        owner: "BufrSubsetReader",
+        filtered_keys: List[Any],
+        subset_number: int,
+    ):
         self.owner = owner
         self.filtered_keys = filtered_keys
         self.subset_number = subset_number
 
-    def collect(self, keys, filters, mandatory_keys=None, units_keys=None, value_and_units=True):
+    def collect(
+        self,
+        keys: List[str],
+        filters: Dict[str, Any],
+        mandatory_keys: Optional[List[str]] = None,
+        units_keys: Optional[List[str]] = None,
+        value_and_units: bool = True,
+    ) -> Generator[Dict[str, Any], None, None]:
         value_cache = {}
-        current_observation: T.Dict[str, T.Any]
-        current_levels: T.List[int] = [0]
-        failed_match_level: T.Optional[int] = None
-
-        current_observation: T.Dict[str, T.Any]
         current_observation = collections.OrderedDict({})
+        current_levels = [0]
+        failed_match_level = None
 
         for bufr_key in self.filtered_keys:
             name = bufr_key.name
@@ -145,7 +160,7 @@ class BufrSubsetCollector:
 
 
 class BufrSubsetReader:
-    def __init__(self, message, filtered_keys):
+    def __init__(self, message: Mapping[str, Any], filtered_keys: List[Any]):
         self.message = message
         self.filtered_keys = filtered_keys
         self.subset_count, self.is_uncompressed, self.is_compressed = subset_info(self.message)
@@ -159,7 +174,7 @@ class BufrSubsetReader:
         # )
         self.cache = {}
 
-    def subsets(self):
+    def subsets(self) -> Generator[BufrSubsetCollector, None, None]:
         if not self.is_compressed and not self.is_uncompressed:
             yield BufrSubsetCollector(self, self.filtered_keys, 0)
 

@@ -17,9 +17,9 @@ from typing import Sequence
 from typing import Set
 from typing import Union
 
-import eccodes
+import eccodes  # type: ignore
 import numpy as np
-import pandas as pd
+import pandas as pd  # type: ignore
 
 from pdbufr.core.filters import BufrFilter
 from pdbufr.core.filters import filters_match

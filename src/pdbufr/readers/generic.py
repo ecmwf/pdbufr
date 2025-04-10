@@ -21,7 +21,7 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-import eccodes
+import eccodes  # type: ignore
 import numpy as np
 
 from pdbufr.core.filters import BufrFilter

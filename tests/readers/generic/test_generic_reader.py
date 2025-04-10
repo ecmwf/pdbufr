@@ -774,7 +774,6 @@ def test_sat_compressed_1() -> None:
 
 
 def assert_simple_key_core(path, param, key, key_value, ref, part=False):
-    # type: (str, str, str, T.Any, T.Any, bool) -> None
     columns = [param, key]
     filters = {key: key_value}
 
@@ -851,7 +850,6 @@ def test_ident() -> None:
 
 
 def assert_temp_profile_core(path, param, vert_sign_value, ref_param, ref_pressure):
-    # type: (str, str, T.Any, T.Any, T.Any) -> None
     columns = [param, "pressure", "verticalSoundingSignificance"]
     filters = {
         "blockNumber": 71,

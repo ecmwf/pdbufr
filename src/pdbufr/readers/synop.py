@@ -6,9 +6,16 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-import typing as T
+from typing import Any
+from typing import Dict
+from typing import Generator
+from typing import List
+from typing import Mapping
+from typing import Optional
+from typing import Union
 
 import pdbufr.core.param as PARAMS
+from pdbufr.core.accessor import Accessor
 from pdbufr.core.accessor import AccessorManager
 from pdbufr.core.accessor import CoordAccessor
 from pdbufr.core.accessor import DatetimeAccessor
@@ -24,8 +31,8 @@ from .custom import CustomReader
 
 
 class T2mAccessor(MultiFirstAccessor):
-    param = PARAMS.T2M
-    accessors = [
+    param: PARAMS.Parameter = PARAMS.T2M
+    accessors: List[Accessor] = [
         CoordAccessor(keys={"airTemperatureAt2M": PARAMS.T2M}, fixed_coords=2),
         CoordAccessor(
             keys={"airTemperature": PARAMS.T2M},
@@ -35,8 +42,8 @@ class T2mAccessor(MultiFirstAccessor):
 
 
 class RHU2mAccessor(MultiFirstAccessor):
-    param = PARAMS.RH2M
-    accessors = [
+    param: PARAMS.Parameter = PARAMS.RH2M
+    accessors: List[Accessor] = [
         CoordAccessor(keys={"relativeHumidityAt2M": PARAMS.RH2M}, fixed_coords=2),
         CoordAccessor(
             keys={"relativeHumidity": PARAMS.RH2M},
@@ -46,8 +53,8 @@ class RHU2mAccessor(MultiFirstAccessor):
 
 
 class Td2mAccessor(MultiFirstAccessor):
-    param = PARAMS.TD2M
-    accessors = [
+    param: PARAMS.Parameter = PARAMS.TD2M
+    accessors: List[Accessor] = [
         CoordAccessor(keys={"dewpointTemperatureAt2M": PARAMS.TD2M}, fixed_coords=2),
         CoordAccessor(
             keys={"dewpointTemperature": PARAMS.TD2M},
@@ -57,8 +64,8 @@ class Td2mAccessor(MultiFirstAccessor):
 
 
 class Wind10mAccessor(MultiFirstAccessor):
-    param = PARAMS.WIND10
-    accessors = [
+    param: PARAMS.Parameter = PARAMS.WIND10
+    accessors: List[Accessor] = [
         CoordAccessor(
             keys={"windSpeedAt10M": PARAMS.WSPEED10M, "windDirectionAt10M": PARAMS.WDIR10M}, fixed_coords=10
         ),
@@ -70,8 +77,8 @@ class Wind10mAccessor(MultiFirstAccessor):
 
 
 class WindGustAccessor(MultiFirstAccessor):
-    param = PARAMS.WGUST
-    accessors = [
+    param: PARAMS.Parameter = PARAMS.WGUST
+    accessors: List[Accessor] = [
         CoordAccessor(
             keys={"maximumWindGustSpeed": PARAMS.WSPEEDGUST, "maximumWindGustDirection": PARAMS.WDIRGUST},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
@@ -82,15 +89,18 @@ class WindGustAccessor(MultiFirstAccessor):
 
 
 class PresentWeatherAccessor(SimpleAccessor):
-    param = PARAMS.PRESENT_WEATHER
-    keys = {"presentWeather": PARAMS.PRESENT_WEATHER}
+    param: PARAMS.Parameter = PARAMS.PRESENT_WEATHER
+    keys: Dict[str, PARAMS.Parameter] = {"presentWeather": PARAMS.PRESENT_WEATHER}
 
 
 class PastWeatherAccessor(CoordAccessor):
-    param = PARAMS.PAST_WEATHER
-    keys = {"pastWeather1": PARAMS.PAST_WEATHER_1, "pastWeather2": PARAMS.PAST_WEATHER_2}
+    param: PARAMS.Parameter = PARAMS.PAST_WEATHER
+    keys: Dict[str, PARAMS.Parameter] = {
+        "pastWeather1": PARAMS.PAST_WEATHER_1,
+        "pastWeather2": PARAMS.PAST_WEATHER_2,
+    }
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         super().__init__(
             period="timePeriod",
             first=False,
@@ -99,8 +109,8 @@ class PastWeatherAccessor(CoordAccessor):
 
 
 class TotalPrecipAccessor(MultiAllAccessor):
-    param = PARAMS.PRECIPITATION
-    accessors = [
+    param: PARAMS.Parameter = PARAMS.PRECIPITATION
+    accessors: List[Accessor] = [
         CoordAccessor(
             keys={"totalPrecipitationOrTotalWaterEquivalent": PARAMS.PRECIPITATION},
             coords=[
@@ -143,8 +153,8 @@ class TotalPrecipAccessor(MultiAllAccessor):
 
 
 class MinTAccessor(MultiFirstAccessor):
-    param = PARAMS.MIN_T2M
-    accessors = [
+    param: PARAMS.Parameter = PARAMS.MIN_T2M
+    accessors: List[Accessor] = [
         CoordAccessor(
             keys={"minimumTemperatureAtHeightAndOverPeriodSpecified": PARAMS.MIN_T2M},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
@@ -155,8 +165,8 @@ class MinTAccessor(MultiFirstAccessor):
 
 
 class MaxTAccessor(MultiFirstAccessor):
-    param = PARAMS.MAX_T2M
-    accessors = [
+    param: PARAMS.Parameter = PARAMS.MAX_T2M
+    accessors: List[Accessor] = [
         CoordAccessor(
             keys={"maximumTemperatureAtHeightAndOverPeriodSpecified": PARAMS.MAX_T2M},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
@@ -167,27 +177,27 @@ class MaxTAccessor(MultiFirstAccessor):
 
 
 class MslpAccessor(SimpleAccessor):
-    param = PARAMS.MSLP
-    keys = {"pressureReducedToMeanSeaLevel": PARAMS.MSLP}
+    param: PARAMS.Parameter = PARAMS.MSLP
+    keys: Dict[str, PARAMS.Parameter] = {"pressureReducedToMeanSeaLevel": PARAMS.MSLP}
 
 
 class CloudCoverAccessor(SimpleAccessor):
-    param = PARAMS.CLOUD_COVER
-    keys = {"cloudCoverTotal": PARAMS.CLOUD_COVER}
+    param: PARAMS.Parameter = PARAMS.CLOUD_COVER
+    keys: Dict[str, PARAMS.Parameter] = {"cloudCoverTotal": PARAMS.CLOUD_COVER}
 
 
 class SnowDepthAccessor(SimpleAccessor):
-    param = PARAMS.SNOW_DEPTH
-    keys = {"totalSnowDepth": PARAMS.SNOW_DEPTH}
+    param: PARAMS.Parameter = PARAMS.SNOW_DEPTH
+    keys: Dict[str, PARAMS.Parameter] = {"totalSnowDepth": PARAMS.SNOW_DEPTH}
 
 
 class HorizontalVisibilityAccessor(SimpleAccessor):
-    param = PARAMS.VISIBILITY
-    keys = {"horizontalVisibility": PARAMS.VISIBILITY}
+    param: PARAMS.Parameter = PARAMS.VISIBILITY
+    keys: Dict[str, PARAMS.Parameter] = {"horizontalVisibility": PARAMS.VISIBILITY}
 
 
-CORE_ACCESSORS = [SidAccessor, LatLonAccessor, ElevationAccessor, DatetimeAccessor]
-USER_ACCESSORS = [
+CORE_ACCESSORS: tuple = (SidAccessor, LatLonAccessor, ElevationAccessor, DatetimeAccessor)
+USER_ACCESSORS: tuple = (
     T2mAccessor,
     RHU2mAccessor,
     Td2mAccessor,
@@ -202,31 +212,28 @@ USER_ACCESSORS = [
     CloudCoverAccessor,
     SnowDepthAccessor,
     HorizontalVisibilityAccessor,
-]
+)
 
-MANAGER = AccessorManager(CORE_ACCESSORS, USER_ACCESSORS)
+MANAGER: AccessorManager = AccessorManager(CORE_ACCESSORS, USER_ACCESSORS)
 
 
 class SynopReader(CustomReader):
-    def filter_header(self, message):
+    def filter_header(self, message: Mapping[str, Any]) -> bool:
         c = message["dataCategory"]
         return c == 0 or c == 1
 
-    # params: T.Union[T.Sequence[str], T.Any] = None,
-    # filters: T.Mapping[str, T.Any] = {},
-
     def read_message(
         self,
-        message: T.Mapping[str, T.Any],
-        params=None,
-        m2=None,
-        m10=None,
-        add_level=False,
-        units_converter=None,
-        add_units=False,
-        filters=None,
-        **kwargs,
-    ):
+        message: Mapping[str, Any],
+        params: Optional[Union[str, List[str]]] = None,
+        m2: Optional[Any] = None,
+        m10: Optional[Any] = None,
+        add_level: bool = False,
+        units_converter: Optional[Any] = None,
+        add_units: bool = False,
+        filters: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> Generator[Dict[str, Any], None, None]:
         accessors = MANAGER.get(params)
 
         filtered_keys = self.get_filtered_keys(message, accessors)

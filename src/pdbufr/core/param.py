@@ -6,12 +6,25 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+from typing import TYPE_CHECKING
+from typing import List
+from typing import Optional
+from typing import Union
+
+if TYPE_CHECKING:
+    pass
 
 PARAMETERS = {}
 
 
 class Parameter:
-    def __init__(self, name, desc=None, label=None, units=None):
+    def __init__(
+        self,
+        name: str,
+        desc: Optional[str] = None,
+        label: Optional[Union[str, List[str]]] = None,
+        units: Optional[Union[str, List[str]]] = None,
+    ):
         self.name = name
         self.desc = desc or name
         self.label = label
@@ -26,41 +39,21 @@ class Parameter:
         # register
         PARAMETERS[name] = self
 
-    def is_period(self):
+    def is_period(self) -> bool:
         return False
 
-    def is_fixed(self):
+    def is_fixed(self) -> bool:
         return False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Parameter({self.name}, label={self.label}, units={self.units}"
-
-    # def check_units(self, value, units, target_units):
-    #     if self.units is None:
-    #         return value
-
-    #     target_u = target_units.get(units, units)
-    #     if target_u == units:
-    #         return value
-
-    #     from pint import UnitRegistry
-
-    #     ureg = UnitRegistry()
-    #     Q_ = ureg.Quantity
-    #     pv = Q_(value, PINT_UNITS.get(units, units))
-    #     return pv.to(PINT_UNITS.get(target_u, target_u)).magnitude
 
 
 class PeriodParameter(Parameter):
-    def is_period(self):
+    def is_period(self) -> bool:
         return True
 
-    def to_timedelta(self, v, units):
-        from pdbufr.utils.convert import period_to_timedelta
-
-        return period_to_timedelta(v, units)
-
-    def concat_units(self, v, units):
+    def concat_units(self, v: Optional[Union[int, float]], units: str) -> Optional[str]:
         period = v
         if period is not None:
             period = str(-period)
@@ -71,17 +64,31 @@ class PeriodParameter(Parameter):
 
 
 class CoordParameter(Parameter):
-    def __init__(self, name, desc=None, label=None, units=None, suffix=None):
+    def __init__(
+        self,
+        name: str,
+        desc: Optional[str] = None,
+        label: Optional[Union[str, List[str]]] = None,
+        units: Optional[Union[str, List[str]]] = None,
+        suffix: Optional[str] = None,
+    ):
         super().__init__(name, desc, label, units)
         self.suffix = suffix
 
 
 class FixedParameter(Parameter):
-    def __init__(self, name, value, desc=None, label=None, units=None):
+    def __init__(
+        self,
+        name: str,
+        value: Union[int, float, str],
+        desc: Optional[str] = None,
+        label: Optional[Union[str, List[str]]] = None,
+        units: Optional[Union[str, List[str]]] = None,
+    ):
         super().__init__(name, desc, label, units)
         self.value = value
 
-    def is_fixed(self):
+    def is_fixed(self) -> bool:
         return True
 
 

@@ -12,8 +12,9 @@ from abc import ABCMeta
 from abc import abstractmethod
 from importlib import import_module
 from typing import Any
-from typing import Generator
+from typing import Dict
 from typing import Iterable
+from typing import Iterator
 from typing import MutableMapping
 from typing import Union
 
@@ -47,7 +48,7 @@ class Reader(metaclass=ABCMeta):
         return pd.DataFrame.from_records(rows)
 
     @abstractmethod
-    def _read(self, bufr_obj, **kwargs: Any) -> Generator:
+    def _read(self, bufr_obj: Iterable[MutableMapping[str, Any]], **kwargs: Any) -> Iterator[Dict[str, Any]]:
         pass
 
 
@@ -101,6 +102,9 @@ class ReaderMaker:
                             return w
                     except Exception:
                         LOG.exception("Error loading reader %s", name)
+                        raise
+
+        raise ValueError(f"Unknown reader type: {name}")
 
 
 get_reader = ReaderMaker()
