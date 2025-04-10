@@ -200,6 +200,7 @@ class TempReader(CustomReader):
         units_converter: Optional[UnitsConverter] = None,
         add_units: bool = False,
         filters: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> Any:
         params = None
 
@@ -239,4 +240,4 @@ class TempReader(CustomReader):
                 yield d
 
 
-TempReader = TempReader
+reader = TempReader
