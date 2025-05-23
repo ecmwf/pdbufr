@@ -171,7 +171,26 @@ class GenericReader(Reader):
     def _stream_bufr(self, *args, **kwargs):
         return self._read(self.bufr_obj, *args, **kwargs)
 
-    def _read(
+    def __init__(
+        self,
+        path_or_messages,
+        columns: Union[Sequence[str], str] = [],
+        **kwargs: Any,
+    ):
+        """
+        Generic reader for BUFR files.
+
+        Parameters
+        ----------
+        :param columns: a list of BUFR keys to return in the DataFrame for every observation
+        :param filters: a dictionary of BUFR key / filter definition to filter the observations to return
+        :param required_columns: the list of BUFR keys that are required for all observations.
+            ``True`` means all ``columns`` are required (default ``True``)
+        :param prefilter_headers: filter the header keys before unpacking the data section (default ``False``)
+        """
+        super().__init__(path_or_messages, columns=columns, **kwargs)
+
+    def read_records(
         self,
         bufr_obj: Iterable[MutableMapping[str, Any]],
         columns: Union[Sequence[str], str] = [],
@@ -179,16 +198,7 @@ class GenericReader(Reader):
         required_columns: Union[bool, Iterable[str]] = True,
         prefilter_headers: bool = False,
     ) -> Iterator[Dict[str, Any]]:
-        """
-        Iterate over selected observations from a eccodes.BurfFile.
 
-        :param bufr_file: the eccodes.BurfFile object
-        :param columns: a list of BUFR keys to return in the DataFrame for every observation
-        :param filters: a dictionary of BUFR key / filter definition to filter the observations to return
-        :param required_columns: the list of BUFR keys that are required for all observations.
-            ``True`` means all ``columns`` are required (default ``True``)
-        :param prefilter_headers: filter the header keys before unpacking the data section (default ``False``)
-        """
         if isinstance(columns, str):
             columns = (columns,)
 
@@ -258,10 +268,13 @@ class GenericReader(Reader):
                 if max_count is not None and count >= max_count:
                     break
 
+    def adjust_dataframe(self, df):
+        return df
+
 
 reader = GenericReader
 
 
 def stream_bufr(bufr_obj, *args, **kwargs):
-    reader = GenericReader(bufr_obj)
-    return reader._stream_bufr(*args, **kwargs)
+    reader = GenericReader(bufr_obj, *args, **kwargs)
+    return reader.read_records(bufr_obj, **reader._kwargs)

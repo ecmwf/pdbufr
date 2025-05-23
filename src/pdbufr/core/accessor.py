@@ -7,6 +7,7 @@
 # nor does it submit to any jurisdiction.
 
 
+import re
 from abc import ABCMeta
 from abc import abstractmethod
 from typing import Any
@@ -17,6 +18,7 @@ from typing import Union
 
 import pdbufr.core.param as PARAMS
 from pdbufr.core.keys import COMPUTED_KEYS
+from pdbufr.utils.exception import AllValueMissingException
 
 
 class Accessor(metaclass=ABCMeta):
@@ -104,7 +106,7 @@ class SimpleAccessor(Accessor):
             value = {}
 
         if raise_on_missing and (not value or all(v is None for v in value.values())):
-            raise ValueError(f"Missing value for {self.name}")
+            raise AllValueMissingException(f"No value found for accessor={self.name}")
 
         res = {}
         for key, param in self.keys.items():
@@ -120,7 +122,6 @@ class SimpleAccessor(Accessor):
 
                     # convert units
                     if v is not None and units_converter is not None and param.units:
-                        print("units_converter", label, units, v, param.units)
                         v, units = units_converter.convert(label, v, units)
 
                     # handle period
@@ -145,6 +146,7 @@ class SimpleAccessor(Accessor):
         units_converter: Optional[Any] = None,
         add_units: bool = False,
         first: bool = True,
+        filters: Optional[Dict[str, Any]] = None,
         **kwargs: Any,
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         value = None
@@ -157,7 +159,10 @@ class SimpleAccessor(Accessor):
 
         multi_res = []
 
-        for v in collector.collect(self.bufr_keys, {}, mandatory_keys=mandatory, units_keys=units_keys):
+        if filters is None:
+            filters = {}
+
+        for v in collector.collect(self.bufr_keys, filters, mandatory_keys=mandatory, units_keys=units_keys):
             value = v
             res = self.parse_collected(value, skip, units_converter, add_units, raise_on_missing)
             if first:
@@ -167,7 +172,7 @@ class SimpleAccessor(Accessor):
 
         if first:
             if raise_on_missing:
-                raise ValueError(f"Missing value for {self.name} {self.bufr_keys}")
+                raise AllValueMissingException(f"No value found for accessor={self.name}")
             return {}
         else:
             return multi_res
@@ -208,7 +213,7 @@ class ComputedKeyAccessor(Accessor):
             val = None
 
         if val is None and raise_on_missing:
-            raise ValueError(f"Missing value for {self.name}")
+            raise AllValueMissingException(f"Missing value for {self.name}")
 
         return {self.labels[0]: val}
 
@@ -292,10 +297,13 @@ class CoordAccessor(SimpleAccessor):
             for k, v in r.items():
                 for coord in self.coords:
                     if coord and k == coord.label:
-                        label = coord.label.replace(self.period_placeholder, period)
+                        label = coord.label.replace(self.period_placeholder, f"<{period}>")
                         res[label] = v
                     else:
-                        label = k + "_" + period
+                        if k.endswith("_units"):
+                            label = k[:-6] + "_<" + period + ">_units"
+                        else:
+                            label = k + "_<" + period + ">"
                         res[label] = v
         return res
 
@@ -335,6 +343,9 @@ class CoordAccessor(SimpleAccessor):
 
         return value
 
+    def __repr__(self):
+        return f"{self.__class__.__name__} param={self.param} keys{self.keys}"
+
 
 class MultiAccessorBase(Accessor):
     accessors: List[Accessor] = []
@@ -357,8 +368,10 @@ class MultiFirstAccessor(MultiAccessorBase):
                 r = a.collect(collector, raise_on_missing=True, **kwargs)
                 if r:
                     return r
-            except Exception:
+            except AllValueMissingException:
                 pass
+            else:
+                raise
 
         return self.empty_result()
 
@@ -407,14 +420,25 @@ class DatetimeAccessor(ComputedKeyAccessor):
 class AccessorManager:
     def __init__(
         self,
-        core_accessors: List[Accessor],
-        user_accessors: List[Accessor],
-        default_user_accessors: Optional[List[Accessor]] = None,
+        core: List[Accessor] = None,
+        station: List[Accessor] = None,
+        location: List[Accessor] = None,
+        geometry: List[Accessor] = None,
+        optional: List[Accessor] = None,
     ):
-        if default_user_accessors is None:
-            default_user_accessors = user_accessors
 
-        self.accessors = set([*core_accessors, *user_accessors, *default_user_accessors])
+        if core is None:
+            core = []
+        if station is None:
+            station = []
+        if location is None:
+            location = []
+        if geometry is None:
+            geometry = []
+        if optional is None:
+            optional = []
+
+        self.accessors = set([*core, *station, *location, *geometry, *optional])
         aa = {}
         for a in self.accessors:
             aa[a.param.label] = a()
@@ -423,32 +447,67 @@ class AccessorManager:
         def _build(lst):
             return {a.param.label: self.accessors[a.param.label] for a in lst}
 
-        self.core = _build(core_accessors)
-        self.user = _build(user_accessors)
-        self.default_user = _build(default_user_accessors)
-        self.default = {**self.core, **self.default_user}
+        self.groups = {
+            "core": _build(core),
+            "station": _build(station),
+            "location": _build(location),
+            "geometry": _build(geometry),
+            "optional": _build(optional),
+        }
+
+        # self.core = _build(core)
+        # self.location = _build(location)
+        # self.geometry = _build(geometry)
+        # self.optional = _build(optional)
+        self.groups["all"] = {**self.groups["core"], **self.groups["optional"]}
 
         self.cache = {}
 
-    def get(self, params: Optional[Union[str, List[str]]]) -> Dict[str, Accessor]:
-        if params is None:
-            accessors = self.default
-        else:
-            cache_key = tuple(params)
-            if cache_key in self.cache:
-                accessors = self.cache[cache_key]
-            else:
-                if isinstance(params, str):
-                    params = [params]
-                v = list(params)
-                accessors = {**self.core}
-                for p in v:
-                    if p in self.user:
-                        accessors[p] = self.user[p]
-                    else:
-                        raise ValueError(f"Unsupported parameter '{p}'")
+    #     core_accessors: List[Accessor],
+    #     user_accessors: List[Accessor],
+    #     default_user_accessors: Optional[List[Accessor]] = None,
+    # ):
+    #     if default_user_accessors is None:
+    #         default_user_accessors = user_accessors
 
-                self.cache[cache_key] = accessors
+    #     self.accessors = set([*core_accessors, *user_accessors, *default_user_accessors])
+    #     aa = {}
+    #     for a in self.accessors:
+    #         aa[a.param.label] = a()
+    #     self.accessors = aa
+
+    #     def _build(lst):
+    #         return {a.param.label: self.accessors[a.param.label] for a in lst}
+
+    #     self.core = _build(core_accessors)
+    #     self.user = _build(user_accessors)
+    #     self.default_user = _build(default_user_accessors)
+    #     self.default = {**self.core, **self.default_user}
+
+    #     self.cache = {}
+
+    def get(self, params: Optional[Union[str, List[str]]]) -> Dict[str, Accessor]:
+        if isinstance(params, str):
+            accessors = self.groups.get(params, None)
+            if accessors is not None:
+                return accessors
+
+        cache_key = tuple(params)
+        if cache_key in self.cache:
+            accessors = self.cache[cache_key]
+        else:
+            if isinstance(params, str):
+                params = [params]
+            v = list(params)
+            accessors = {**self.groups["core"]}
+            optional = self.groups["optional"]
+            for p in v:
+                if p in optional:
+                    accessors[p] = optional[p]
+                else:
+                    raise ValueError(f"Unsupported parameter '{p}'")
+
+            self.cache[cache_key] = accessors
 
         assert accessors is not None
 
@@ -459,3 +518,58 @@ class AccessorManager:
             raise ValueError(f"Invalid accessor type={type(accessor)}")
         label = accessor.param.label
         return self.accessors[label]
+
+
+PERIOD_RX = re.compile(r"(.+)_<(.+)>(.*)")
+
+"""
+Period key names are encoded at the accessor level as:
+
+    name_<period>rest
+
+E.g. "wind_gust_<1h>" or "wind_gust_<1h>_units".
+"""
+
+
+def resolve_period_key(key: str) -> Optional[str]:
+    """
+    Resolve the period key name by removing the <> brackets.
+
+    Parameters
+    ----------
+    key : str
+        The key to resolve.
+    """
+    m = PERIOD_RX.match(key)
+    if m is not None:
+        name = m.group(1)
+        period = m.group(2)
+        rest = m.group(3)
+        return name + "_" + period + rest
+    return key
+
+
+def parse_period_key(key: str) -> Optional[str]:
+    """
+    Parse the period key name.
+
+    Parameters
+    ----------
+    key : str
+        The key to parse.
+
+    Returns
+    -------
+    tuple
+        - the key name
+        - the key name without the period
+
+        if the key does not contain a period, return None, None
+    """
+    m = PERIOD_RX.match(key)
+    if m is not None:
+        name = m.group(1)
+        # period = m.group(2)
+        rest = m.group(3)
+        return key, name + rest
+    return None, None

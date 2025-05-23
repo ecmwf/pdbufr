@@ -112,12 +112,12 @@ TD2M = Parameter("td2m", desc="2m dewpoint temperature", units="K")
 RH2M = Parameter("rh2m", desc="2m relative humidity", units="%")
 Q2M = Parameter("q2m", desc="2m specific humidity", units="kg/kg")
 MSLP = Parameter("mslp", desc="mean sea level pressure", units="Pa")
-WIND10 = Parameter("wind10", desc="10m wind and direction", units=["m/s", "deg"])
-WSPEED10M = Parameter("wspeed10m", desc="10m wind speed", units="m/s")
-WDIR10M = Parameter("wdir10m", desc="10m wind direction", units="deg")
+WIND10M = Parameter("wind10", desc="10m wind and direction", units=["m/s", "deg"])
+WIND10M_SPEED = Parameter("wind10m_speed", desc="10m wind speed", units="m/s")
+WIND10M_DIR = Parameter("wind10m_dir", desc="10m wind direction", units="deg")
 WGUST = Parameter("wgust", desc="maximum wind gust", units=["m/s", "deg"])
-WSPEEDGUST = Parameter("wspeedgust", desc="maximum wind gust speed", units="m/s")
-WDIRGUST = Parameter("wdirgust", desc="maximum wind gust direction", units="deg")
+WGUST_SPEED = Parameter("wgust_speed", desc="maximum wind gust speed", units="m/s")
+WGUST_DIR = Parameter("wgust_dir", desc="maximum wind gust direction", units="deg")
 VISIBILITY = Parameter("visibility", desc="visibility", units="m")
 PRESENT_WEATHER = Parameter("present_weather", desc="present weather")
 PAST_WEATHER_1 = Parameter("past_weather_1", desc="past weather")
@@ -126,8 +126,7 @@ PAST_WEATHER = Parameter("past_weather", desc="past weather")
 CLOUD_COVER = Parameter("cloud_cover", desc="total cloud cover", units="%")
 MAX_T2M = Parameter("max_t2m", desc="max 2m temperature", units="K")
 MIN_T2M = Parameter("min_t2m", desc="min 2m temperature", units="K")
-PRECIPITATION = Parameter("precipitation", desc="precipitation", units="m")
-PRECIPITATION_24h = Parameter("precipitation_24h", desc="precipitation", units="m")
+PRECIPITATION = Parameter("precipitation", desc="precipitation", units="kg m-2")
 SNOW_DEPTH = Parameter("snow_depth", desc="snow depth", units="m")
 
 
@@ -143,3 +142,11 @@ ZH = Parameter("zh", desc="geopotentialHeight", units="gpm")
 WIND = Parameter("wind", desc="wind", units=["m/s", "deg"])
 WSPEED = Parameter("wspeed", desc="wind speed", units="m/s")
 WDIR = Parameter("wdir", desc="wind direction", units="deg")
+
+
+UNITS = {}
+for item in PARAMETERS.values():
+    if item.units is not None:
+        u = item.units
+        if u is not None:
+            UNITS[item.name] = u

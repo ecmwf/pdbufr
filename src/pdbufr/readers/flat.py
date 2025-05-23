@@ -185,30 +185,47 @@ def test_computed_keys(
 
 
 class FlatReader(Reader):
-    def read(
+    class ColumnInfo:
+        def __init__(self) -> None:
+            self.first_count = 0
+
+    def __init__(
         self,
+        path_or_messages,
         columns: Union[Sequence[str], str] = [],
-        filters: Mapping[str, Any] = {},
-        required_columns: Union[bool, Iterable[str]] = True,
-        **kwargs,
-    ) -> pd.DataFrame:
+        **kwargs: Any,
+    ):
         class ColumnInfo:
             def __init__(self) -> None:
                 self.first_count = 0
 
-        column_info = ColumnInfo()
-        df = super().read(
-            columns=columns,
-            filters=filters,
-            required_columns=required_columns,
-            column_info=column_info,
-            **kwargs,
+        self.column_info = ColumnInfo()
+        super().__init__(path_or_messages, columns=columns, column_info=self.column_info, **kwargs)
+
+    def execute(
+        self,
+        # columns: Union[Sequence[str], str] = [],
+        # filters: Mapping[str, Any] = {},
+        # required_columns: Union[bool, Iterable[str]] = True,
+        # **kwargs,
+    ) -> pd.DataFrame:
+        # class ColumnInfo:
+        #     def __init__(self) -> None:
+        #         self.first_count = 0
+
+        # column_info = ColumnInfo()
+        df = super().execute(
+            # columns=columns,
+            # filters=filters,
+            # required_columns=required_columns,
+            # column_info=column_info,
+            # **kwargs,
         )
 
         # compare the column count in the first record to that of the
         # dataframe. If the latter is larger, then there were non-aligned columns,
         # which were appended to the end of the dataframe columns.
-        if column_info.first_count > 0 and column_info.first_count < len(df.columns):
+        if self.column_info.first_count > 0 and self.column_info.first_count < len(df.columns):
             import warnings
 
             # temporarily overwrite warnings formatter
@@ -218,7 +235,7 @@ class FlatReader(Reader):
                 (
                     "not all BUFR messages/subsets have the same structure in the input file. "
                     "Non-overlapping columns (starting with column[{column_info.first_count-1}] ="
-                    f"{df.columns[column_info.first_count-1]}) were added to end of the resulting dataframe"
+                    f"{df.columns[self.column_info.first_count-1]}) were added to end of the resulting dataframe"
                     "altering the original column order for these messages."
                 )
             )
@@ -226,7 +243,7 @@ class FlatReader(Reader):
 
         return df
 
-    def _read(
+    def read_records(
         self,
         bufr_obj: Iterable[MutableMapping[str, Any]],
         columns: Union[Sequence[str], str],
@@ -340,6 +357,9 @@ class FlatReader(Reader):
                 # optimisation: skip decoding messages above max_count
                 if max_count is not None and count >= max_count:
                     break
+
+    def adjust_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        return df
 
 
 reader = FlatReader

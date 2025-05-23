@@ -15,7 +15,9 @@ from typing import Any
 from typing import Dict
 from typing import Iterable
 from typing import Iterator
+from typing import List
 from typing import MutableMapping
+from typing import Optional
 from typing import Union
 
 import pandas as pd  # type: ignore
@@ -29,6 +31,7 @@ class Reader(metaclass=ABCMeta):
     def __init__(
         self,
         path_or_messages: Union[str, bytes, "os.PathLike[Any]", Iterable[MutableMapping[str, Any]]],
+        **kwargs: Any,
     ):
         self.path_or_messages = path_or_messages
         if isinstance(path_or_messages, (str, bytes, os.PathLike)):
@@ -36,26 +39,49 @@ class Reader(metaclass=ABCMeta):
         else:
             self.bufr_obj = path_or_messages
 
-    def read(self, **kwargs: Any) -> pd.DataFrame:
+        self._kwargs = {**kwargs}
+
+    def execute(self) -> pd.DataFrame:
+        def _read(bufr_obj) -> pd.DataFrame:
+            rows = self.read_records(bufr_obj, **self._kwargs)
+            df = pd.DataFrame.from_records(rows)
+            df = self.adjust_dataframe(df)
+            return df
+
         if hasattr(self, "path"):
             with BufrFile(self.path) as bufr_obj:
-                return self.read_records(bufr_obj, **kwargs)
+                return _read(bufr_obj)
 
-        return self.read_records(self.bufr_obj, **kwargs)
+        return _read(self.bufr_obj)
 
-    def read_records(self, bufr_obj, **kwargs: Any) -> pd.DataFrame:
-        rows = self._read(bufr_obj, **kwargs)
-        return pd.DataFrame.from_records(rows)
+    # def read(self, **kwargs: Any) -> pd.DataFrame:
+    #     if hasattr(self, "path"):
+    #         with BufrFile(self.path) as bufr_obj:
+    #             return self.read_records(bufr_obj, **kwargs)
+
+    #     return self.read_records(self.bufr_obj, **kwargs)
+
+    # def read_records(self, bufr_obj) -> pd.DataFrame:
+    #     rows = self._read(bufr_obj)
+    #     return pd.DataFrame.from_records(rows)
 
     @abstractmethod
-    def _read(self, bufr_obj: Iterable[MutableMapping[str, Any]], **kwargs: Any) -> Iterator[Dict[str, Any]]:
+    def read_records(
+        self, bufr_obj: Iterable[MutableMapping[str, Any]], **kwargs: Any
+    ) -> Iterator[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def adjust_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         pass
 
 
 class ReaderMaker:
     READERS = {}
 
-    def __call__(self, name_or_reader: Union[str, Reader], *args: Any, flat: bool = False) -> Reader:
+    def __call__(
+        self, name_or_reader: Union[str, Reader], *args: Any, flat: bool = False, **kwargs
+    ) -> Reader:
         if isinstance(name_or_reader, Reader):
             return name_or_reader
 
@@ -75,7 +101,7 @@ class ReaderMaker:
         if not klass:
             raise ValueError(f"Unknown reader type: {name}")
 
-        reader = klass(*args)
+        reader = klass(*args, **kwargs)
 
         if getattr(reader, "name", None) is None:
             reader.name = name

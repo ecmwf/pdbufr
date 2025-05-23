@@ -175,6 +175,17 @@ UPPER_ACCESSORS: Dict[str, Accessor] = {
 
 
 class TempReader(CustomReader):
+    def __init__(
+        self,
+        *args: Any,
+        params: Optional[Union[str, List[str]]] = None,
+        add_offsets: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.params = params
+        self.add_offsets = add_offsets
+
     def filter_header(self, message: Mapping[str, Any]) -> bool:
         return message["dataCategory"] == 2
 
@@ -196,15 +207,10 @@ class TempReader(CustomReader):
     def read_message(
         self,
         message: Mapping[str, Any],
-        params: Optional[Union[str, List[str]]] = None,
-        units_converter: Optional[UnitsConverter] = None,
-        add_units: bool = False,
-        filters: Optional[Dict[str, Any]] = None,
-        **kwargs: Any,
     ) -> Any:
-        params = None
+        # params = None
 
-        accessors = MANAGER.get(params)
+        accessors = MANAGER.get(self.params)
 
         filtered_keys = self.get_filtered_keys(message, accessors)
 
@@ -215,19 +221,19 @@ class TempReader(CustomReader):
 
         reader = BufrSubsetReader(message, filtered_keys)
 
-        add_offsets = True
+        # add_offsets = True
         for subset in reader.subsets():
             station = {}
             for ac in STATION_ACCESSORS:
-                r = ac.collect(subset, filters=filters)
+                r = ac.collect(subset, filters=self.filters)
                 station.update(r)
 
             r = upper_accessor.collect(
                 subset,
-                add_offsets=add_offsets,
-                units_converter=units_converter,
-                add_units=add_units,
-                filters=filters,
+                add_offsets=self.add_offsets,
+                units_converter=self.units_converter,
+                add_units=self.add_units,
+                filters=self.filters,
             )
 
             if r:

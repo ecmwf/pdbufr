@@ -87,6 +87,9 @@ class SliceBufrFilter(BufrFilter):
     def max(self) -> Any:
         return self.slice.stop
 
+    def __repr__(self) -> str:
+        return f"SliceBufrFilter({self.slice.start}, {self.slice.stop})"
+
 
 class CallableBufrFilter(BufrFilter):
     def __init__(self, v: Callable[[Any], bool]) -> None:
@@ -224,13 +227,29 @@ def filters_match(
     return True
 
 
-class MultiFilter:
-    def __init__(self, filters):
-        self.filters = filters or {}
+class ParamFilter(dict):
+    def __init__(self, filters, period=False) -> None:
+        filters = filters or {}
+        super().__init__(filters)
+        self.period = period
+        self.ignore = set()
 
     def match(self, data):
         for k, v in data.items():
-            if k in self.filters:
-                if not self.filters[k].match(v):
+            if k in self.ignore:
+                continue
+            self._register_period_key(k)
+            if k in self:
+                if not self[k].match(v):
                     return False
         return True
+
+    def _register_period_key(self, key: str) -> None:
+        from pdbufr.core.accessor import parse_period_key
+
+        if key not in self and self.period:
+            simple_name, full_name = parse_period_key(key)
+            if simple_name and full_name and simple_name in self:
+                self[full_name] = self[simple_name]
+            else:
+                self.ignore.add(key)
