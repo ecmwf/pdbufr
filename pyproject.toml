@@ -30,7 +30,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
 ]
 dynamic = [ "version" ]
-dependencies = [ "attrs", "eccodes", "pandas" ]
+dependencies = [ "attrs", "eccodes", "pandas", "pint" ]
 optional-dependencies.tests = [ "flake8", "pytest", "pytest-cov", "requests" ]
 urls.Documentation = "https://pdbufr.readthedocs.io/en/latest/"
 urls.Homepage = "https://github.com/ecmwf/pdbufr"
