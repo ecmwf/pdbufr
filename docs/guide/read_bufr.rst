@@ -19,4 +19,6 @@ read_bufr
         * - :ref:`flat <flat-reader>`
           -  extracts whole BUFR messages/subsets as flat records
         * - :ref:`synop <synop-reader>`
-          - extracts SYNOP/SHIP data using pre-defined parameters
+          -  extracts :ref:`synop-like data <synop-like-data>` from BUFR using pre-defined :ref:`parameters <synop-params>`
+        * - :ref:`temp <temp-reader>`
+          -  extracts :ref:`temp-like data <temp-like-data>` from BUFR using pre-defined :ref:`parameters <temp-params>`

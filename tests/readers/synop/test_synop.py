@@ -7,8 +7,11 @@
 # nor does it submit to any jurisdiction.
 
 
+import datetime
+
 import numpy as np
 import pandas as pd
+import pytest
 
 import pdbufr
 from pdbufr.utils.testing import sample_test_data_path
@@ -20,9 +23,9 @@ def _get_data():
 
     here = os.path.dirname(__file__)
     sys.path.insert(0, here)
-    import _data
+    import _synop_ref_data
 
-    return _data
+    return _synop_ref_data
 
 
 DATA = _get_data()
@@ -52,8 +55,8 @@ def test_synop_reader():
 
     df = df.replace(np.nan, None)
 
-    # print("df=", df.columns.tolist())
-    # print("df_ref=", df_ref.columns.tolist())
+    print("df=", df.columns.tolist())
+    print("df_ref=", df_ref.columns.tolist())
 
     try:
         pd.testing.assert_frame_equal(
@@ -64,33 +67,70 @@ def test_synop_reader():
         raise
 
 
-def test_synop_columns_user_1():
+@pytest.mark.parametrize(
+    "columns, expected_values",
+    [
+        (["station", "t2m"], {"t2m": 300.45}),
+        (["station", "t2m", "rh2m"], {"t2m": 300.45, "rh2m": 73}),
+        (["station", "wind10m"], {"wind10m_speed": 1.6, "wind10m_dir": 100}),
+        (["station", "wind10m_speed"], {"wind10m_speed": 1.6}),
+        (["station", "wind10m_dir"], {"wind10m_dir": 100}),
+        (
+            ["station", "wgust"],
+            {
+                "wgust_speed_10min": 5.3,
+                "wgust_dir_10min": 110.0,
+                "wgust_speed_60min": 5.3,
+                "wgust_dir_60min": 110.0,
+                "wgust_speed_360min": 7.6,
+                "wgust_dir_360min": 130.0,
+            },
+        ),
+        (
+            ["station", "precipitation"],
+            {
+                "precipitation_1h": 0.0,
+                "precipitation_3h": 0.0,
+                "precipitation_6h": 0.0,
+                "precipitation_12h": 0.0,
+                "precipitation_24h": 0.0,
+            },
+        ),
+        (
+            ["station", "global_solar_radiation"],
+            {"global_solar_radiation_1h": 2249000, "global_solar_radiation_24h": 23211000},
+        ),
+        (
+            ["station", "total_sunshine", "station_name", "t2m"],
+            {
+                "total_sunshine_1h": 39,
+                "total_sunshine_24h": 535,
+                "station_name": "MANGAREVA",
+                "t2m": 300.45,
+            },
+        ),
+    ],
+)
+def test_synop_columns_user(columns, expected_values):
     df = pdbufr.read_bufr(
-        sample_test_data_path("syn_new.bufr"), reader="synop", filters={"count": 1}, columns=["t2m"]
+        sample_test_data_path("syn_new.bufr"),
+        reader="synop",
+        filters={"count": 1},
+        columns=columns,
     )
 
-    df_ref = pd.DataFrame.from_dict(DATA.REF_PARAMS_1)
+    ref_station = {
+        "sid": 91948,
+        "lat": -23.13017,
+        "lon": -134.96533,
+        "elevation": 91.0,
+        "time": datetime.datetime.fromisoformat("2020-03-15T00:00:00.000"),
+    }
+
+    ref = {**ref_station, **expected_values}
+
+    df_ref = pd.DataFrame.from_dict([ref])
     df_ref.reset_index(drop=True, inplace=True)
-
-    df = df.replace(np.nan, None)
-
-    try:
-        pd.testing.assert_frame_equal(
-            df, df_ref, check_dtype=False, check_index_type=False, check_datetimelike_compat=True
-        )
-    except Exception as e:
-        print("e=", e)
-        raise
-
-
-def test_synop_columns_user_2():
-    df = pdbufr.read_bufr(
-        sample_test_data_path("syn_new.bufr"), reader="synop", filters={"count": 1}, columns=["t2m", "rh2m"]
-    )
-
-    df_ref = pd.DataFrame.from_dict(DATA.REF_PARAMS_2)
-    df_ref.reset_index(drop=True, inplace=True)
-
     df = df.replace(np.nan, None)
 
     try:
@@ -190,3 +230,329 @@ def test_synop_units_2():
     ref = {"mslp_units": "hPa", "td2m_units": "degC", "t2m_units": "degF"}
     for k, v in ref.items():
         assert df[k][0] == v, f"{k}={df[k][0]} != {v}"
+
+
+@pytest.mark.parametrize(
+    "columns, expected_values",
+    [
+        (["t2m"], {"t2m": 300.45, "t2m_level": 1.5}),  # Default units are K
+        (["t2m", "rh2m"], {"t2m": 300.45, "t2m_level": 1.5, "rh2m": 73, "rh2m_level": 1.5}),
+        (
+            ["wind10m"],
+            {
+                "wind10m_speed": 1.6,
+                "wind10m_dir": 100,
+                "wind10m_speed_level": 10,
+                "wind10m_dir_level": 10,
+            },
+        ),
+        (["wind10m_speed"], {"wind10m_speed": 1.6, "wind10m_speed_level": 10}),
+        (["wind10m_dir"], {"wind10m_dir": 100, "wind10m_dir_level": 10}),
+        (
+            ["wgust"],
+            {
+                "wgust_speed_10min": 5.3,
+                "wgust_dir_10min": 110.0,
+                "wgust_speed_10min_level": 10,
+                "wgust_dir_10min_level": 10,
+                "wgust_speed_60min": 5.3,
+                "wgust_dir_60min": 110.0,
+                "wgust_speed_60min_level": 10,
+                "wgust_dir_60min_level": 10,
+                "wgust_speed_360min": 7.6,
+                "wgust_dir_360min": 130.0,
+                "wgust_speed_360min_level": 10,
+                "wgust_dir_360min_level": 10,
+            },
+        ),
+        (
+            ["precipitation"],
+            {
+                "precipitation_1h": 0.0,
+                "precipitation_1h_level": 1.5,
+                "precipitation_3h": 0.0,
+                "precipitation_3h_level": 1.5,
+                "precipitation_6h": 0.0,
+                "precipitation_6h_level": 1.5,
+                "precipitation_12h": 0.0,
+                "precipitation_12h_level": 1.5,
+                "precipitation_24h": 0.0,
+                "precipitation_24h_level": 1.5,
+            },
+        ),
+        (
+            ["global_solar_radiation"],
+            {"global_solar_radiation_1h": 2249000, "global_solar_radiation_24h": 23211000},
+        ),
+        (
+            ["total_sunshine", "station_name", "t2m"],
+            {
+                "total_sunshine_1h": 39,
+                "total_sunshine_24h": 535,
+                "station_name": "MANGAREVA",
+                "t2m": 300.45,
+                "t2m_level": 1.5,
+            },
+        ),
+    ],
+)
+def test_synop_levels(columns, expected_values):
+    df = pdbufr.read_bufr(
+        sample_test_data_path("syn_new.bufr"),
+        reader="synop",
+        filters={"count": 1},
+        columns=columns,
+        add_level_columns=True,
+    )
+
+    ref = expected_values
+    df_ref = pd.DataFrame.from_dict([ref])
+    df_ref.reset_index(drop=True, inplace=True)
+    df = df.replace(np.nan, None)
+
+    # print("df=", df.columns.tolist())
+
+    try:
+        pd.testing.assert_frame_equal(
+            df, df_ref, check_dtype=False, check_index_type=False, check_datetimelike_compat=True
+        )
+    except Exception as e:
+        print("e=", e)
+        raise
+
+
+@pytest.mark.parametrize(
+    "columns, expected_values",
+    [
+        (["t2m"], {"t2m": 300.45, "t2m_units": "K"}),  # Default units are K
+        (
+            ["t2m", "rh2m"],
+            {
+                "t2m": 300.45,
+                "t2m_units": "K",
+                "rh2m": 73,
+                "rh2m_units": "%",
+            },
+        ),
+        (
+            ["wind10m"],
+            {
+                "wind10m_speed": 1.6,
+                "wind10m_dir": 100,
+                "wind10m_speed_units": "m/s",
+                "wind10m_dir_units": "deg",
+            },
+        ),
+        (
+            ["wind10m_speed"],
+            {
+                "wind10m_speed": 1.6,
+                "wind10m_speed_units": "m/s",
+            },
+        ),
+        (
+            ["wind10m_dir"],
+            {
+                "wind10m_dir": 100,
+                "wind10m_dir_units": "deg",
+            },
+        ),
+        (
+            ["wgust"],
+            {
+                "wgust_speed_10min": 5.3,
+                "wgust_dir_10min": 110.0,
+                "wgust_speed_10min_units": "m/s",
+                "wgust_dir_10min_units": "deg",
+                "wgust_speed_60min": 5.3,
+                "wgust_dir_60min": 110.0,
+                "wgust_speed_60min_units": "m/s",
+                "wgust_dir_60min_units": "deg",
+                "wgust_speed_360min": 7.6,
+                "wgust_dir_360min": 130.0,
+                "wgust_speed_360min_units": "m/s",
+                "wgust_dir_360min_units": "deg",
+            },
+        ),
+        (
+            ["precipitation"],
+            {
+                "precipitation_1h": 0.0,
+                "precipitation_1h_units": "kg m-2",
+                "precipitation_3h": 0.0,
+                "precipitation_3h_units": "kg m-2",
+                "precipitation_6h": 0.0,
+                "precipitation_6h_units": "kg m-2",
+                "precipitation_12h": 0.0,
+                "precipitation_12h_units": "kg m-2",
+                "precipitation_24h": 0.0,
+                "precipitation_24h_units": "kg m-2",
+            },
+        ),
+        (
+            ["global_solar_radiation"],
+            {
+                "global_solar_radiation_1h": 2249000,
+                "global_solar_radiation_1h_units": "J m-2",
+                "global_solar_radiation_24h": 23211000,
+                "global_solar_radiation_24h_units": "J m-2",
+            },
+        ),
+        (
+            ["total_sunshine", "station_name", "t2m"],
+            {
+                "total_sunshine_1h": 39,
+                "total_sunshine_1h_units": "min",
+                "total_sunshine_24h": 535,
+                "total_sunshine_24h_units": "min",
+                "station_name": "MANGAREVA",
+                "t2m": 300.45,
+                "t2m_units": "K",
+            },
+        ),
+    ],
+)
+def test_synop_units(columns, expected_values):
+    df = pdbufr.read_bufr(
+        sample_test_data_path("syn_new.bufr"),
+        reader="synop",
+        filters={"count": 1},
+        columns=columns,
+        add_units_columns=True,
+    )
+
+    ref = expected_values
+    df_ref = pd.DataFrame.from_dict([ref])
+    df_ref.reset_index(drop=True, inplace=True)
+    df = df.replace(np.nan, None)
+
+    print("df=", df.columns.tolist())
+
+    try:
+        pd.testing.assert_frame_equal(
+            df, df_ref, check_dtype=False, check_index_type=False, check_datetimelike_compat=True
+        )
+    except Exception as e:
+        print("e=", e)
+        raise
+
+
+@pytest.mark.parametrize(
+    "columns, expected_values",
+    [
+        (["t2m"], {"t2m": 300.45, "t2m_units": "K", "t2m_level": 1.5}),  # Default units are K
+        (
+            ["t2m", "rh2m"],
+            {
+                "t2m": 300.45,
+                "t2m_units": "K",
+                "t2m_level": 1.5,
+                "rh2m": 73,
+                "rh2m_units": "%",
+                "rh2m_level": 1.5,
+            },
+        ),
+        (
+            ["wind10m"],
+            {
+                "wind10m_speed": 1.6,
+                "wind10m_dir": 100,
+                "wind10m_speed_units": "m/s",
+                "wind10m_dir_units": "deg",
+                "wind10m_speed_level": 10,
+                "wind10m_dir_level": 10,
+            },
+        ),
+        (["wind10m_speed"], {"wind10m_speed": 1.6, "wind10m_speed_units": "m/s", "wind10m_speed_level": 10}),
+        (["wind10m_dir"], {"wind10m_dir": 100, "wind10m_dir_units": "deg", "wind10m_dir_level": 10}),
+        (
+            ["wgust"],
+            {
+                "wgust_speed_10min": 5.3,
+                "wgust_dir_10min": 110.0,
+                "wgust_speed_10min_units": "m/s",
+                "wgust_dir_10min_units": "deg",
+                "wgust_speed_10min_level": 10,
+                "wgust_dir_10min_level": 10,
+                "wgust_speed_60min": 5.3,
+                "wgust_dir_60min": 110.0,
+                "wgust_speed_60min_units": "m/s",
+                "wgust_dir_60min_units": "deg",
+                "wgust_speed_60min_level": 10,
+                "wgust_dir_60min_level": 10,
+                "wgust_speed_360min": 7.6,
+                "wgust_dir_360min": 130.0,
+                "wgust_speed_360min_units": "m/s",
+                "wgust_dir_360min_units": "deg",
+                "wgust_speed_360min_level": 10,
+                "wgust_dir_360min_level": 10,
+            },
+        ),
+        (
+            ["precipitation"],
+            {
+                "precipitation_1h": 0.0,
+                "precipitation_1h_units": "kg m-2",
+                "precipitation_1h_level": 1.5,
+                "precipitation_3h": 0.0,
+                "precipitation_3h_units": "kg m-2",
+                "precipitation_3h_level": 1.5,
+                "precipitation_6h": 0.0,
+                "precipitation_6h_units": "kg m-2",
+                "precipitation_6h_level": 1.5,
+                "precipitation_12h": 0.0,
+                "precipitation_12h_units": "kg m-2",
+                "precipitation_12h_level": 1.5,
+                "precipitation_24h": 0.0,
+                "precipitation_24h_units": "kg m-2",
+                "precipitation_24h_level": 1.5,
+            },
+        ),
+        (
+            ["global_solar_radiation"],
+            {
+                "global_solar_radiation_1h": 2249000,
+                "global_solar_radiation_1h_units": "J m-2",
+                "global_solar_radiation_24h": 23211000,
+                "global_solar_radiation_24h_units": "J m-2",
+            },
+        ),
+        (
+            ["total_sunshine", "station_name", "t2m"],
+            {
+                "total_sunshine_1h": 39,
+                "total_sunshine_1h_units": "min",
+                "total_sunshine_24h": 535,
+                "total_sunshine_24h_units": "min",
+                "station_name": "MANGAREVA",
+                "t2m": 300.45,
+                "t2m_units": "K",
+                "t2m_level": 1.5,
+            },
+        ),
+    ],
+)
+def test_synop_levels_units(columns, expected_values):
+    df = pdbufr.read_bufr(
+        sample_test_data_path("syn_new.bufr"),
+        reader="synop",
+        filters={"count": 1},
+        columns=columns,
+        add_level_columns=True,
+        add_units_columns=True,
+    )
+
+    ref = expected_values
+    df_ref = pd.DataFrame.from_dict([ref])
+    df_ref.reset_index(drop=True, inplace=True)
+    df = df.replace(np.nan, None)
+
+    print("df=", df.columns.tolist())
+
+    try:
+        pd.testing.assert_frame_equal(
+            df, df_ref, check_dtype=False, check_index_type=False, check_datetimelike_compat=True
+        )
+    except Exception as e:
+        print("e=", e)
+        raise

@@ -10,10 +10,13 @@
 import logging
 from typing import Any
 from typing import Dict
+from typing import Generator
 from typing import List
 from typing import Mapping
 from typing import Optional
 from typing import Union
+
+import pandas as pd
 
 import pdbufr.core.param as PARAMS
 from pdbufr.core.accessor import Accessor
@@ -23,12 +26,15 @@ from pdbufr.core.accessor import ElevationAccessor
 from pdbufr.core.accessor import LatLonAccessor
 from pdbufr.core.accessor import SidAccessor
 from pdbufr.core.accessor import SimpleAccessor
+from pdbufr.core.accessor import StationNameAccessor
+from pdbufr.core.filters import ParamFilter
 from pdbufr.core.param import Parameter
 from pdbufr.core.subset import BufrSubsetReader
 from pdbufr.utils.convert import period_to_timedelta
 from pdbufr.utils.units import UnitsConverter
 
 from .custom import CustomReader
+from .geopot import GeopotentialHandler
 
 LOG = logging.getLogger(__name__)
 
@@ -41,8 +47,8 @@ class PressureLevelAccessor(SimpleAccessor):
         "nonCoordinateGeopotentialHeight": PARAMS.ZH,
         "airTemperature": PARAMS.T,
         "dewpointTemperature": PARAMS.TD,
-        "windDirection": PARAMS.WDIR,
-        "windSpeed": PARAMS.WSPEED,
+        "windSpeed": PARAMS.WIND_SPEED,
+        "windDirection": PARAMS.WIND_DIR,
     }
     param: Parameter = Parameter("plev", "pressure_level")
 
@@ -82,8 +88,8 @@ class OffsetPressureLevelAccessor(PressureLevelAccessor):
         "nonCoordinateGeopotentialHeight": PARAMS.ZH,
         "airTemperature": PARAMS.T,
         "dewpointTemperature": PARAMS.TD,
-        "windDirection": PARAMS.WDIR,
-        "windSpeed": PARAMS.WSPEED,
+        "windSpeed": PARAMS.WIND_SPEED,
+        "windDirection": PARAMS.WIND_DIR,
         "latitudeDisplacement": PARAMS.LAT_OFFSET,
         "longitudeDisplacement": PARAMS.LON_OFFSET,
     }
@@ -163,11 +169,33 @@ class OffsetPressureLevelAccessor(PressureLevelAccessor):
         )
 
 
-CORE_ACCESSORS: tuple = (SidAccessor, LatLonAccessor, ElevationAccessor, DatetimeAccessor)
-USER_ACCESSORS: tuple = (PressureLevelAccessor, OffsetPressureLevelAccessor)
-MANAGER: AccessorManager = AccessorManager(CORE_ACCESSORS, USER_ACCESSORS)
+LOCATION_ACCESSORS = (LatLonAccessor,)
+GEOMETRY_ACCESSORS = (
+    LatLonAccessor,
+    ElevationAccessor,
+)
+STATION_ACCESSORS: tuple = (SidAccessor, LatLonAccessor, ElevationAccessor, DatetimeAccessor)
+EXTRA_STATION_ACCESSORS = (StationNameAccessor,)
+DEFAULT_OBS_ACCESSORS: tuple = (PressureLevelAccessor, OffsetPressureLevelAccessor)
 
-STATION_ACCESSORS: List[Accessor] = [MANAGER.get_by_object(ac) for ac in CORE_ACCESSORS]
+DEFAULT_ACCESSORS = STATION_ACCESSORS + DEFAULT_OBS_ACCESSORS
+
+MANAGER: AccessorManager = AccessorManager(
+    DEFAULT_ACCESSORS,
+    station=STATION_ACCESSORS,
+    location=LOCATION_ACCESSORS,
+    geometry=GEOMETRY_ACCESSORS,
+    upper=DEFAULT_OBS_ACCESSORS,
+    _extra=EXTRA_STATION_ACCESSORS,
+    _station=STATION_ACCESSORS + EXTRA_STATION_ACCESSORS,
+)
+
+
+# CORE_ACCESSORS: tuple = (SidAccessor, LatLonAccessor, ElevationAccessor, DatetimeAccessor)
+# USER_ACCESSORS: tuple = (PressureLevelAccessor, OffsetPressureLevelAccessor)
+# MANAGER: AccessorManager = AccessorManager(CORE_ACCESSORS, USER_ACCESSORS)
+
+# GROUND_ACCESSORS: List[Accessor] = [MANAGER.get_by_object(ac) for ac in STATION_ACCESSORS]
 UPPER_ACCESSORS: Dict[str, Accessor] = {
     "standard": MANAGER.get_by_object(PressureLevelAccessor),
     "extended": MANAGER.get_by_object(OffsetPressureLevelAccessor),
@@ -178,13 +206,47 @@ class TempReader(CustomReader):
     def __init__(
         self,
         *args: Any,
-        params: Optional[Union[str, List[str]]] = None,
+        columns: Optional[Union[str, List[str]]] = "default",
+        geopotential: str = "z",
         add_offsets: bool = True,
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.params = params
+
+        if columns == []:
+            columns = "default"
+        self.params = columns
         self.add_offsets = add_offsets
+
+        self.param_filters = {}
+        self.accessors = MANAGER.get(self.params)
+        labels = MANAGER.labels(self.accessors)
+
+        for name in labels:
+            for suffix in ("", "_units"):
+                key = name + suffix
+                if key in self.bufr_filters:
+                    self.param_filters[key] = self.bufr_filters.pop(key)
+
+        self.param_filters = ParamFilter(self.param_filters, period=False)
+
+        # separate station and upper accessors
+        self.station_accessors = []
+        self.upper_accessors = []
+        for name, ac in self.accessors.items():
+            if name in MANAGER.groups["_station"]:
+                self.station_accessors.append(ac)
+            else:
+                self.upper_accessors.append(ac)
+
+        # the concrete upper accessor is determined per message,
+        # here wqe only need to know if they should be extracted
+        self.upper_accessors = self.upper_accessors or None
+
+        self.geopotential = geopotential
+        self.geopot_handler = None
+        if self.upper_accessors:
+            self.geopot_handler = GeopotentialHandler(self.geopotential)
 
     def filter_header(self, message: Mapping[str, Any]) -> bool:
         return message["dataCategory"] == 2
@@ -207,43 +269,61 @@ class TempReader(CustomReader):
     def read_message(
         self,
         message: Mapping[str, Any],
-    ) -> Any:
-        # params = None
+    ) -> Generator[Dict[str, Any], None, None]:
+        filtered_keys = self.get_filtered_keys(message, self.accessors, self.param_filters)
 
-        accessors = MANAGER.get(self.params)
-
-        filtered_keys = self.get_filtered_keys(message, accessors)
-
-        upper_accessor = self.get_upper_accessor(filtered_keys)
-        if upper_accessor is None:
-            LOG.warning("No upper accessor found")
-            return
+        if self.upper_accessors:
+            upper_accessor = self.get_upper_accessor(filtered_keys)
+        else:
+            upper_accessor = None
 
         reader = BufrSubsetReader(message, filtered_keys)
 
-        # add_offsets = True
         for subset in reader.subsets():
             station = {}
-            for ac in STATION_ACCESSORS:
-                r = ac.collect(subset, filters=self.filters)
-                station.update(r)
+            match = True
+            for ac in self.station_accessors:
+                r = ac.collect(subset)
+                if self.param_filters.match(r):
+                    station.update(r)
+                else:
+                    match = False
+                    break
 
-            r = upper_accessor.collect(
-                subset,
-                add_offsets=self.add_offsets,
-                units_converter=self.units_converter,
-                add_units=self.add_units,
-                filters=self.filters,
-            )
+            if not match:
+                continue
 
-            if r:
-                for x in r:
-                    d = {**station, **x}
-                    if x:
-                        yield d
+            if upper_accessor:
+                r = upper_accessor.collect(
+                    subset,
+                    add_offsets=self.add_offsets,
+                    units_converter=self.units_converter,
+                    add_units=self.add_units,
+                    # filters=self.filters,
+                )
+
+                if r:
+                    for x in r:
+                        if x:
+                            x = self.geopot_handler(x)
+                            print(f"Upper data: {x}")
+                            if self.param_filters.match(x):
+                                d = {**station, **x}
+                                yield d
+                else:
+                    d = {**station}
+                    yield d
+
             else:
-                d = {**station}
-                yield d
+                yield station
+
+    def adjust_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        if self.geopotential == "z":
+            df.drop(columns=["zh"], inplace=True, errors="ignore")
+        elif self.geopotential == "zh":
+            df.drop(columns=["z"], inplace=True, errors="ignore")
+
+        return df
 
 
 reader = TempReader

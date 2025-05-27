@@ -7,6 +7,7 @@
 # nor does it submit to any jurisdiction.
 
 
+import logging
 import re
 from abc import ABCMeta
 from abc import abstractmethod
@@ -19,6 +20,8 @@ from typing import Union
 import pdbufr.core.param as PARAMS
 from pdbufr.core.keys import COMPUTED_KEYS
 from pdbufr.utils.exception import AllValueMissingException
+
+LOG = logging.getLogger(__name__)
 
 
 class Accessor(metaclass=ABCMeta):
@@ -52,9 +55,13 @@ class Accessor(metaclass=ABCMeta):
             if len(self.keys) == 1:
                 self.param = list(self.keys.values())[0]
 
+        print(f"Accessor {self.__class__.__name__} initialized with keys: {self.keys}")
+
         self.bufr_keys = list([k for k in self.keys.keys() if not k.startswith("_")])
         self.labels = [v.label for k, v in self.keys.items() if v is not None]
         self.name = self.__class__.__name__
+
+        print(f"Accessor {self.name} initialized with labels: {self.labels}")
 
     @abstractmethod
     def empty_result(self) -> Any:
@@ -219,8 +226,6 @@ class ComputedKeyAccessor(Accessor):
 
 
 class CoordAccessor(SimpleAccessor):
-    period_placeholder: str = "<p>"
-
     def __init__(
         self,
         coords: Optional[List[Any]] = None,
@@ -233,6 +238,7 @@ class CoordAccessor(SimpleAccessor):
         super().__init__(**kwargs)
 
         self.mandatory = [*self.bufr_keys]
+        self.key_labels = [*self.labels]
         self.first = first
 
         # period coords
@@ -246,65 +252,117 @@ class CoordAccessor(SimpleAccessor):
             self.period_bufr_key = period
             self.period = PARAMS.PeriodParameter("_period")
             self.keys[period] = self.period
+            # period precedes the param keys in the message
             self.bufr_keys = [period, *self.bufr_keys]
             self.mandatory.append(period)
         elif fixed_period:
             self.period = PARAMS.FixedParameter("_period", fixed_period)
-            self.keys["_period"] = self.period
 
         # other coords
-        self.coords = []
-
         if fixed_coords and coords:
             raise ValueError("Cannot have both fixed_coords and coords")
+
+        self.coords = {}
+        self.extract_coords = []
 
         if coords:
             for c in coords:
                 coord_bufr_key = c[0]
                 coord_suffix = c[1]
                 coord_mandatory = c[2]
-                if self.period:
-                    label = self.labels[0] + "_" + self.period_placeholder + "_" + coord_suffix
-                else:
-                    label = self.labels[0] + "_" + coord_suffix
-                self.coords.append(PARAMS.Parameter(label))
-                self.keys[coord_bufr_key] = self.coords[-1]
+
+                c = PARAMS.CoordParameter(coord_bufr_key, suffix=coord_suffix)
+                self.coords[coord_bufr_key] = c
+                self.keys[coord_bufr_key] = c
+                # coords precedes the param keys in the message
                 self.bufr_keys = [coord_bufr_key, *self.bufr_keys]
                 if coord_mandatory:
                     self.mandatory.append(coord_bufr_key)
+
+            self.extract_coords = list(self.coords.values())
+
         elif fixed_coords:
             coord_suffix = "level"
-            if self.period:
-                label = self.labels[0] + "_" + self.period_placeholder + "_" + coord_suffix
-            else:
-                label = self.labels[0] + "_" + coord_suffix
-            self.coords.append(PARAMS.FixedParameter(label, fixed_coords))
-            self.keys["_fixed_coord"] = self.coords[-1]
+            c = PARAMS.FixedCoordParameter("_fixed_coords", fixed_coords, suffix=coord_suffix)
+            self.coords["_fixed_coords"] = c
 
     def get_period(self, record: Dict[str, Any]) -> str:
-        period = record.pop("_period", None)
-        if not period or period is None:
-            period = "nan"
-        return period
+        if self.period:
+            if self.period.is_fixed():
+                return self.period.value
+            period = record.pop("_period", None)
+            if not period or period is None:
+                period = "nan"
+            return period
+        return None
 
-    def relabel(self, value: Union[Dict[str, Any], List[Dict[str, Any]]]) -> Dict[str, Any]:
+    def get_coords(self, record: Dict[str, Any], period) -> Dict[str, Any]:
+        if self.coords:
+            coords = {}
+            if self.extract_coords:
+                for coord in self.extract_coords:
+                    v = record.pop(coord.label, None)
+                    for key in self.key_labels:
+                        label = key + period + "_" + coord.suffix
+                        coords[label] = v
+            else:
+                for key in self.key_labels:
+                    for k, coord in self.coords.items():
+                        label = key + period + "_" + coord.suffix
+                        coords[label] = coord.value
+
+            return coords
+        return None
+
+    def get_units(self, record: Dict[str, Any], period: str) -> Dict[str, Any]:
+        units = {}
+        for key in self.key_labels:
+            label = key + "_units"
+            if label in record:
+                v = record.pop(label, None)
+                label = key + period + "_units"
+                units[label] = v
+        return units
+
+    def relabel(
+        self, value: Union[Dict[str, Any], List[Dict[str, Any]]], add_coord: bool, add_units: bool
+    ) -> Dict[str, Any]:
         if isinstance(value, dict):
             value = [value]
 
         res = {}
         for r in value:
+            # LOG.debug(f"CoordAccessor: relabeling record: {r}")
             period = self.get_period(r)
+            coords = None
+            units = None
+
+            if period is not None:
+                period = "_<" + period + ">"
+            else:
+                period = ""
+
+            if add_coord:
+                coords = self.get_coords(r, period)
+            if add_units:
+                units = self.get_units(r, period)
+
+            # LOG.debug(f"Period: {period}, coords: {coords}, units: {units}")
+
+            assert len(r) <= len(
+                self.key_labels
+            ), f"Record {r} has more keys than expected: {self.key_labels}! {len(r)} != {len(self.key_labels)}"
+
             for k, v in r.items():
-                for coord in self.coords:
-                    if coord and k == coord.label:
-                        label = coord.label.replace(self.period_placeholder, f"<{period}>")
-                        res[label] = v
-                    else:
-                        if k.endswith("_units"):
-                            label = k[:-6] + "_<" + period + ">_units"
-                        else:
-                            label = k + "_<" + period + ">"
-                        res[label] = v
+                if k in self.key_labels:
+                    res[k + period] = v
+
+            if units:
+                res.update(units)
+
+            if coords:
+                res.update(coords)
+
         return res
 
     def collect(
@@ -318,7 +376,7 @@ class CoordAccessor(SimpleAccessor):
     ) -> Dict[str, Any]:
         skip = []
         if not add_coord:
-            skip = self.coords
+            skip = self.extract_coords
 
         mandatory = self.mandatory
 
@@ -338,9 +396,7 @@ class CoordAccessor(SimpleAccessor):
             **kwargs,
         )
 
-        if self.period:
-            value = self.relabel(value)
-
+        value = self.relabel(value, add_coord, add_units)
         return value
 
     def __repr__(self):
@@ -370,8 +426,10 @@ class MultiFirstAccessor(MultiAccessorBase):
                     return r
             except AllValueMissingException:
                 pass
-            else:
-                raise
+            except Exception:
+                # LOG.debug(f"Error collecting from {a.name}: {e}")
+                # raise
+                pass
 
         return self.empty_result()
 
@@ -401,6 +459,16 @@ class SidAccessor(MultiFirstAccessor):
         ComputedKeyAccessor(keys={"WIGOS_station_id": PARAMS.SID}),
         SimpleAccessor(keys={"shipOrMobileLandStationIdentifier": PARAMS.SID}),
         SimpleAccessor(keys={"station_id": PARAMS.SID}),
+        SimpleAccessor(keys={"icaoLocationIndicator": PARAMS.SID}),
+        SimpleAccessor(keys={"stationOrSiteName": PARAMS.SID}),
+    ]
+
+
+class StationNameAccessor(MultiFirstAccessor):
+    param: Any = PARAMS.STATION_NAME
+    accessors: List[Accessor] = [
+        SimpleAccessor(keys={"stationOrSiteName": PARAMS.STATION_NAME}),
+        SimpleAccessor(keys={"icaoLocationIndicator": PARAMS.STATION_NAME}),
     ]
 
 
@@ -420,74 +488,34 @@ class DatetimeAccessor(ComputedKeyAccessor):
 class AccessorManager:
     def __init__(
         self,
-        core: List[Accessor] = None,
-        station: List[Accessor] = None,
-        location: List[Accessor] = None,
-        geometry: List[Accessor] = None,
-        optional: List[Accessor] = None,
+        default: List[Accessor],
+        **kwargs,
     ):
+        if not isinstance(default, (list, tuple)):
+            raise ValueError(f"Default accessors must be a list, got {type(default)}")
 
-        if core is None:
-            core = []
-        if station is None:
-            station = []
-        if location is None:
-            location = []
-        if geometry is None:
-            geometry = []
-        if optional is None:
-            optional = []
+        accessors = set(default)
+        for k, v in kwargs.items():
+            if not isinstance(v, (list, tuple)):
+                f"Group '{k}' must be a list, got {type(v)}"
+            accessors.update(v)
 
-        self.accessors = set([*core, *station, *location, *geometry, *optional])
-        aa = {}
-        for a in self.accessors:
-            aa[a.param.label] = a()
-        self.accessors = aa
+        self.accessors = {a.param.label: a() for a in accessors}
 
         def _build(lst):
             return {a.param.label: self.accessors[a.param.label] for a in lst}
 
-        self.groups = {
-            "core": _build(core),
-            "station": _build(station),
-            "location": _build(location),
-            "geometry": _build(geometry),
-            "optional": _build(optional),
-        }
-
-        # self.core = _build(core)
-        # self.location = _build(location)
-        # self.geometry = _build(geometry)
-        # self.optional = _build(optional)
-        self.groups["all"] = {**self.groups["core"], **self.groups["optional"]}
+        self.default = _build(default)
+        self.groups = {"default": self.default}
+        for k, v in kwargs.items():
+            self.groups[k] = _build(v)
 
         self.cache = {}
 
-    #     core_accessors: List[Accessor],
-    #     user_accessors: List[Accessor],
-    #     default_user_accessors: Optional[List[Accessor]] = None,
-    # ):
-    #     if default_user_accessors is None:
-    #         default_user_accessors = user_accessors
-
-    #     self.accessors = set([*core_accessors, *user_accessors, *default_user_accessors])
-    #     aa = {}
-    #     for a in self.accessors:
-    #         aa[a.param.label] = a()
-    #     self.accessors = aa
-
-    #     def _build(lst):
-    #         return {a.param.label: self.accessors[a.param.label] for a in lst}
-
-    #     self.core = _build(core_accessors)
-    #     self.user = _build(user_accessors)
-    #     self.default_user = _build(default_user_accessors)
-    #     self.default = {**self.core, **self.default_user}
-
-    #     self.cache = {}
-
     def get(self, params: Optional[Union[str, List[str]]]) -> Dict[str, Accessor]:
         if isinstance(params, str):
+            if params.startswith("_"):
+                raise ValueError(f"Invalid parameter name '{params}'")
             accessors = self.groups.get(params, None)
             if accessors is not None:
                 return accessors
@@ -499,17 +527,22 @@ class AccessorManager:
             if isinstance(params, str):
                 params = [params]
             v = list(params)
-            accessors = {**self.groups["core"]}
-            optional = self.groups["optional"]
-            for p in v:
-                if p in optional:
-                    accessors[p] = optional[p]
+            accessors = {}
+            for param in v:
+                if param.startswith("_"):
+                    raise ValueError(f"Invalid parameter name '{param}'")
+                if param in self.groups:
+                    accessors.update(self.groups[param])
+                elif param in self.accessors:
+                    accessors[param] = self.accessors[param]
                 else:
-                    raise ValueError(f"Unsupported parameter '{p}'")
+                    raise ValueError(
+                        f"Unsupported parameter '{param}'. Available parameters: {self.accessors.keys()}"
+                    )
 
             self.cache[cache_key] = accessors
 
-        assert accessors is not None
+            assert accessors is not None
 
         return accessors
 
@@ -518,6 +551,19 @@ class AccessorManager:
             raise ValueError(f"Invalid accessor type={type(accessor)}")
         label = accessor.param.label
         return self.accessors[label]
+
+    @staticmethod
+    def labels(accessors: Dict[str, Accessor]) -> List[str]:
+        r = set()
+        for name, ac in accessors.items():
+            r.add(name)
+            labels = ac.labels
+            print(f"Accessor {name} has labels: {labels}")
+            if isinstance(labels, str):
+                labels = [labels]
+            if labels:
+                r.update(labels)
+        return r
 
 
 PERIOD_RX = re.compile(r"(.+)_<(.+)>(.*)")
