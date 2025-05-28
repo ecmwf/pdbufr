@@ -1,19 +1,20 @@
 .. _synop-reader:
 
+Synop
+-------------
+
 .. warning::
 
     This reader is **experimental** and the API might change in the future. It is not recommended to use it in production code yet.
 
-Synop
--------------
 
 .. py:function:: read_bufr(path, reader="synop", columns=[], filters=None, units_system=None, units=None, units_columns=False, level_columns=False)
     :noindex:
 
     Extract :ref:`synop-like data <synop-like-data>` from BUFR using pre-defined :ref:`parameters <synop-params>`.
 
-    :param path: path to the BUFR file or a :ref:`message-list-object`
-    :type path: str, bytes, os.PathLike or a :ref:`message-list-object`
+    :param path: path to the BUFR file or a :ref:`message list object <message-list-object>`
+    :type path: str, bytes, os.PathLike or a :ref:`message list object <message-list-object>`
     :param columns: specify the pre-defined :ref:`parameters <synop-params>` to extract. The possible values are as follows:
 
         - "default" or empty list: extract the parameters as in "station" followed by all the :ref:`default observed parameters <synop-default-obs-params>`

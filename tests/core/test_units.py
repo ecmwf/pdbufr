@@ -69,7 +69,7 @@ def test_units_user_with_default(data, expected_value):
         "mslp": "hPa",
     }
 
-    converter = UnitsConverter.make("default", units=rule)
+    converter = UnitsConverter.make("pdbufr", units=rule)
 
     v, u = converter.convert(*data)
     assert np.isclose(v, expected_value[0])
@@ -152,7 +152,7 @@ def test_units_user_with_si(data, expected_value):
     ],
 )
 def test_units_default(data, expected_value):
-    converter = UnitsConverter.make("default")
+    converter = UnitsConverter.make("pdbufr")
 
     v, u = converter.convert(*data)
     assert np.isclose(v, expected_value[0])
