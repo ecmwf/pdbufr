@@ -35,8 +35,8 @@ def test_synop_reader():
     df = pdbufr.read_bufr(
         sample_test_data_path("syn_new.bufr"),
         reader="synop",
-        add_level_columns=False,
-        add_units_columns=False,
+        level_columns=False,
+        units_columns=False,
     )
 
     # r = df.to_dict()
@@ -120,7 +120,7 @@ def test_synop_columns_user(columns, expected_values):
     )
 
     ref_station = {
-        "sid": 91948,
+        "stnid": 91948,
         "lat": -23.13017,
         "lon": -134.96533,
         "elevation": 91.0,
@@ -198,8 +198,8 @@ def test_synop_units_1():
         sample_test_data_path("syn_new.bufr"),
         reader="synop",
         filters={"count": 1},
-        add_level_columns=False,
-        add_units_columns=False,
+        level_columns=False,
+        units_columns=False,
         units={"mslp": "hPa", "td2m": "degC", "t2m": "degF"},
     )
 
@@ -217,8 +217,8 @@ def test_synop_units_2():
         sample_test_data_path("syn_new.bufr"),
         reader="synop",
         filters={"count": 1},
-        add_level_columns=False,
-        add_units_columns=True,
+        level_columns=False,
+        units_columns=True,
         units={"mslp": "hPa", "td2m": "degC", "t2m": "degF"},
     )
 
@@ -302,7 +302,7 @@ def test_synop_levels(columns, expected_values):
         reader="synop",
         filters={"count": 1},
         columns=columns,
-        add_level_columns=True,
+        level_columns=True,
     )
 
     ref = expected_values
@@ -418,7 +418,7 @@ def test_synop_units(columns, expected_values):
         reader="synop",
         filters={"count": 1},
         columns=columns,
-        add_units_columns=True,
+        units_columns=True,
     )
 
     ref = expected_values
@@ -538,8 +538,8 @@ def test_synop_levels_units(columns, expected_values):
         reader="synop",
         filters={"count": 1},
         columns=columns,
-        add_level_columns=True,
-        add_units_columns=True,
+        level_columns=True,
+        units_columns=True,
     )
 
     ref = expected_values

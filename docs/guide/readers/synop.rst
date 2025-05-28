@@ -7,7 +7,7 @@
 Synop
 -------------
 
-.. py:function:: read_bufr(path, reader="synop", columns=[], filters=None, units_system=None, units=None, add_units_columns=False, add_level_columns=False)
+.. py:function:: read_bufr(path, reader="synop", columns=[], filters=None, units_system=None, units=None, units_columns=False, level_columns=False)
     :noindex:
 
     Extract :ref:`synop-like data <synop-like-data>` from BUFR using pre-defined :ref:`parameters <synop-params>`.
@@ -19,13 +19,13 @@ Synop
         - "default" or empty list: extract the parameters as in "station" followed by all the :ref:`default observed parameters <synop-default-obs-params>`
         - "location": extract only the "lat" and "lon" parameters (see :ref:`station parameters <synop-station-params>` for details)
         - "geometry": extract only the "lat", "lon" and "elevation" parameters (see :ref:`station parameters <synop-station-params>` for details)
-        - "station": extract only the "sid", "time", "lat", "lon" and "elevation" parameters (see :ref:`station parameters <synop-station-params>` for details)
+        - "station": extract only the "stnid", "time", "lat", "lon" and "elevation" parameters (see :ref:`station parameters <synop-station-params>` for details)
         - when it is a non-empty list, specifies the :ref:`parameters <synop-params>` to extract. The keys "default", "location", "geometry" and "station" can all be part of the list and will add all the parameters from the corresponding group.
 
     :type columns: str, sequence[str]
     :param filters: define the conditions when to extract the data. The individual conditions are combined together with the logical AND operator to form the filter. It can contain both BUFR keys and parameters. See :ref:`synop-filters` and :ref:`filters` for details.
     :type filters: dict
-    :param unit_system: define the unit system to generate the resulting values. The default is None, which means that no conversion is applied but the values/units found in the BUFR are written to the output as is. The only available unit system is: "default". The "default" system uses the units as defined in the :ref:`synop-params` section.
+    :param unit_system: define the unit system to generate the resulting values. The default is None, which means that no conversion is applied but the values/units found in the BUFR are written to the output as is. The only available unit system is: "pdbufr". The "pdbufr" system uses the units as defined in the :ref:`synop-params` section.
     :type unit_system: str, None
     :param units: specify custom units conversions as a dictionary. The keys are the parameter names and the values are the units to convert to. For keys not specified in ``units`` the conversion defined by ``unit_system`` is applied. E.g.:
 
@@ -37,9 +37,9 @@ Synop
             }
 
     :type units: dict, None
-    :param add_units_columns: if True, a :ref:`units column <synop-units>` is added to the resulting DataFrame for each :ref:`parameter <synop-params>` having a units. The column name is formed by adding the "_units" suffix to the parameter name. The default is False.
+    :param units_columns: if True, a :ref:`units column <synop-units>` is added to the resulting DataFrame for each :ref:`parameter <synop-params>` having a units. The column name is formed by adding the "_units" suffix to the parameter name. The default is False.
     :type add_units: bool
-    :param add_level_columns: if True, a :ref:`level column <synop-levels>` is added to the resulting DataFrame for each :ref:`parameter <synop-params>` having a level. The column name is formed by adding the "_level" suffix to the parameter name. The default is False.
+    :param level_columns: if True, a :ref:`level column <synop-levels>` is added to the resulting DataFrame for each :ref:`parameter <synop-params>` having a level. The column name is formed by adding the "_level" suffix to the parameter name. The default is False.
     :rtype: pandas.DataFrame
 
 
@@ -57,7 +57,7 @@ The resulting DataFrame
 The resulting DataFrame will contain one row for each station/platform and one column for each :ref:`parameter <synop-params>`. The columns are named after the parameter names, e.g. "t2m". With the default settings the first columns are always the station/platform identifier, time, latitude, longitude and elevation followed by the observed parameters. E.g.::
 
 
-        sid       lat        lon   elevation       time     t2m  rh2m   ...
+        stnid       lat        lon   elevation       time     t2m  rh2m   ...
     0  91948 -23.13017 -134.96533       91.0 2020-03-15  300.45    73   ...
     1  11766  49.77722   17.54194      748.1 2020-03-15  269.25    65   ...
 
@@ -80,7 +80,7 @@ The period string is constructed from the values encoded in the BUFR message. Wh
 Levels
 /////////////////////
 
-When ``add_level_columns=True`` and a parameter is associated with a **height level** a separate column is created for the level value. The column name is formed by adding the "_level" suffix to the parameter name::
+When ``level_columns=True`` and a parameter is associated with a **height level** a separate column is created for the level value. The column name is formed by adding the "_level" suffix to the parameter name::
 
         t2m       t2m_level
     0   273.15       2.0
@@ -91,20 +91,32 @@ When ``add_level_columns=True`` and a parameter is associated with a **height le
 Units
 /////////////////////
 
-When ``add_units_columns=True`` and a parameter has an associated **units** a separate column is created for the units. The column name is formed by adding the "_units" suffix to the parameter name::
+When ``units_columns=True`` and a parameter has an associated **units** a separate column is created for the units. The column name is formed by adding the "_units" suffix to the parameter name::
 
         t2m       t2m_units
     0   273.15       K
     1   274.15       K
 
-Periods and levels
+Levels and units
 /////////////////////
 
-When both periods and levels are available and ``add_level_columns=True`` the column names are formed as follows::
+Options ``level_columns=True`` and ``units_columns=True`` can be used together. In this case the column names are formed as follows::
+
+            t2m    t2m_units   t2m_level
+    0   273.15       K              2.0
+    1   274.15       K              2.5
+
+
+Periods, levels and units
+////////////////////////////
+
+When periods are available "_level" and/or "_units" suffixes are added the period in the column names. E.g. when ``level_columns=True`` the column names are formed as follows::
 
             wind_gust_speed_10min  wind_gust_10min_level  wind_gust_dir_10min  wind_gust_dir_10min_level
     0               5.0              9.6                   225                    9.6
     1               4.5              9.6                   123                    9.6
+
+
 
 
 .. _synop-params:
@@ -115,7 +127,7 @@ Parameters
 A parameter is a high-level concept in ``pdbufr``. It was introduced to overcome the problem that the same quantity can be encoded in BUFR in multiple ways. E.g. 2m temperature can be represented in at least 2 different ways:
 
   - as "airTemperatureAt2M"
-  - as "airTemperature" inside a group "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform=2".
+  - as "airTemperature" instnide a group "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform=2".
 
 When using parameters like "t2m" we do not need to know the actual encoding, but the desired value is automatically extracted for us. Another advantage is that we can easily extract the observation periods, levels and units for each parameter, which is simply not possible with the :ref:`generic reader <flat-reader>`.
 
@@ -140,7 +152,7 @@ Station/platform params
      - **Units/Object**
      - **Description**
 
-   * - sid
+   * - stnid
      -
      - | Station/platform identifier. The following keys are tried
        | in order to generate the value:
@@ -179,105 +191,141 @@ Default observed parameters
 
 These parameters are all added when using the default settings in ``columns``.
 
-.. list-table::
+.. list-table:: P: means has a period, L: means has a level
    :header-rows: 1
-   :widths: 10 10 70 10
+   :widths: 10 10 60 10 10
    :align: center
 
-   * - **Name**
-     - **Units**
-     - **Description**
-     - **Has level**
+
+   * - Name
+     - Units
+     - Description
+     - P
+     - L
 
    * - t2m
      - K
      - 2m temperature
-     - yes
+     -
+     - L
 
    * - td2m
      - K
      - 2m dew point temperature
-     - yes
+     -
+     - L
 
    * - rh2m
      - %
      - 2m relative humidity (0-100)
-     - yes
+     -
+     - L
 
    * - mslp
      - Pa
      - Mean sea level pressure
-     - no
+     -
+     -
+
+   * - pressure
+     - Pa
+     - Pressure at station/platform
+     -
+     -
 
    * - wind10m
      -
-     - Only used in ``columns`` to specify both 10m win speed and direction at once.
+     - | Only used in ``columns`` to specify both 10m wind
+       | speed and direction at once.
      -
+     - L
 
    * - wind10m_speed
      - m/s
-     - 10m wind speed, cannot be use in ``columns``
-     - yes
+     - 10m wind speed, cannot be used in ``columns``
+     -
+     - L
 
    * - wind10m_dir
      - deg
-     - 10m wind direction, cannot be use in ``columns``
-     - yes
+     - 10m wind direction, cannot be used in ``columns``
+     -
+     - L
+
+   * - wgust
+     -
+     - | Only used in ``columns`` to specify both the
+       | maximum wind gust speed and direction at once.
+     - P
+     - L
 
    * - wgust_speed
      - m/s
-     - Maximum wind gust speed in a period
-     - yes
+     - | Maximum wind gust speed in a period,
+       | cannot be used in ``columns``
+     - P
+     - L
 
    * - wgust_dir
      - deg
-     - Maximum gust direction in a period
-     - yes
+     - | Maximum gust direction in a period,
+       | cannot be used in ``columns``
+     - P
+     - L
 
    * - visibility
      - m
      - Visibility
-     - no
+     -
+     -
 
    * - present_weather
      -
      - Present weather
-     - no
+     -
+     -
 
    * - past_weather_1
      -
      - Past weather 1
-     - no
+     - P
+     -
 
    * - past_weather_2
      -
      - Past weather 2
-     - no
+     - P
+     -
 
    * - cloud_cover
      - %
      - Total cloud cover (0-100)
-     - no
+     -
+     -
 
    * - max_t2m
      - K
      - Maximum 2m temperature over a period
-     - yes
+     - P
+     - L
 
    * - min_t2m
      - K
      - Minimum 2m temperature over a period
-     - yes
+     - P
+     - L
 
    * - precipitation
      - kg m-2
      - Precipitation over a period
-     - no
+     - P
+     - L
 
    * - snow_depth
      - m
      - Snow depth
-     - no
+     -
+     -
 
 .. _synop-extra-obs-params:
 
@@ -286,70 +334,83 @@ Additional observed parameters
 
 These parameters are not added by default but can be specified in ``columns``.
 
-.. list-table::
+.. list-table:: P: means has a period, L: means has a level
    :header-rows: 1
-   :widths: 10 10 70 10
+   :widths: 10 10 60 10 10
    :align: center
 
-   * - **Name**
-     - **Units**
-     - **Description**
-     - **Has level**
+   * - Name
+     - Units
+     - Description
+     - P
+     - L
 
    * - q2m
      - kg/kg
      - 2m specific humidity
-     - yes
-
-   * - pressure
-     - Pa
-     - Pressure at station/platform
-     - no
+     -
+     - L
 
    * - pressure_change
      - Pa
      - Pressure change in a period
-     - no
+     - P
+     -
 
    * - char_pressure_tendency
      -
      - Characteristic of pressure tendency
-     - no
+     -
+     -
 
    * - lw_radiation
      - J m-2
-     - Longwave radiation integrated over a period
-     - no
+     - | Longwave radiation integrated over
+       | a period
+     - P
+     - L
 
    * - sw_radiation
      - J m-2
-     - Shortwave radiation integrated over a period
-     - no
+     - | Shortwave radiation integrated over
+       | a period
+     - P
+     -
 
    * - net_radiation
      - J m-2
-     - Net radiation integrated over a period
-     - no
+     - | Net radiation integrated over
+       | a period
+     - P
+     -
 
    * - global_solar_radiation
      - J m-2
-     - Global solar radiation integrated over a period
-     - no
+     - | Global solar radiation integrated over
+       | a period
+     - P
+     -
 
    * - diffuse_solar_radiation
      - J m-2
-     - Diffuse solar radiation integrated over a period
-     - no
+     - | Diffuse solar radiation integrated over
+       | a period
+     - P
+     -
 
    * - direct_solar_radiation
      - J m-2
-     - Direct solar radiation integrated over a period
-     - no
+     - | Direct solar radiation integrated over
+       | a period
+     - P
+     -
 
    * - total_sunshine_duration
      - min
-     - Total sunshine duration over a period
-     - no
+     - | Total sunshine duration over
+       | a period
+     - P
+     -
 
 .. _synop-filters:
 

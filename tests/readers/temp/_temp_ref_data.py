@@ -2,7 +2,7 @@ import datetime
 
 REF = [
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -15,7 +15,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -28,7 +28,7 @@ REF = [
         "wind_dir": 0.0,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -41,7 +41,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -54,7 +54,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -67,7 +67,7 @@ REF = [
         "wind_dir": 275.0,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -80,7 +80,7 @@ REF = [
         "wind_dir": 250.0,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -93,7 +93,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -106,7 +106,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -119,7 +119,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -132,7 +132,7 @@ REF = [
         "wind_dir": 235.0,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -145,7 +145,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -158,7 +158,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -171,7 +171,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -184,7 +184,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -197,7 +197,7 @@ REF = [
         "wind_dir": 260.0,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -210,7 +210,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -223,7 +223,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -236,7 +236,7 @@ REF = [
         "wind_dir": 250.0,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -249,7 +249,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -262,7 +262,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -275,7 +275,7 @@ REF = [
         "wind_dir": 260.0,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -288,7 +288,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -301,7 +301,7 @@ REF = [
         "wind_dir": None,
     },
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
@@ -318,14 +318,14 @@ REF = [
 
 REF_STATION = [
     {
-        "sid": 71907,
+        "stnid": 71907,
         "lat": 58.47,
         "lon": -78.08,
         "elevation": 26,
         "time": datetime.datetime.fromisoformat("2008-12-08T12:00:00.000"),
     },
     {
-        "sid": 71823,
+        "stnid": 71823,
         "lat": 53.75,
         "lon": -73.67,
         "elevation": 302,

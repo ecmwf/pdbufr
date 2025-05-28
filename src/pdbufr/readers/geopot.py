@@ -44,7 +44,7 @@ METHODS = {
     "z": compute_z,
     "zh": compute_zh,
     "both": lambda d: compute_zh(compute_z(d)),
-    "any": None,
+    "raw": None,
 }
 
 

@@ -34,14 +34,14 @@ class CustomReader(Reader):
         filters: Optional[Dict[str, Any]] = None,
         unit_system: Optional[str] = None,
         units: Optional[Dict[str, str]] = None,
-        add_units_columns: bool = False,
+        units_columns: bool = False,
         **kwargs: Any,
     ):
         super().__init__(*args)
 
         self.bufr_filters, self.read_count_filter, self.max_count = self.create_filters(filters)
         self.units_converter = self.create_units_converter(unit_system, units)
-        self.add_units = add_units_columns
+        self.add_units = units_columns
 
     @abstractmethod
     def filter_header(self, message: MessageWrapper) -> bool:
@@ -57,6 +57,7 @@ class CustomReader(Reader):
             included_keys |= set(p.needed_keys)
 
         included_keys.add("subsetNumber")
+        included_keys.add("firstOrderStatistics")
 
         included_keys |= set(list(filters.keys()))
 

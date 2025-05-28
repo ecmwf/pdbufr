@@ -95,7 +95,7 @@ class FixedCoordParameter(CoordParameter):
 
 
 # station related parameters
-SID = Parameter("sid", desc="station id")
+SID = Parameter("stnid", desc="station id")
 TIME = Parameter("time", desc="datetime")
 LATLON = Parameter("latlon", desc="latitude and longitude", units=["deg", "deg"])
 LAT = Parameter("lat", desc="latitude", units="deg")

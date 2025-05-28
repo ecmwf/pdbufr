@@ -69,7 +69,7 @@ class UnitsConverter(metaclass=ABCMeta):
     ) -> "UnitsConverter":
         base = None
         if unit_system is not None:
-            if unit_system == "default":
+            if unit_system == "pdbufr":
                 base = DefaultUnitsConverter()
             elif unit_system == "si":
                 base = SIUnitsConverter()

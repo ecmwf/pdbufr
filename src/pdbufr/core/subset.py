@@ -84,6 +84,10 @@ class BufrSubsetCollector:
         for bufr_key in self.filtered_keys:
             name = bufr_key.name
 
+            # stop processing if we reach the firstOrderStatistics key
+            if name.startswith("firstOrderStatistics"):
+                break
+
             if name not in keys:
                 continue
 
@@ -164,14 +168,6 @@ class BufrSubsetReader:
         self.message = message
         self.filtered_keys = filtered_keys
         self.subset_count, self.is_uncompressed, self.is_compressed = subset_info(self.message)
-        # print(
-        #     "Subset count:",
-        #     self.subset_count,
-        #     "is_compressed:",
-        #     self.is_compressed,
-        #     "is_uncompressed:",
-        #     self.is_uncompressed,
-        # )
         self.cache = {}
 
     def subsets(self) -> Generator[BufrSubsetCollector, None, None]:

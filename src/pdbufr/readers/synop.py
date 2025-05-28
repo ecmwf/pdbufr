@@ -526,12 +526,12 @@ DEFAULT_OBS_ACCESSORS: tuple = (
     MinTAccessor,
     MaxTAccessor,
     MslpAccessor,
+    PressureAccessor,
     CloudCoverAccessor,
     SnowDepthAccessor,
     HorizontalVisibilityAccessor,
 )
 EXTRA_OBS_ACCESSORS: tuple = (
-    PressureAccessor,
     PressureChangeAccessor,
     LongWaveRadiationAccessor,
     ShortWaveRadiationAccessor,
@@ -562,7 +562,7 @@ class SynopReader(CustomReader):
         self,
         *args: Any,
         columns: Optional[Union[str, List[str]]] = "default",
-        add_level_columns: bool = False,
+        level_columns: bool = False,
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -570,7 +570,7 @@ class SynopReader(CustomReader):
         if columns == []:
             columns = "default"
         self.params = columns
-        self.add_level = add_level_columns
+        self.add_level = level_columns
 
         self.param_filters = {}
 

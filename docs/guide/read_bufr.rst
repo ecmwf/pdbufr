@@ -3,7 +3,7 @@ read_bufr
 
 .. py:function:: read_bufr(path, reader="generic", **kwargs)
 
-    Extract data from BUFR as a pandas.DataFrame with the specified ``reader``.
+    Extract data from BUFR as a pandas.DataFrame with the specified ``reader``. To see the available ``kwargs**`` please refer to the documentation of the specific reader. The default reader is :ref:`generic <generic-reader>`.
 
     The following readers are available:
 

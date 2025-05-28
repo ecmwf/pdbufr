@@ -50,7 +50,7 @@ def extract_message(
         is_uncompressed = int(message["numberOfSubsets"]) > 1
         subset_count = 1
 
-    # For messages with uncompressed subsets consider this:
+    # For messages with uncompressed subsets constnider this:
     # - for each data key we have a single value
     # - there is no way to identify the subset from the key
     # - we cannot directly iterate over a given subset

@@ -7,7 +7,7 @@
 Temp
 -------------
 
-.. py:function:: read_bufr(path, reader="temp", columns=[], filters=None, geopotential="geopotential", units_system=None, units=None, add_units_columns=False)
+.. py:function:: read_bufr(path, reader="temp", columns=[], filters=None, geopotential="z", units_system=None, units=None, units_columns=False)
     :noindex:
 
     Extract :ref:`temp-like data <temp-like-data>` from BUFR using pre-defined :ref:`parameters <temp-params>`.
@@ -19,7 +19,7 @@ Temp
         - "default" or empty list: extract the parameters as in "station" followed by all the :ref:`upper level parameters <temp-upper-params>`. See ``geopotential`` for details on extracting the geopotential parameters.
         - "location": extract only the "lat" and "lon" parameters (see :ref:`station parameters <temp-station-params>` for details)
         - "geometry": extract only the "lat", "lon" and "elevation" parameters (see :ref:`station parameters <temp-station-params>` for details)
-        - "station": extract only the "sid", "time", "lat", "lon" and "elevation" parameters (see :ref:`station parameters <temp-station-params>` for details)
+        - "station": extract only the "stnid", "time", "lat", "lon" and "elevation" parameters (see :ref:`station parameters <temp-station-params>` for details)
         - "upper": extract only the :ref:`upper level parameters <temp-upper-params>`
         - when it is a non-empty list, specifies the :ref:`parameters <temp-params>` to extract. The keys "default", "location", "geometry", "station" and "upper" can all be part of the list and will add all the parameters from the corresponding group. No individual upper level parameters can be specified in the list, only the whole "upper" group can be extracted.
 
@@ -41,12 +41,12 @@ Temp
 
           where :math:`z` is the geopotential and :math:`g` is the standard acceleration of gravity (9.80665 m/s²).
         - "both": extract both the geopotential and geopotential height parameters.
-        - "any": extract either the geopotential or geopotential height parameter, depending on which one is available in the BUFR message/subset. If both are available, both are extracted.
+        - "raw": extract either the geopotential or geopotential height parameter, depending on which one is available in the BUFR message/subset. If both are available, both are extracted.
 
     :type geopotential: str
     :param filters: define the conditions when to extract the data. The individual conditions are combined together with the logical AND operator to form the filter. It can contain both BUFR keys and parameters. See :ref:`filters` for details.
     :type filters: dict
-    :param unit_system: define the unit system to generate the resulting values. The default is None, which means that no conversion is applied but the values/units found in the BUFR are written to the output. The only available unit system is: "default". The "default" system uses the units as defined in the :ref:`temp-params` section.
+    :param unit_system: define the unit system to generate the resulting values. The default is None, which means that no conversion is applied but the values/units found in the BUFR are written to the output. The only available unit system is: "pdbufr". The "pdbufr" system uses the units as defined in the :ref:`temp-params` section.
     :type unit_system: str, None
     :param units: specify custom units conversions as a dictionary. The keys are the parameter names and the values are the units to convert to. For keys not specified the conversion defined by ``unit_system`` is applied. E.g.:
 
@@ -57,7 +57,7 @@ Temp
             }
 
     :type units: dict, None
-    :param add_units_columns: if True, a :ref:`units column <temp-units>` is added to the resulting DataFrame for each :ref:`parameter <temp-params>` having a units. The column name is formed by adding the "_units" suffix to the parameter name. The default is False.
+    :param units_columns: if True, a :ref:`units column <temp-units>` is added to the resulting DataFrame for each :ref:`parameter <temp-params>` having a units. The column name is formed by adding the "_units" suffix to the parameter name. The default is False.
     :type add_units: bool
 
 
@@ -74,7 +74,7 @@ The resulting DataFrame
 
 The resulting DataFrame will contain one row for each pressure level and one column per each :ref:`parameter <temp-params>`. The columns are named after the parameter names, e.g. "t". With the default settings the first columns are always the station/platform identifier, time, latitude, longitude and elevation followed by the observed parameters. E.g.::
 
-        sid    lat    lon  elevation                 time  pressure        z   t
+        stnid    lat    lon  elevation                 time  pressure        z   t
     0   71907  58.47 -78.08       26   2008-12-08 12:00:00  100300.0    250.0  258.3  ...
     1   71907  58.47 -78.08       26   2008-12-08 12:00:00  100000.0    430.0  259.7  ...
 
@@ -84,7 +84,7 @@ The resulting DataFrame will contain one row for each pressure level and one col
 Units
 /////////////////////
 
-When ``add_units_columns=True`` and a parameter has an associated **units** a separate column is created for the units. The column name is formed by adding the "_units" suffix to the parameter name::
+When ``units_columns=True`` and a parameter has an associated **units** a separate column is created for the units. The column name is formed by adding the "_units" suffix to the parameter name::
 
                   t       t_units
     0   ...     273.15       K
@@ -118,7 +118,7 @@ Station/platform params
      - **Units/Object**
      - **Description**
 
-   * - sid
+   * - stnid
      -
      - | Station/platform identifier. The following keys are tried
        | in order to generate the value:

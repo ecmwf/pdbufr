@@ -2,7 +2,7 @@ import datetime
 
 REF = [
     {
-        "sid": 91948,
+        "stnid": 91948,
         "lat": -23.13017,
         "lon": -134.96533,
         "elevation": 91.0,
@@ -40,12 +40,13 @@ REF = [
         "max_t2m_nan": None,
         "max_t2m_0h": None,
         "mslp": 101320.0,
+        "pressure": 100310.0,
         "cloud_cover": 25.0,
         "snow_depth": None,
         "visibility": None,
     },
     {
-        "sid": 11766,
+        "stnid": 11766,
         "lat": 49.77722,
         "lon": 17.54194,
         "elevation": 748.1,
@@ -83,12 +84,13 @@ REF = [
         "max_t2m_nan": None,
         "max_t2m_0h": None,
         "mslp": None,
+        "pressure": 93680.0,
         "cloud_cover": None,
         "snow_depth": None,
         "visibility": 30000.0,
     },
     {
-        "sid": 56257,
+        "stnid": 56257,
         "lat": 30.0,
         "lon": 100.27,
         "elevation": 3950.0,
@@ -126,6 +128,7 @@ REF = [
         "max_t2m_nan": None,
         "max_t2m_0h": 288.35,
         "mslp": 100440.0,
+        "pressure": 63030.0,
         "cloud_cover": 0.0,
         "snow_depth": 0.0,
         "visibility": 30000.0,
@@ -134,7 +137,7 @@ REF = [
 
 REF_PARAMS_1 = [
     {
-        "sid": 91948,
+        "stnid": 91948,
         "lat": -23.13017,
         "lon": -134.96533,
         "elevation": 91.0,
@@ -145,7 +148,7 @@ REF_PARAMS_1 = [
 
 REF_PARAMS_2 = [
     {
-        "sid": 91948,
+        "stnid": 91948,
         "lat": -23.13017,
         "lon": -134.96533,
         "elevation": 91.0,
@@ -157,7 +160,7 @@ REF_PARAMS_2 = [
 
 REF_PARAMS_3 = [
     {
-        "sid": 91948,
+        "stnid": 91948,
         "lat": -23.13017,
         "lon": -134.96533,
         "elevation": 91.0,
@@ -169,7 +172,7 @@ REF_PARAMS_3 = [
 
 REF_PARAMS_4 = [
     {
-        "sid": 91948,
+        "stnid": 91948,
         "lat": -23.13017,
         "lon": -134.96533,
         "elevation": 91.0,
@@ -180,7 +183,7 @@ REF_PARAMS_4 = [
 
 REF_PARAMS_5 = [
     {
-        "sid": 91948,
+        "stnid": 91948,
         "lat": -23.13017,
         "lon": -134.96533,
         "elevation": 91.0,
@@ -191,21 +194,21 @@ REF_PARAMS_5 = [
 
 REF_STATION = [
     {
-        "sid": 91948,
+        "stnid": 91948,
         "lat": -23.13017,
         "lon": -134.96533,
         "elevation": 91.0,
         "time": datetime.datetime.fromisoformat("2020-03-15T00:00:00.000"),
     },
     {
-        "sid": 11766,
+        "stnid": 11766,
         "lat": 49.77722,
         "lon": 17.54194,
         "elevation": 748.1,
         "time": datetime.datetime.fromisoformat("2020-03-15T00:00:00.000"),
     },
     {
-        "sid": 56257,
+        "stnid": 56257,
         "lat": 30.0,
         "lon": 100.27,
         "elevation": 3950.0,
