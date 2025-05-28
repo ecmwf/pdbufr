@@ -32,7 +32,7 @@ classifiers = [
 dynamic = [ "version" ]
 dependencies = [ "attrs", "eccodes", "pandas", "pint" ]
 optional-dependencies.dev = [
-  "pdbufr[docs,test]",
+  "pdbufr[docs,tests]",
 ]
 optional-dependencies.docs = [
   "nbsphinx",
