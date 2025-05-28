@@ -314,3 +314,47 @@ REF = [
         "wind_dir": None,
     },
 ]
+
+
+REF_STATION = [
+    {
+        "sid": 71907,
+        "lat": 58.47,
+        "lon": -78.08,
+        "elevation": 26,
+        "time": datetime.datetime.fromisoformat("2008-12-08T12:00:00.000"),
+    },
+    {
+        "sid": 71823,
+        "lat": 53.75,
+        "lon": -73.67,
+        "elevation": 302,
+        "time": datetime.datetime.fromisoformat("2008-12-08T12:00:00.000"),
+    },
+]
+
+
+REF_GEOMETRY = [
+    {
+        "lat": 58.47,
+        "lon": -78.08,
+        "elevation": 26,
+    },
+    {
+        "lat": 53.75,
+        "lon": -73.67,
+        "elevation": 302,
+    },
+]
+
+
+REF_LOCATION = [
+    {
+        "lat": 58.47,
+        "lon": -78.08,
+    },
+    {
+        "lat": 53.75,
+        "lon": -73.67,
+    },
+]

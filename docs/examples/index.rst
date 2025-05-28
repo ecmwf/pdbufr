@@ -35,3 +35,13 @@ Synop reader
     :maxdepth: 1
 
     r_synop_overview.ipynb
+
+
+Temp reader
+++++++++++++++
+
+.. toctree::
+    :maxdepth: 1
+
+    r_temp_overview.ipynb
+    r_temp_geopotential.ipynb

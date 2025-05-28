@@ -55,13 +55,13 @@ class Accessor(metaclass=ABCMeta):
             if len(self.keys) == 1:
                 self.param = list(self.keys.values())[0]
 
-        print(f"Accessor {self.__class__.__name__} initialized with keys: {self.keys}")
+        # LOG.debug(f"Accessor {self.__class__.__name__} initialized with keys: {self.keys}")
 
         self.bufr_keys = list([k for k in self.keys.keys() if not k.startswith("_")])
         self.labels = [v.label for k, v in self.keys.items() if v is not None]
         self.name = self.__class__.__name__
 
-        print(f"Accessor {self.name} initialized with labels: {self.labels}")
+        # LOG.debug(f"Accessor {self.name} initialized with labels: {self.labels}")
 
     @abstractmethod
     def empty_result(self) -> Any:
@@ -558,7 +558,7 @@ class AccessorManager:
         for name, ac in accessors.items():
             r.add(name)
             labels = ac.labels
-            print(f"Accessor {name} has labels: {labels}")
+            # LOG.debug(f"Accessor {name} has labels: {labels}")
             if isinstance(labels, str):
                 labels = [labels]
             if labels:

@@ -190,12 +190,6 @@ MANAGER: AccessorManager = AccessorManager(
     _station=STATION_ACCESSORS + EXTRA_STATION_ACCESSORS,
 )
 
-
-# CORE_ACCESSORS: tuple = (SidAccessor, LatLonAccessor, ElevationAccessor, DatetimeAccessor)
-# USER_ACCESSORS: tuple = (PressureLevelAccessor, OffsetPressureLevelAccessor)
-# MANAGER: AccessorManager = AccessorManager(CORE_ACCESSORS, USER_ACCESSORS)
-
-# GROUND_ACCESSORS: List[Accessor] = [MANAGER.get_by_object(ac) for ac in STATION_ACCESSORS]
 UPPER_ACCESSORS: Dict[str, Accessor] = {
     "standard": MANAGER.get_by_object(PressureLevelAccessor),
     "extended": MANAGER.get_by_object(OffsetPressureLevelAccessor),
@@ -208,15 +202,15 @@ class TempReader(CustomReader):
         *args: Any,
         columns: Optional[Union[str, List[str]]] = "default",
         geopotential: str = "z",
-        add_offsets: bool = True,
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
 
+        self.add_offsets = False
+
         if columns == []:
             columns = "default"
         self.params = columns
-        self.add_offsets = add_offsets
 
         self.param_filters = {}
         self.accessors = MANAGER.get(self.params)
@@ -306,7 +300,6 @@ class TempReader(CustomReader):
                     for x in r:
                         if x:
                             x = self.geopot_handler(x)
-                            print(f"Upper data: {x}")
                             if self.param_filters.match(x):
                                 d = {**station, **x}
                                 yield d
@@ -319,9 +312,9 @@ class TempReader(CustomReader):
 
     def adjust_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         if self.geopotential == "z":
-            df.drop(columns=["zh"], inplace=True, errors="ignore")
+            df.drop(columns=["zh", "zh_units"], inplace=True, errors="ignore")
         elif self.geopotential == "zh":
-            df.drop(columns=["z"], inplace=True, errors="ignore")
+            df.drop(columns=["z", "z_units"], inplace=True, errors="ignore")
 
         return df
 

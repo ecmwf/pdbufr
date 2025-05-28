@@ -31,7 +31,18 @@ classifiers = [
 ]
 dynamic = [ "version" ]
 dependencies = [ "attrs", "eccodes", "pandas", "pint" ]
-optional-dependencies.tests = [ "flake8", "pytest", "pytest-cov", "requests" ]
+optional-dependencies.dev = [
+  "pdbufr[docs,test]",
+]
+optional-dependencies.docs = [
+  "nbsphinx",
+  "pygments>=2.6.1",
+  "sphinx>=7.3.7",
+  "sphinx-copybutton",
+  "sphinx-issues",
+  "sphinx-rtd-theme",
+]
+optional-dependencies.tests = [ "flake8", "nbconvert", "nbformat", "pytest", "pytest-cov", "requests" ]
 urls.Documentation = "https://pdbufr.readthedocs.io/en/latest/"
 urls.Homepage = "https://github.com/ecmwf/pdbufr"
 

@@ -43,7 +43,7 @@ The order of the keys in a message/subset defines a hierarchical structure. This
 What does a message contain?
 -----------------------------
 
-One of first the difficulties in working with BUFR is to figure out what a message contains. The ecCodes key to use is ``dataCategory``, which is located in the header section of a message. It contains a numeric code that can be interpreted using the WMO BUFR tables. The first couple of values are as follows:
+One of the first difficulties in working with BUFR is to figure out what a message contains. The ecCodes key to use is ``dataCategory``, which is located in the header section of a message. It contains a numeric code that can be interpreted using the WMO BUFR tables. The first couple of values are as follows:
 
 - 0: surface data - land
 - 1: surface data - sea
@@ -68,7 +68,15 @@ Sub-category in edition 4
 
 The ``internationalDataSubCategory`` is a numeric code defined by WMO and published in the `Common Code Table C-13 <https://github.com/wmo-im/CCT/blob/master/C13.csv>`_. There is also the ``dataSubCategory`` key defined by local automatic data processing (ADP) centres and not by WMO and according to the WMO BUFR manual::
 
-    .. The local data sub-category is maintained for backwards-compatibility with BUFR editions 0-3, since many ADP centres have made extensive use of such values in the past. The international data sub-category introduced with BUFR edition 4 is intended to provide a mechanism for better understanding of the overall nature and intent of messages exchanged between ADP centres. These two values (i.e. local sub-category and international sub-category) are intended to be supplementary to one another, so both may be used within a particular BUFR message.
+    The local data sub-category is maintained for backwards-compatibility with
+    BUFR editions 0-3,since many ADP centres have made extensive use of such
+    values in the past. The internationaldata sub-category introduced with BUFR
+    edition 4 is intended to provide a mechanism for better understanding of the
+    overall nature and intent of messages exchanged between ADP centres. These
+    two values (i.e. local sub-category and internationalsub-category) are intended
+    to be supplementary to one another, so both may be used within a particular
+    BUFR message.
+
 
 unexpandedDescriptor
 +++++++++++++++++++++

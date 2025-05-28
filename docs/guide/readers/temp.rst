@@ -4,10 +4,11 @@
 
     This reader is **experimental** and the API might change in the future. It is not recommended to use it in production code yet.
 
-TEMP
+Temp
 -------------
 
 .. py:function:: read_bufr(path, reader="temp", columns=[], filters=None, geopotential="geopotential", units_system=None, units=None, add_units_columns=False)
+    :noindex:
 
     Extract :ref:`temp-like data <temp-like-data>` from BUFR using pre-defined :ref:`parameters <temp-params>`.
 
@@ -43,9 +44,9 @@ TEMP
         - "any": extract either the geopotential or geopotential height parameter, depending on which one is available in the BUFR message/subset. If both are available, both are extracted.
 
     :type geopotential: str
-    :param filters: define the conditions when to extract the data. The individual conditions are combined together with the logical AND operator to form the filter. It can contain both BUFR keys and parameters. See :ref:`filters-section` for details.
+    :param filters: define the conditions when to extract the data. The individual conditions are combined together with the logical AND operator to form the filter. It can contain both BUFR keys and parameters. See :ref:`filters` for details.
     :type filters: dict
-    :param unit_system: define the unit system to generate the resulting values. The default is None, which means that no conversion is applied but the values/units found in the BUFR are written to the output. The only available unit system is: "default". The "default" system uses the units as defined in the :ref:`synop-obs-params` section.
+    :param unit_system: define the unit system to generate the resulting values. The default is None, which means that no conversion is applied but the values/units found in the BUFR are written to the output. The only available unit system is: "default". The "default" system uses the units as defined in the :ref:`temp-params` section.
     :type unit_system: str, None
     :param units: specify custom units conversions as a dictionary. The keys are the parameter names and the values are the units to convert to. For keys not specified the conversion defined by ``unit_system`` is applied. E.g.:
 
@@ -56,7 +57,7 @@ TEMP
             }
 
     :type units: dict, None
-    :param add_units_columns: if True, a :ref:`units column <synop-units>` is added to the resulting DataFrame for each :ref:`parameter <synop-params>` having a units. The column name is formed by adding the "_units" suffix to the parameter name. The default is False.
+    :param add_units_columns: if True, a :ref:`units column <temp-units>` is added to the resulting DataFrame for each :ref:`parameter <temp-params>` having a units. The column name is formed by adding the "_units" suffix to the parameter name. The default is False.
     :type add_units: bool
 
 
@@ -71,12 +72,11 @@ For this reader the term "TEMP-like data" means data that is similar to classic 
 The resulting DataFrame
 +++++++++++++++++++++++++
 
-The resulting DataFrame will contain one row for each observed level. or each :ref:`parameter <synop-params>`. The columns are named after the parameter names, e.g. "t". The first columns are always the station/platform identifier, time, latitude, longitude and elevation. The observed parameters comes after the station parameters. E.g.::
+The resulting DataFrame will contain one row for each pressure level and one column per each :ref:`parameter <temp-params>`. The columns are named after the parameter names, e.g. "t". With the default settings the first columns are always the station/platform identifier, time, latitude, longitude and elevation followed by the observed parameters. E.g.::
 
-
-        sid       lat        lon   elevation       time  p    t      td   ...
-    0  91948 -23.13017 -134.96533       91.0 2020-03-15     300.45    73   ...
-    1  11766  49.77722   17.54194      748.1 2020-03-15     269.25    65   ...
+        sid    lat    lon  elevation                 time  pressure        z   t
+    0   71907  58.47 -78.08       26   2008-12-08 12:00:00  100300.0    250.0  258.3
+    1   71907  58.47 -78.08       26   2008-12-08 12:00:00  100000.0    430.0  259.7
 
 
 .. _temp-units:
@@ -96,7 +96,7 @@ When ``add_units_columns=True`` and a parameter has an associated **units** a se
 Parameters
 +++++++++++++++++++++
 
-A parameter is a high-level concept in ``pdbufr``. It was introduced to overcome the problem that the same quantity can be encoded in BUFR in multiple ways. When using parameters lwe do not need to know the actual encoding, but the desired value is automatically extracted.
+A parameter is a high-level concept in ``pdbufr``. It was introduced to overcome the problem that the same quantity can be encoded in BUFR in multiple ways. When using parameters we do not need to know the actual encoding, but the desired value is automatically extracted.
 
 
 SYNOP parameters can be divided into three groups:
@@ -122,7 +122,7 @@ Station/platform params
      -
      - | Station/platform identifier. The following keys are tried
        | in order to generate the value:
-       | :ref:`WMO station id <key_wmo_station_id>`, :ref:`WIGOS station id <key_WIGOS_station_id>`,
+       | :ref:`WMO station id <key-wmo-station-id>`, :ref:`WIGOS station id <key-WIGOS-station-id>`,
        | "shipOrMobileLandStationIdentifier", "station_id",
        | "stationOrSiteName", "station_id"
        | and "icaoLocationIndicator".
@@ -153,7 +153,7 @@ Station/platform params
 .. _temp-upper-params:
 
 Upper level parameters
-/////////////////////
+////////////////////////
 
 .. list-table::
    :header-rows: 1

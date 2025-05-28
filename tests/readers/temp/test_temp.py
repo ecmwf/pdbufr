@@ -13,6 +13,8 @@ import pandas as pd
 import pdbufr
 from pdbufr.utils.testing import sample_test_data_path
 
+TEST_DATA_CLASSIC = sample_test_data_path("temp_small.bufr")
+
 
 def _get_data():
     import os
@@ -29,7 +31,7 @@ DATA = _get_data()
 
 
 def test_temp_reader():
-    df = pdbufr.read_bufr(sample_test_data_path("temp_small.bufr"), reader="temp", filters={"count": 1})
+    df = pdbufr.read_bufr(TEST_DATA_CLASSIC, reader="temp", filters={"count": 1})
 
     # r = df.to_dict()
     # print("r=", r)
@@ -50,6 +52,57 @@ def test_temp_reader():
 
     # print("df=", df.columns.tolist())
     # print("df_ref=", df_ref.columns.tolist())
+
+    try:
+        pd.testing.assert_frame_equal(
+            df, df_ref, check_dtype=False, check_index_type=False, check_datetimelike_compat=True
+        )
+    except Exception as e:
+        print("e=", e)
+        raise
+
+
+def test_temp_columns_station():
+    df = pdbufr.read_bufr(TEST_DATA_CLASSIC, reader="temp", columns="station", filters={"count": [1, 2]})
+
+    df_ref = pd.DataFrame.from_dict(DATA.REF_STATION)
+    df_ref.reset_index(drop=True, inplace=True)
+
+    df = df.replace(np.nan, None)
+
+    try:
+        pd.testing.assert_frame_equal(
+            df, df_ref, check_dtype=False, check_index_type=False, check_datetimelike_compat=True
+        )
+    except Exception as e:
+        print("e=", e)
+        raise
+
+
+def test_temp_columns_geometry():
+    df = pdbufr.read_bufr(TEST_DATA_CLASSIC, reader="temp", columns="geometry", filters={"count": [1, 2]})
+
+    df_ref = pd.DataFrame.from_dict(DATA.REF_GEOMETRY)
+    df_ref.reset_index(drop=True, inplace=True)
+
+    df = df.replace(np.nan, None)
+
+    try:
+        pd.testing.assert_frame_equal(
+            df, df_ref, check_dtype=False, check_index_type=False, check_datetimelike_compat=True
+        )
+    except Exception as e:
+        print("e=", e)
+        raise
+
+
+def test_temp_columns_location():
+    df = pdbufr.read_bufr(TEST_DATA_CLASSIC, reader="temp", columns="location", filters={"count": [1, 2]})
+
+    df_ref = pd.DataFrame.from_dict(DATA.REF_LOCATION)
+    df_ref.reset_index(drop=True, inplace=True)
+
+    df = df.replace(np.nan, None)
 
     try:
         pd.testing.assert_frame_equal(

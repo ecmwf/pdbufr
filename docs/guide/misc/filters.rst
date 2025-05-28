@@ -4,7 +4,7 @@
 Filters
 --------------
 
-    The filter conditions are specified as a dict via ``filters`` and determine when the data will actually be extracted.
+The filter conditions are specified as a dict via the ``filters`` keyword argument of :func:`read_bufr` and determine when the data will actually be extracted.
 
 Single value
 ++++++++++++++

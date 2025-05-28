@@ -1,10 +1,5 @@
-Contributing
+Contributors
 ============
-
-The main repository is hosted on GitHub,
-testing, bug reports and contributions are highly welcomed and appreciated:
-
-https://github.com/ecmwf/pdbufr
 
 Main contributors:
 

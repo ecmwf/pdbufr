@@ -17,6 +17,7 @@ pd = pytest.importorskip("pandas")
 assert_frame_equal = pd.testing.assert_frame_equal
 
 TEST_DATA_CLASSIC = sample_test_data_path("temp_small.bufr")
+TEST_DATA_HIRES = sample_test_data_path("temp_hires.bufr")
 
 
 def test_temp_filter_classic_sid_1():
@@ -66,3 +67,50 @@ def test_temp_filter_classic_pres_1():
     assert np.isclose(df["elevation"].iloc[0], 26)
     assert np.isclose(df["pressure"].iloc[0], 50000.0)
     assert np.isclose(df["t"].iloc[0], 228.1)
+
+
+def test_temp_filter_hires_sid_1():
+    df = pdbufr.read_bufr(
+        TEST_DATA_HIRES,
+        reader="temp",
+        columns="station",
+        filters={"sid": 10954},
+    )
+
+    df = df.replace(np.nan, None)
+
+    assert df.shape == (1, 5)
+    assert df["sid"].iloc[0] == 10954
+    assert np.isclose(df["elevation"].iloc[0], 760)
+
+
+def test_temp_filter_hires_sid_2():
+    df = pdbufr.read_bufr(
+        TEST_DATA_HIRES,
+        reader="temp",
+        columns="station",
+        filters={"sid": 1},
+    )
+
+    assert df.empty
+
+
+def test_temp_filter_hires_pres_1():
+    df = pdbufr.read_bufr(
+        TEST_DATA_HIRES,
+        reader="temp",
+        columns="default",
+        filters={"sid": 10954, "pressure": slice(83635, 83637)},
+    )
+
+    df = df.replace(np.nan, None)
+
+    assert df.shape == (1, 11)
+    assert df["sid"].iloc[0] == 10954
+    assert np.isclose(df["elevation"].iloc[0], 760)
+    assert np.isclose(df["pressure"].iloc[0], 83636)
+    assert np.isclose(df["z"].iloc[0], 16804.67544)
+    assert np.isclose(df["t"].iloc[0], 274.46)
+    assert np.isclose(df["td"].iloc[0], 273.45)
+    assert np.isclose(df["wind_speed"].iloc[0], 4.4)
+    assert np.isclose(df["wind_dir"].iloc[0], 240)

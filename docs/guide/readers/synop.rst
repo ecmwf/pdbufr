@@ -4,10 +4,11 @@
 
     This reader is **experimental** and the API might change in the future. It is not recommended to use it in production code yet.
 
-SYNOP
+Synop
 -------------
 
 .. py:function:: read_bufr(path, reader="synop", columns=[], filters=None, units_system=None, units=None, add_units_columns=False, add_level_columns=False)
+    :noindex:
 
     Extract :ref:`synop-like data <synop-like-data>` from BUFR using pre-defined :ref:`parameters <synop-params>`.
 
@@ -111,7 +112,12 @@ When both periods and levels are available and ``add_level_columns=True`` the co
 Parameters
 +++++++++++++++++++++
 
-A parameter is a high-level concept in ``pdbufr``. It was introduced to overcome the problem that the same quantity can be encoded in BUFR in multiple ways. E.g. 2m temperature can be represented as "airTemperatureAt2M" or as "airTemperature" inside a group of "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform=2". When using parameters like "t2m" we do not need to know the actual encoding, but the desired value is automatically extracted for us.
+A parameter is a high-level concept in ``pdbufr``. It was introduced to overcome the problem that the same quantity can be encoded in BUFR in multiple ways. E.g. 2m temperature can be represented in at least 2 different ways:
+
+  - as "airTemperatureAt2M"
+  - as "airTemperature" inside a group "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform=2".
+
+When using parameters like "t2m" we do not need to know the actual encoding, but the desired value is automatically extracted for us. Another advantage is that we can easily extract the observation periods, levels and units for each parameter, which is simply not possible with the :ref:`generic reader <flat-reader>`.
 
 SYNOP parameters can be divided into three groups:
 
@@ -138,7 +144,7 @@ Station/platform params
      -
      - | Station/platform identifier. The following keys are tried
        | in order to generate the value:
-       | :ref:`WMO station id <key_wmo_station_id>`, :ref:`WIGOS station id <key_WIGOS_station_id>`,
+       | :ref:`WMO station id <key-wmo-station-id>`, :ref:`WIGOS station id <key-WIGOS-station-id>`,
        | "shipOrMobileLandStationIdentifier", "station_id",
        | "stationOrSiteName", "station_id"
        | and "icaoLocationIndicator".
