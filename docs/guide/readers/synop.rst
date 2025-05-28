@@ -455,3 +455,9 @@ Filtering parameter values
 
 ..     # accepting stations with wind gust observations in the height range of 9.5m to 11.5m
 ..     filters = {"wind_gust_level": slice(9.5, 11.5)}
+
+
+Examples
+++++++++++++++++++++++++++++
+
+ - :ref:`/examples/r_synop_overview.ipynb`
