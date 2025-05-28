@@ -12,11 +12,11 @@ Temp
 
     Extract :ref:`temp-like data <temp-like-data>` from BUFR using pre-defined :ref:`parameters <temp-params>`.
 
-    :param path: path to the BUFR file or a :ref:`message_list_object`
-    :type path: str, bytes, os.PathLike or a :ref:`message_list_object`
+    :param path: path to the BUFR file or a :ref:`message-list-object`
+    :type path: str, bytes, os.PathLike or a :ref:`message-list-object`
     :param columns: specify the pre-defined :ref:`parameters <temp-params>` to extract. The possible values are as follows:
 
-        - "default" or empty list: extract the parameters as in "station" followed by all the :ref:`upper level parameters <temp-default-obs-params>`. See ``geopotential`` for details on extracting the geopotential parameters.
+        - "default" or empty list: extract the parameters as in "station" followed by all the :ref:`upper level parameters <temp-upper-params>`. See ``geopotential`` for details on extracting the geopotential parameters.
         - "location": extract only the "lat" and "lon" parameters (see :ref:`station parameters <temp-station-params>` for details)
         - "geometry": extract only the "lat", "lon" and "elevation" parameters (see :ref:`station parameters <temp-station-params>` for details)
         - "station": extract only the "sid", "time", "lat", "lon" and "elevation" parameters (see :ref:`station parameters <temp-station-params>` for details)
@@ -75,8 +75,8 @@ The resulting DataFrame
 The resulting DataFrame will contain one row for each pressure level and one column per each :ref:`parameter <temp-params>`. The columns are named after the parameter names, e.g. "t". With the default settings the first columns are always the station/platform identifier, time, latitude, longitude and elevation followed by the observed parameters. E.g.::
 
         sid    lat    lon  elevation                 time  pressure        z   t
-    0   71907  58.47 -78.08       26   2008-12-08 12:00:00  100300.0    250.0  258.3
-    1   71907  58.47 -78.08       26   2008-12-08 12:00:00  100000.0    430.0  259.7
+    0   71907  58.47 -78.08       26   2008-12-08 12:00:00  100300.0    250.0  258.3  ...
+    1   71907  58.47 -78.08       26   2008-12-08 12:00:00  100000.0    430.0  259.7  ...
 
 
 .. _temp-units:
@@ -86,9 +86,9 @@ Units
 
 When ``add_units_columns=True`` and a parameter has an associated **units** a separate column is created for the units. The column name is formed by adding the "_units" suffix to the parameter name::
 
-        t2m       t2m_units
-    0   273.15       K
-    1   274.15       K
+                  t       t_units
+    0   ...     273.15       K
+    1   ...     274.15       K
 
 
 .. _temp-params:
@@ -102,7 +102,7 @@ A parameter is a high-level concept in ``pdbufr``. It was introduced to overcome
 SYNOP parameters can be divided into three groups:
 
 - `station/platform related parameters <temp-station-params>`_,
-- `upper parameters <synop-upper-params>`_,
+- `upper parameters <temp-upper-params>`_,
 
 .. _temp-station-params:
 
@@ -199,7 +199,7 @@ Upper level parameters
 Parameter filters
 +++++++++++++++++++++
 
-Parameter names and levels can be used in ``filters``. For the filter syntax see :ref:`filters-section`.
+Parameter names and levels can be used in ``filters``. For the filter syntax see :ref:`filters`.
 
 .. warning::
 
@@ -211,5 +211,5 @@ Filtering parameter values
 
 .. code-block:: python
 
-    # accepting pressure level where t temperature > 243.15 K
-    filters = {"t2m": slice(243.15, None)}
+    # accepting pressure levels where t temperature > 243.15 K
+    filters = {"t": slice(243.15, None)}

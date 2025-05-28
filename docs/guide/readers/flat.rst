@@ -13,7 +13,7 @@ Flat
     :param columns: specify the BUFR keys to extract. The following values are supported:
 
           * "all", empty str or empty list (default): all the :ref:`eccodes-bufr-keys` (including both the header and data sections) are extracted
-          * "header": only the :ref:`eccoded-bufr-keys` from the header section are extracted
+          * "header": only the :ref:`eccodes-bufr-keys` from the header section are extracted
           * "data": only the :ref:`eccodes-bufr-keys` from the data section are extracted
 
     :type columns: str, sequence[str]
@@ -38,7 +38,7 @@ How the flat reader works
 
     By default, all the columns in a message/subset are extracted (see the exceptions below), but this can be changed by setting ``columns`` to "header" or "data" to get only the header or data section keys. Other column selection modes are not available.
 
-    In the results the original :ref:`ecCodes keys<bufr-keys>` containing the **rank** are used as column names, e.g. "#1#latitude" instead of "latitude". The following set of keys are omitted:
+    In the results the original :ref:`ecCodes keys <eccodes-bufr-keys>` containing the **rank** are used as column names, e.g. "#1#latitude" instead of "latitude". The following set of keys are omitted:
 
     * from the header: "unexpandedDescriptors"
     * from the data section: data description operator qualifiers  (e.g. "delayedDescriptorReplicationFactor") and "operator"

@@ -12,8 +12,8 @@ Synop
 
     Extract :ref:`synop-like data <synop-like-data>` from BUFR using pre-defined :ref:`parameters <synop-params>`.
 
-    :param path: path to the BUFR file or a :ref:`message_list_object`
-    :type path: str, bytes, os.PathLike or a :ref:`message_list_object`
+    :param path: path to the BUFR file or a :ref:`message-list-object`
+    :type path: str, bytes, os.PathLike or a :ref:`message-list-object`
     :param columns: specify the pre-defined :ref:`parameters <synop-params>` to extract. The possible values are as follows:
 
         - "default" or empty list: extract the parameters as in "station" followed by all the :ref:`default observed parameters <synop-default-obs-params>`
@@ -25,7 +25,7 @@ Synop
     :type columns: str, sequence[str]
     :param filters: define the conditions when to extract the data. The individual conditions are combined together with the logical AND operator to form the filter. It can contain both BUFR keys and parameters. See :ref:`synop-filters` and :ref:`filters` for details.
     :type filters: dict
-    :param unit_system: define the unit system to generate the resulting values. The default is None, which means that no conversion is applied but the values/units found in the BUFR are written to the output as is. The only available unit system is: "default". The "default" system uses the units as defined in the :ref:`synop-obs-params` section.
+    :param unit_system: define the unit system to generate the resulting values. The default is None, which means that no conversion is applied but the values/units found in the BUFR are written to the output as is. The only available unit system is: "default". The "default" system uses the units as defined in the :ref:`synop-params` section.
     :type unit_system: str, None
     :param units: specify custom units conversions as a dictionary. The keys are the parameter names and the values are the units to convert to. For keys not specified in ``units`` the conversion defined by ``unit_system`` is applied. E.g.:
 

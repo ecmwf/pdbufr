@@ -1,4 +1,4 @@
-.. _bufr-intro::
+.. _bufr-intro:
 
 BUFR primer
 ================

@@ -14,7 +14,7 @@ Generic
     :type columns: str, sequence[str]
     :param filters: defines the conditions when to extract the specified ``columns``. The individual conditions are combined together with the logical AND operator to form the filter. See :ref:`filters` for details.
     :type filters: dict
-    :param required_columns: the list of :ref:`ecCodes BUFR keys<bufr-keys>` that are required to be present in the BUFR message/subset. It has a twofold meaning:
+    :param required_columns: the list of :ref:`ecCodes BUFR keys <eccodes-bufr-keys>` that are required to be present in the BUFR message/subset. It has a twofold meaning:
 
         * if any of the keys in ``required_columns`` is missing in the message/subset the whole message/subset is skipped
         * if all the keys in ``required_columns`` are present, the message/subset is processed even if some key from ``columns`` are missing (supposing the filter conditions are met)
