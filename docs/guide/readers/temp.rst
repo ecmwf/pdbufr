@@ -214,3 +214,10 @@ Filtering parameter values
 
     # accepting pressure levels where t temperature > 243.15 K
     filters = {"t": slice(243.15, None)}
+
+
+Examples
+++++++++++++++++++++++++++++
+
+ - :ref:`/examples/r_temp_overview.ipynb`
+ - :ref:`/examples/r_temp_geopotential.ipynb`
