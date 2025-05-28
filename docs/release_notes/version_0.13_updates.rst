@@ -7,7 +7,7 @@ Version 0.13.0
 Readers
 ----------------
 
-Implemented the "readers" interface to allow better extraction for specific data types. The original :func:`read_bufr` interface was kept for backwards compatibility and works as before.
+Implemented the "readers" interface to allow better extraction for specific data types. The original :func:`read_bufr` interface was kept for backwards compatibility and works as before.  (:pr:`88`)
 
 New code should use the readers, which can be activated via the ``reader`` keyword argument in the :func:`read_bufr` function. The following readers are available:
 
