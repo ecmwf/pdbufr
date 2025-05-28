@@ -111,7 +111,7 @@ Options ``level_columns=True`` and ``units_columns=True`` can be used together. 
 Periods, levels and units
 ////////////////////////////
 
-When periods are available "_level" and/or "_units" suffixes are added the period in the column names. E.g. when ``level_columns=True`` the column names are formed as follows::
+When periods are available "_level" and/or "_units" suffixes are added after the period in the column names. E.g. when ``level_columns=True`` the column names are formed as follows::
 
             wind_gust_speed_10min  wind_gust_10min_level  wind_gust_dir_10min  wind_gust_dir_10min_level
     0               5.0              9.6                   225                    9.6
