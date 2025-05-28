@@ -21,13 +21,14 @@ import pytest
 IN_GITHUB = os.environ.get("GITHUB_WORKFLOW") is not None
 
 EXAMPLES = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "examples")
+LEGACY_EXAMPLES = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "legacy")
 
 SKIP = ()
 
 
 def notebooks_list() -> T.Iterable[str]:
     notebooks = []
-    for path in os.listdir(EXAMPLES):
+    for path in os.listdir(EXAMPLES) + os.listdir(LEGACY_EXAMPLES):
         if re.match(r".+\.ipynb$", path):
             notebooks.append(path)
 

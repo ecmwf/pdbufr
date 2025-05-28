@@ -39,7 +39,14 @@ extensions = [
     "sphinx_rtd_theme",
     "nbsphinx",
     "sphinx_issues",
+    "sphinx_copybutton",
+    "xref",
 ]
+
+# Path to GitHub repo {group}/{project}  (note that `group` is the GitHub user or organization)
+issues_github_path = "ecmwf/pdbufr"
+
+# sphinx_tab
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -73,6 +80,15 @@ html_static_path = ["_static"]
 html_logo = ""
 
 highlight_language = "none"
+
+
+xref_links = {
+    "eccodes": (
+        "ecCodes",
+        "https://confluence.ecmwf.int/display/ECC/ecCodes+Home",
+    ),
+}
+
 
 rst_prolog = """
 .. role:: mval

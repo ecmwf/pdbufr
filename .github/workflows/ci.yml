@@ -33,17 +33,18 @@ jobs:
   downstream-ci:
     name: downstream-ci
     if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
-    uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci.yml@main
+    uses: ecmwf/downstream-ci/.github/workflows/downstream-ci.yml@main
     with:
       pdbufr: ecmwf/pdbufr@${{ github.event.pull_request.head.sha || github.sha }}
       # codecov_upload: true
+      python_qa: false
     secrets: inherit
 
   # Build downstream packages on HPC
   downstream-ci-hpc:
     name: downstream-ci-hpc
     if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
-    uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci-hpc.yml@main
+    uses: ecmwf/downstream-ci/.github/workflows/downstream-ci-hpc.yml@main
     with:
       pdbufr: ecmwf/pdbufr@${{ github.event.pull_request.head.sha || github.sha }}
     secrets: inherit

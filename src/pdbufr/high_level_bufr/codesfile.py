@@ -40,9 +40,9 @@ class CodesFile(io.FileIO):
 
     def __init__(self, filename, mode="rb"):
         """Open file and receive codes file handle."""
-        #: File handle for working with actual file on disc
-        #: The class holds the file it works with because ecCodes'
-        # typechecking does not allow using inherited classes.
+        # File handle for working with actual file on disk
+        # The class holds the file it works with because ecCodes typechecking
+        # does not allow using inherited classes.
         self.file_handle = open(filename, mode)
         #: Number of message in file currently being read
         self.message = 0
