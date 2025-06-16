@@ -253,21 +253,21 @@ These parameters are all added when using the default settings in ``columns``.
      -
      - L
 
-   * - wgust
+   * - max_wgust
      -
      - | Only used in ``columns`` to specify both the
        | maximum wind gust speed and direction at once.
      - P
      - L
 
-   * - wgust_speed
+   * - max_wgust_speed
      - m/s
      - | Maximum wind gust speed in a period,
        | cannot be used in ``columns``
      - P
      - L
 
-   * - wgust_dir
+   * - max_wgust_dir
      - deg
      - | Maximum gust direction in a period,
        | cannot be used in ``columns``
