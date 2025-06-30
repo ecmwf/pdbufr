@@ -22,3 +22,8 @@ SYNOP and TEMP readers
 - Added the ``stnid_key`` parameter to the :ref:`synop <synop-reader>` and :ref:`temp <temp-reader>` readers to specify a user-defined list of keys to generate the ``stnid`` parameter. (:pr:`99`)
 - Ensured that the ``stnid`` parameter is always a string or None. (:pr:`99`)
 - Enured that if any component in ``WIGOS_station-id`` is missing the whole ``WIGOS_station-id`` is regarded as missing when generating the ``stnid`` parameter. (:pr:`99`)
+- Renamed the parameter "wgust" to "max_wgust" in the :ref:`synop reader <synop-reader>` (:pr:`95`). The windgust parameter names are as follows:
+
+    max_wgust
+    max_wgust_speed
+    max_wgust_dir
