@@ -114,13 +114,17 @@ def wmo_station_position_from_bufr(observation: Dict[str, Any], prefix: str, key
     return [longitude, latitude, heightOfStationGroundAboveMeanSeaLevel]
 
 
-def wigos_id_from_bufr(observation: Dict[str, Any], prefix: str, keys: List[str]) -> Union[str, None]:
+def wigos_id_from_bufr(
+    observation: Dict[str, Any], prefix: str, keys: List[str], check_valid=False
+) -> Union[str, None]:
     try:
         wigos_series = observation.get(prefix + keys[0], "")
         wigos_issuer = observation.get(prefix + keys[1], "")
         wigos_issuer_number = observation.get(prefix + keys[2], "")
         wigos_local_name = observation.get(prefix + keys[3], "")
         wid = WIGOSId(wigos_series, wigos_issuer, wigos_issuer_number, wigos_local_name)
+        if check_valid and not wid.is_valid():
+            return None
         return wid.as_str()
     except Exception:
         pass

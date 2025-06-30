@@ -208,6 +208,14 @@ class WIGOSId:
 
         return f"{_convert_str(self.series)}-{_convert_str(self.issuer)}-{_convert_str(self.number)}-{_convert_str(self.local)}"
 
+    def is_valid(self) -> bool:
+        return (
+            self.series is not None
+            and self.issuer is not None
+            and self.number is not None
+            and isinstance(self.local, str)
+        )
+
 
 def filters_match(
     message: Mapping[str, Any],

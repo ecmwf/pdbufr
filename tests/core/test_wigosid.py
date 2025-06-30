@@ -71,3 +71,21 @@ def test_wigos_id_eq(wid1, wid2, eq) -> None:
         assert w1 == w2
     else:
         assert w1 != w2
+
+
+@pytest.mark.parametrize(
+    "wid,valid",
+    [
+        ((0, 705, 0, "1931"), True),
+        ((None, None, None, "1931"), False),
+        ((None, 705, 0, "1931"), False),
+        ((None, None, 0, "1931"), False),
+        ((0, None, None, "1931"), False),
+        ((0, None, 0, "1931"), False),
+        ((0, 705, None, "1931"), False),
+        ((0, 705, 0, None), False),
+    ],
+)
+def test_wigos_id_valid(wid, valid) -> None:
+    w1 = WIGOSId.from_user(wid)
+    assert w1.is_valid() == valid

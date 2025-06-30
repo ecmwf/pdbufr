@@ -8,7 +8,9 @@ Synop
     This reader is **experimental** and the API might change in the future. It is not recommended to use it in production code yet.
 
 
-.. py:function:: read_bufr(path, reader="synop", columns=[], filters=None, units_system=None, units=None, units_columns=False, level_columns=False)
+*New in version 0.13.0*
+
+.. py:function:: read_bufr(path, reader="synop", columns=[], filters=None, stnid_keys=None, units_system=None, units=None, units_columns=False, level_columns=False)
     :noindex:
 
     Extract :ref:`synop-like data <synop-like-data>` from BUFR using pre-defined :ref:`parameters <synop-params>`.
@@ -26,6 +28,8 @@ Synop
     :type columns: str, sequence[str]
     :param filters: define the conditions when to extract the data. The individual conditions are combined together with the logical AND operator to form the filter. It can contain both BUFR keys and parameters. See :ref:`synop-filters` and :ref:`filters` for details.
     :type filters: dict
+    :param stnid_keys: BUFR keys to extract data for the ``stnid`` param. When None, the default list of BUFR keys are used (see ``stnid`` in :ref:`station parameters <synop-station-params>`). *New in version 0.14.0*
+    :type stnid_keys: str, sequence[str], None
     :param unit_system: define the unit system to generate the resulting values. The default is None, which means that no conversion is applied but the values/units found in the BUFR are written to the output as is. The only available unit system is: "pdbufr". The "pdbufr" system uses the units as defined in the :ref:`synop-params` section.
     :type unit_system: str, None
     :param units: specify custom units conversions as a dictionary. The keys are the parameter names and the values are the units to convert to. For keys not specified in ``units`` the conversion defined by ``unit_system`` is applied. E.g.:
@@ -155,12 +159,18 @@ Station/platform params
 
    * - stnid
      -
-     - | Station/platform identifier. The following keys are tried
-       | in order to generate the value:
-       | :ref:`WMO station id <key-wmo-station-id>`, :ref:`WIGOS station id <key-WIGOS-station-id>`,
-       | "shipOrMobileLandStationIdentifier", "station_id",
-       | "stationOrSiteName", "station_id"
-       | and "icaoLocationIndicator".
+     - | Station/platform identifier as a str. The following keys are
+       | tried in order to generate the value (the first one with a
+       | valid value is used):
+
+        - "ident"
+        - :ref:`WMO station id <key-wmo-station-id>`
+        - :ref:`WIGOS station id <key-WIGOS-station-id>`
+        - "shipOrMobileLandStationIdentifier"
+        - "station_id"
+        - "icaoLocationIndicator"
+        - "stationOrSiteName"
+        - "longStationName"
 
    * - time
      - datatime.datetime
@@ -253,21 +263,21 @@ These parameters are all added when using the default settings in ``columns``.
      -
      - L
 
-   * - wgust
+   * - max_wgust
      -
      - | Only used in ``columns`` to specify both the
        | maximum wind gust speed and direction at once.
      - P
      - L
 
-   * - wgust_speed
+   * - max_wgust_speed
      - m/s
      - | Maximum wind gust speed in a period,
        | cannot be used in ``columns``
      - P
      - L
 
-   * - wgust_dir
+   * - max_wgust_dir
      - deg
      - | Maximum gust direction in a period,
        | cannot be used in ``columns``
