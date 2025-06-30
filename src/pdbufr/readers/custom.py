@@ -32,6 +32,7 @@ class CustomReader(Reader):
         self,
         *args: Any,
         filters: Optional[Dict[str, Any]] = None,
+        accessors: Optional[Dict[str, Any]] = None,
         unit_system: Optional[str] = None,
         units: Optional[Dict[str, str]] = None,
         units_columns: bool = False,
@@ -39,7 +40,7 @@ class CustomReader(Reader):
     ):
         super().__init__(*args)
 
-        self.bufr_filters, self.read_count_filter, self.max_count = self.create_filters(filters)
+        self.bufr_filters, self.count_filter, self.max_count = self.create_filters(filters)
         self.units_converter = self.create_units_converter(unit_system, units)
         self.add_units = units_columns
 
@@ -125,3 +126,24 @@ class CustomReader(Reader):
 
     def adjust_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         return df
+
+
+class StationReader(CustomReader):
+    @staticmethod
+    def make_manager(manager_cache, stnid_keys: Optional[Union[str, list]] = None) -> None:
+        if stnid_keys:
+            from pdbufr.core.accessor import SidAccessor
+
+            if isinstance(stnid_keys, str):
+                stnid_keys = [stnid_keys]
+            if not isinstance(stnid_keys, (list, tuple)):
+                raise TypeError(f"Invalid keys type: {type(stnid_keys)}. Expected str, list or tuple.")
+            ac = SidAccessor.from_user_keys(stnid_keys)
+            name = ac.param.name
+            manager_cache_id = name + ":" + ",".join(stnid_keys)
+
+            user_ac = {name: ac}
+            manager = manager_cache.get(manager_cache_id, user_accessors=user_ac)
+
+            return manager
+        return manager_cache.get()

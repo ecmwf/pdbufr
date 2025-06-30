@@ -28,8 +28,11 @@ class Accessor(metaclass=ABCMeta):
     keys: Optional[Dict[str, Any]] = None
     param: Optional[Any] = None
     mandatory: Optional[List[str]] = None
+    dtype = None
 
-    def __init__(self, keys: Optional[Union[Dict[str, Any], str, List[str]]] = None):
+    def __init__(
+        self, keys: Optional[Union[Dict[str, Any], str, List[str]]] = None, dtype: Optional[Any] = None
+    ):
         """
         Accessor class to extract values from a BUFR message.
 
@@ -60,6 +63,8 @@ class Accessor(metaclass=ABCMeta):
         self.bufr_keys = list([k for k in self.keys.keys() if not k.startswith("_")])
         self.labels = [v.label for k, v in self.keys.items() if v is not None]
         self.name = self.__class__.__name__
+
+        self.dtype = dtype
 
         # LOG.debug(f"Accessor {self.name} initialized with labels: {self.labels}")
 
@@ -134,6 +139,13 @@ class SimpleAccessor(Accessor):
                     # handle period
                     if param.is_period():
                         v = param.concat_units(v, units)
+                    elif (
+                        v is not None and self.dtype is not None and self.param and self.param.label == label
+                    ):
+                        try:
+                            v = self.dtype(v)
+                        except Exception:
+                            pass
 
                     res[label] = v
 
@@ -186,7 +198,7 @@ class SimpleAccessor(Accessor):
 
 
 class ComputedKeyAccessor(Accessor):
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, method_kwargs=None, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
         key = list(self.keys.keys())[0]
@@ -195,9 +207,12 @@ class ComputedKeyAccessor(Accessor):
             if k[1] == key:
                 self._meth = k[2]
                 self._keys = k[0]
+                break
 
         if not hasattr(self, "_meth"):
             raise ValueError(f"Unknown computed key {self.keys[0]}")
+
+        self.method_kwargs = method_kwargs or {}
 
     def empty_result(self) -> Dict[str, Optional[Any]]:
         return dict(zip(self.labels, [None] * len(self.labels)))
@@ -213,11 +228,17 @@ class ComputedKeyAccessor(Accessor):
             break
 
         try:
-            val = self._meth(value, "", self._keys)
+            val = self._meth(value, "", self._keys, **self.method_kwargs)
         except Exception:
             if raise_on_missing:
                 raise
             val = None
+
+        if val is not None and self.dtype is not None:
+            try:
+                val = self.dtype(val)
+            except Exception:
+                pass
 
         if val is None and raise_on_missing:
             raise AllValueMissingException(f"Missing value for {self.name}")
@@ -406,6 +427,10 @@ class CoordAccessor(SimpleAccessor):
 class MultiAccessorBase(Accessor):
     accessors: List[Accessor] = []
 
+    def __init__(self, accessors: Optional[List[Accessor]] = None, **kwargs: Any):
+        self.accessors = accessors or self.accessors
+        super().__init__(**kwargs)
+
     def empty_result(self) -> Dict[str, Optional[Any]]:
         return self.accessors[0].empty_result()
 
@@ -450,18 +475,63 @@ class MultiAllAccessor(MultiAccessorBase):
 class LatLonAccessor(SimpleAccessor):
     param: Any = PARAMS.LATLON
     keys: Dict[str, Any] = {"latitude": PARAMS.LAT, "longitude": PARAMS.LON}
+    _cache = {}
+
+
+DEFAULT_SID_ACCESSORS = {
+    "ident": SimpleAccessor(keys={"ident": PARAMS.SID}, dtype=str),
+    "WMO_station_id": ComputedKeyAccessor(keys={"WMO_station_id": PARAMS.SID}, dtype=str),
+    "WIGOS_station_id": ComputedKeyAccessor(
+        keys={"WIGOS_station_id": PARAMS.SID}, method_kwargs={"check_valid": True}, dtype=str
+    ),
+    "shipOrMobileLandStationIdentifier": SimpleAccessor(
+        keys={"shipOrMobileLandStationIdentifier": PARAMS.SID}, dtype=str
+    ),
+    "station_id": SimpleAccessor(keys={"station_id": PARAMS.SID}, dtype=str),
+    "icaoLocationIndicator": SimpleAccessor(keys={"icaoLocationIndicator": PARAMS.SID}, dtype=str),
+    "stationOrSiteName": SimpleAccessor(keys={"stationOrSiteName": PARAMS.SID}, dtype=str),
+    "longStationName": SimpleAccessor(keys={"longStationName": PARAMS.SID}, dtype=str),
+}
 
 
 class SidAccessor(MultiFirstAccessor):
     param: Any = PARAMS.SID
-    accessors: List[Accessor] = [
-        ComputedKeyAccessor(keys={"WMO_station_id": PARAMS.SID}),
-        ComputedKeyAccessor(keys={"WIGOS_station_id": PARAMS.SID}),
-        SimpleAccessor(keys={"shipOrMobileLandStationIdentifier": PARAMS.SID}),
-        SimpleAccessor(keys={"station_id": PARAMS.SID}),
-        SimpleAccessor(keys={"icaoLocationIndicator": PARAMS.SID}),
-        SimpleAccessor(keys={"stationOrSiteName": PARAMS.SID}),
-    ]
+    accessors: List[Accessor] = list(DEFAULT_SID_ACCESSORS.values())
+    _cache: Dict[str, "SidAccessor"] = {}
+
+    @classmethod
+    def from_user_keys(cls, keys: Union[str, List[str]]) -> "SidAccessor":
+        """
+        Create a SidAccessor from user-defined keys.
+
+        Parameters
+        ----------
+        keys : str or list of str
+            The keys to use for the SID accessor.
+
+        Returns
+        -------
+        SidAccessor
+            A new SidAccessor instance with the specified keys.
+        """
+        if isinstance(keys, str):
+            keys = [keys]
+        if not isinstance(keys, (list, tuple)):
+            raise TypeError(f"Invalid keys type: {type(keys)}. Expected str, list or tuple.")
+
+        lst = []
+        for k in keys:
+            if k in DEFAULT_SID_ACCESSORS:
+                lst.append(DEFAULT_SID_ACCESSORS[k])
+            else:
+                ac = SimpleAccessor(keys={k: PARAMS.SID}, dtype=str)
+                lst.append(ac)
+
+        r = cls(accessors=lst)
+        key = tuple(keys)
+        if key not in cls._cache:
+            cls._cache[key] = r
+        return cls._cache[key]
 
 
 class StationNameAccessor(MultiFirstAccessor):
@@ -489,6 +559,7 @@ class AccessorManager:
     def __init__(
         self,
         default: List[Accessor],
+        user_accessors: Optional[Dict[str, Accessor]] = None,
         **kwargs,
     ):
         if not isinstance(default, (list, tuple)):
@@ -501,6 +572,17 @@ class AccessorManager:
             accessors.update(v)
 
         self.accessors = {a.param.label: a() for a in accessors}
+
+        # replace default accessors with user-defined ones
+        if user_accessors:
+            for k, v in user_accessors.items():
+                if k not in self.accessors:
+                    raise ValueError(
+                        f"User accessor '{k}' is not in the default accessors. Available: {self.accessors.keys()}"
+                    )
+                if not isinstance(v, Accessor):
+                    raise ValueError(f"User accessor '{k}' must be an Accessor instance, got {type(v)}")
+                self.accessors[k] = v
 
         def _build(lst):
             return {a.param.label: self.accessors[a.param.label] for a in lst}
@@ -521,6 +603,7 @@ class AccessorManager:
                 return accessors
 
         cache_key = tuple(params)
+
         if cache_key in self.cache:
             accessors = self.cache[cache_key]
         else:
@@ -564,6 +647,30 @@ class AccessorManager:
             if labels:
                 r.update(labels)
         return r
+
+
+class AccessorManagerCache(metaclass=ABCMeta):
+    def __init__(self):
+        self.cache = {"default": self.make()}
+
+    @abstractmethod
+    def make(self, *args, **kwargs):
+        pass
+
+    def get(self, key=None, **kwargs) -> AccessorManager:
+        """Get the accessor manager for the given key."""
+        if key is None or key == "default":
+            return self.cache["default"]
+        if key in self.cache:
+            return self.cache[key]
+        else:
+            manager = self.make(**kwargs)
+            self.cache[key] = manager
+            return manager
+
+    def __contains__(self, key: str) -> bool:
+        """Check if the accessor manager for the given key exists."""
+        return key in self.cache
 
 
 PERIOD_RX = re.compile(r"(.+)_<(.+)>(.*)")

@@ -2,7 +2,7 @@ import datetime
 
 REF = [
     {
-        "stnid": 91948,
+        "stnid": "91948",
         "lat": -23.13017,
         "lon": -134.96533,
         "elevation": 91.0,
@@ -46,7 +46,7 @@ REF = [
         "visibility": None,
     },
     {
-        "stnid": 11766,
+        "stnid": "11766",
         "lat": 49.77722,
         "lon": 17.54194,
         "elevation": 748.1,
@@ -90,7 +90,7 @@ REF = [
         "visibility": 30000.0,
     },
     {
-        "stnid": 56257,
+        "stnid": "56257",
         "lat": 30.0,
         "lon": 100.27,
         "elevation": 3950.0,
@@ -137,7 +137,7 @@ REF = [
 
 REF_PARAMS_1 = [
     {
-        "stnid": 91948,
+        "stnid": "91948",
         "lat": -23.13017,
         "lon": -134.96533,
         "elevation": 91.0,
@@ -148,7 +148,7 @@ REF_PARAMS_1 = [
 
 REF_PARAMS_2 = [
     {
-        "stnid": 91948,
+        "stnid": "91948",
         "lat": -23.13017,
         "lon": -134.96533,
         "elevation": 91.0,
@@ -160,7 +160,7 @@ REF_PARAMS_2 = [
 
 REF_PARAMS_3 = [
     {
-        "stnid": 91948,
+        "stnid": "91948",
         "lat": -23.13017,
         "lon": -134.96533,
         "elevation": 91.0,
@@ -172,7 +172,7 @@ REF_PARAMS_3 = [
 
 REF_PARAMS_4 = [
     {
-        "stnid": 91948,
+        "stnid": "91948",
         "lat": -23.13017,
         "lon": -134.96533,
         "elevation": 91.0,
@@ -183,7 +183,7 @@ REF_PARAMS_4 = [
 
 REF_PARAMS_5 = [
     {
-        "stnid": 91948,
+        "stnid": "91948",
         "lat": -23.13017,
         "lon": -134.96533,
         "elevation": 91.0,
@@ -194,21 +194,21 @@ REF_PARAMS_5 = [
 
 REF_STATION = [
     {
-        "stnid": 91948,
+        "stnid": "91948",
         "lat": -23.13017,
         "lon": -134.96533,
         "elevation": 91.0,
         "time": datetime.datetime.fromisoformat("2020-03-15T00:00:00.000"),
     },
     {
-        "stnid": 11766,
+        "stnid": "11766",
         "lat": 49.77722,
         "lon": 17.54194,
         "elevation": 748.1,
         "time": datetime.datetime.fromisoformat("2020-03-15T00:00:00.000"),
     },
     {
-        "stnid": 56257,
+        "stnid": "56257",
         "lat": 30.0,
         "lon": 100.27,
         "elevation": 3950.0,

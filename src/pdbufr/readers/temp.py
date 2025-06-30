@@ -21,6 +21,7 @@ import pandas as pd
 import pdbufr.core.param as PARAMS
 from pdbufr.core.accessor import Accessor
 from pdbufr.core.accessor import AccessorManager
+from pdbufr.core.accessor import AccessorManagerCache
 from pdbufr.core.accessor import DatetimeAccessor
 from pdbufr.core.accessor import ElevationAccessor
 from pdbufr.core.accessor import LatLonAccessor
@@ -33,7 +34,7 @@ from pdbufr.core.subset import BufrSubsetReader
 from pdbufr.utils.convert import period_to_timedelta
 from pdbufr.utils.units import UnitsConverter
 
-from .custom import CustomReader
+from .custom import StationReader
 from .geopot import GeopotentialHandler
 
 LOG = logging.getLogger(__name__)
@@ -180,15 +181,23 @@ DEFAULT_OBS_ACCESSORS: tuple = (PressureLevelAccessor, OffsetPressureLevelAccess
 
 DEFAULT_ACCESSORS = STATION_ACCESSORS + DEFAULT_OBS_ACCESSORS
 
-MANAGER: AccessorManager = AccessorManager(
-    DEFAULT_ACCESSORS,
-    station=STATION_ACCESSORS,
-    location=LOCATION_ACCESSORS,
-    geometry=GEOMETRY_ACCESSORS,
-    upper=DEFAULT_OBS_ACCESSORS,
-    _extra=EXTRA_STATION_ACCESSORS,
-    _station=STATION_ACCESSORS + EXTRA_STATION_ACCESSORS,
-)
+
+class TempAccessorManagerCache(AccessorManagerCache):
+    def make(self, user_accessors: Optional[Dict[str, Accessor]] = None) -> AccessorManager:
+        return AccessorManager(
+            DEFAULT_ACCESSORS,
+            station=STATION_ACCESSORS,
+            location=LOCATION_ACCESSORS,
+            geometry=GEOMETRY_ACCESSORS,
+            upper=DEFAULT_OBS_ACCESSORS,
+            _extra=EXTRA_STATION_ACCESSORS,
+            _station=STATION_ACCESSORS + EXTRA_STATION_ACCESSORS,
+            user_accessors=user_accessors,
+        )
+
+
+MANAGER_CACHE = TempAccessorManagerCache()
+MANAGER = MANAGER_CACHE.get()
 
 UPPER_ACCESSORS: Dict[str, Accessor] = {
     "standard": MANAGER.get_by_object(PressureLevelAccessor),
@@ -196,11 +205,13 @@ UPPER_ACCESSORS: Dict[str, Accessor] = {
 }
 
 
-class TempReader(CustomReader):
+class TempReader(StationReader):
     def __init__(
         self,
         *args: Any,
         columns: Optional[Union[str, List[str]]] = "default",
+        stnid_keys: Optional[Union[str, List[str]]] = None,
+        bufr_filters: Optional[Dict[str, Any]] = None,
         geopotential: str = "z",
         **kwargs: Any,
     ) -> None:
@@ -212,9 +223,11 @@ class TempReader(CustomReader):
             columns = "default"
         self.params = columns
 
+        self.manager = self.make_manager(MANAGER_CACHE, stnid_keys=stnid_keys)
+
         self.param_filters = {}
-        self.accessors = MANAGER.get(self.params)
-        labels = MANAGER.labels(self.accessors)
+        self.accessors = self.manager.get(self.params)
+        labels = self.manager.labels(self.accessors)
 
         for name in labels:
             for suffix in ("", "_units"):
@@ -228,7 +241,7 @@ class TempReader(CustomReader):
         self.station_accessors = []
         self.upper_accessors = []
         for name, ac in self.accessors.items():
-            if name in MANAGER.groups["_station"]:
+            if name in self.manager.groups["_station"]:
                 self.station_accessors.append(ac)
             else:
                 self.upper_accessors.append(ac)
