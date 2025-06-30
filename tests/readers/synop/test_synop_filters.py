@@ -41,13 +41,13 @@ def test_synop_filter_wmoid_new():
         TEST_DATA_NEW,
         reader="synop",
         columns="station",
-        filters={"stnid": 11766},
+        filters={"stnid": "11766"},
     )
 
     df = df.replace(np.nan, None)
 
     assert df.shape == (1, 5)
-    assert df["stnid"].iloc[0] == 11766
+    assert df["stnid"].iloc[0] == "11766"
     assert np.isclose(df["elevation"].iloc[0], 748.1)
 
 
@@ -56,16 +56,16 @@ def test_synop_filter_wmoid_uc():
         TEST_DATA_UNCOMPRESSED,
         reader="synop",
         columns="station",
-        filters={"stnid": [1308, 1084]},
+        filters={"stnid": ["1308", "1084"]},
     )
 
     df = df.replace(np.nan, None)
 
     assert df.shape == (2, 5)
-    assert df["stnid"].iloc[0] == 1084
+    assert df["stnid"].iloc[0] == "1084"
     assert np.isclose(df["elevation"].iloc[0], 27)
 
-    assert df["stnid"].iloc[1] == 1308
+    assert df["stnid"].iloc[1] == "1308"
     assert np.isclose(df["elevation"].iloc[1], 7)
 
 
@@ -75,13 +75,13 @@ def test_synop_filter_new_1a():
         TEST_DATA_NEW,
         reader="synop",
         columns="station",
-        filters={"stnid": [11766, 56257], "t2m": slice(0, 275), "t2m_level": (0, 1.9)},
+        filters={"stnid": ["11766", "56257"], "t2m": slice(0, 275), "t2m_level": (0, 1.9)},
     )
 
     df = df.replace(np.nan, None)
 
     assert df.shape == (1, 5)
-    assert df["stnid"].iloc[0] == 11766
+    assert df["stnid"].iloc[0] == "11766"
     assert np.isclose(df["elevation"].iloc[0], 748.1)
 
 
@@ -91,7 +91,7 @@ def test_synop_filter_new_1b():
             TEST_DATA_NEW,
             reader="synop",
             columns="station",
-            filters={"stnid": [11766, 56257], "t2m": slice(0, 275), "t2m_level": (0, 1.9)},
+            filters={"stnid": ["11766", "56257"], "t2m": slice(0, 275), "t2m_level": (0, 1.9)},
         )
 
 
@@ -100,12 +100,12 @@ def test_synop_filter_uc_1():
         TEST_DATA_UNCOMPRESSED,
         reader="synop",
         columns=["station", "t2m"],
-        filters={"stnid": [1308, 1084], "t2m": slice(0, 275)},
+        filters={"stnid": ["1308", "1084"], "t2m": slice(0, 275)},
     )
 
     df = df.replace(np.nan, None)
 
     assert df.shape == (1, 6)
-    assert df["stnid"].iloc[0] == 1084
+    assert df["stnid"].iloc[0] == "1084"
     assert np.isclose(df["elevation"].iloc[0], 27)
     assert np.isclose(df["t2m"].iloc[0], 266.55)

@@ -21,6 +21,7 @@ import pandas as pd
 import pdbufr.core.param as PARAMS
 from pdbufr.core.accessor import Accessor
 from pdbufr.core.accessor import AccessorManager
+from pdbufr.core.accessor import AccessorManagerCache
 from pdbufr.core.accessor import CoordAccessor
 from pdbufr.core.accessor import DatetimeAccessor
 from pdbufr.core.accessor import ElevationAccessor
@@ -33,7 +34,7 @@ from pdbufr.core.accessor import StationNameAccessor
 from pdbufr.core.filters import ParamFilter
 from pdbufr.core.subset import BufrSubsetReader
 
-from .custom import CustomReader
+from .custom import StationReader
 
 LOG = logging.getLogger(__name__)
 
@@ -548,21 +549,30 @@ EXTRA_OBS_ACCESSORS: tuple = (
 
 DEFAULT_ACCESSORS = STATION_ACCESSORS + DEFAULT_OBS_ACCESSORS
 
-MANAGER: AccessorManager = AccessorManager(
-    DEFAULT_ACCESSORS,
-    station=STATION_ACCESSORS,
-    location=LOCATION_ACCESSORS,
-    geometry=GEOMETRY_ACCESSORS,
-    _extra=EXTRA_STATION_ACCESSORS + EXTRA_OBS_ACCESSORS,
-)
+
+class SynopAccessorManagerCache(AccessorManagerCache):
+    def make(self, user_accessors: Optional[Dict[str, Accessor]] = None) -> AccessorManager:
+        return AccessorManager(
+            DEFAULT_ACCESSORS,
+            station=STATION_ACCESSORS,
+            location=LOCATION_ACCESSORS,
+            geometry=GEOMETRY_ACCESSORS,
+            _extra=EXTRA_STATION_ACCESSORS + EXTRA_OBS_ACCESSORS,
+            user_accessors=user_accessors,
+        )
 
 
-class SynopReader(CustomReader):
+MANAGER_CACHE = SynopAccessorManagerCache()
+MANAGER = MANAGER_CACHE.get()
+
+
+class SynopReader(StationReader):
     def __init__(
         self,
         *args: Any,
         columns: Optional[Union[str, List[str]]] = "default",
         level_columns: bool = False,
+        stnid_keys: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -572,10 +582,13 @@ class SynopReader(CustomReader):
         self.params = columns
         self.add_level = level_columns
 
+        self.manager = self.make_manager(MANAGER_CACHE, stnid_keys=stnid_keys)
+
         self.param_filters = {}
 
-        self.accessors = MANAGER.get(self.params)
-        for name in MANAGER.accessors:
+        self.accessors = self.manager.get(self.params)
+
+        for name in self.manager.accessors:
             for suffix in ("", "_level", "_units"):
                 key = name + suffix
                 if key in self.bufr_filters:

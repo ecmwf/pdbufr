@@ -25,13 +25,13 @@ def test_temp_filter_classic_stnid_1():
         TEST_DATA_CLASSIC,
         reader="temp",
         columns="station",
-        filters={"stnid": 71907},
+        filters={"stnid": "71907"},
     )
 
     df = df.replace(np.nan, None)
 
     assert df.shape == (1, 5)
-    assert df["stnid"].iloc[0] == 71907
+    assert df["stnid"].iloc[0] == "71907"
     assert np.isclose(df["elevation"].iloc[0], 26)
 
 
@@ -40,14 +40,14 @@ def test_temp_filter_classic_stnid_2():
         TEST_DATA_CLASSIC,
         reader="temp",
         columns="station",
-        filters={"stnid": [71907, 89009]},
+        filters={"stnid": ["71907", "89009"]},
     )
 
     df = df.replace(np.nan, None)
 
     assert df.shape == (2, 5)
-    assert df["stnid"].iloc[0] == 71907
-    assert df["stnid"].iloc[1] == 89009
+    assert df["stnid"].iloc[0] == "71907"
+    assert df["stnid"].iloc[1] == "89009"
     assert np.isclose(df["elevation"].iloc[0], 26)
     assert np.isclose(df["elevation"].iloc[1], 2835)
 
@@ -57,13 +57,13 @@ def test_temp_filter_classic_pres_1():
         TEST_DATA_CLASSIC,
         reader="temp",
         columns="default",
-        filters={"stnid": 71907, "pressure": slice(49000, 51000)},
+        filters={"stnid": "71907", "pressure": slice(49000, 51000)},
     )
 
     df = df.replace(np.nan, None)
 
     assert df.shape == (1, 11)
-    assert df["stnid"].iloc[0] == 71907
+    assert df["stnid"].iloc[0] == "71907"
     assert np.isclose(df["elevation"].iloc[0], 26)
     assert np.isclose(df["pressure"].iloc[0], 50000.0)
     assert np.isclose(df["t"].iloc[0], 228.1)
@@ -74,13 +74,13 @@ def test_temp_filter_hires_stnid_1():
         TEST_DATA_HIRES,
         reader="temp",
         columns="station",
-        filters={"stnid": 10954},
+        filters={"stnid": "10954"},
     )
 
     df = df.replace(np.nan, None)
 
     assert df.shape == (1, 5)
-    assert df["stnid"].iloc[0] == 10954
+    assert df["stnid"].iloc[0] == "10954"
     assert np.isclose(df["elevation"].iloc[0], 760)
 
 
@@ -100,13 +100,13 @@ def test_temp_filter_hires_pres_1():
         TEST_DATA_HIRES,
         reader="temp",
         columns="default",
-        filters={"stnid": 10954, "pressure": slice(83635, 83637)},
+        filters={"stnid": "10954", "pressure": slice(83635, 83637)},
     )
 
     df = df.replace(np.nan, None)
 
     assert df.shape == (1, 11)
-    assert df["stnid"].iloc[0] == 10954
+    assert df["stnid"].iloc[0] == "10954"
     assert np.isclose(df["elevation"].iloc[0], 760)
     assert np.isclose(df["pressure"].iloc[0], 83636)
     assert np.isclose(df["z"].iloc[0], 16804.67544)
