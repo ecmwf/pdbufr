@@ -117,13 +117,8 @@ def extract_message(
             if is_compressed:
                 if key not in value_cache:
                     value_cache[key] = message.get(key)
-                    # try:
-                    #     value_cache[key] = message[key]
-                    # except KeyError:
-                    #     value_cache[key] = None
                 value = value_cache[key]
             else:
-                # value = message[key]
                 value = message.get(key)
 
             # extract compressed BUFR values. They are either numpy arrays (for numeric types)
@@ -301,7 +296,7 @@ class FlatReader(Reader):
             column_info.first_count = 0
 
         for count, msg in enumerate(bufr_obj, 1):
-            # we use a context manager to automatically delete the handle of the BufrMessage.
+            # We use a context manager to automatically delete the handle of the BufrMessage.
             # We have to use a wrapper object here because a message can also be a dict
             with MessageWrapper.wrap_context(msg) as message:
                 # count filter
@@ -313,31 +308,25 @@ class FlatReader(Reader):
 
                 header_keys = set()
                 if not add_header or prefilter_headers or value_filters or required_columns:
-                    if hasattr(message, "keys"):
-                        header_keys = set(message.keys())
-                    else:
-                        header_keys = set(message)
+                    header_keys = set(message.keys())
 
                     if required_columns:
                         message_required_columns = required_columns - set(header_keys)
 
                     # test header keys for failed matches before unpacking
                     if prefilter_headers:
-                        if not filters_match(message, message_value_filters, required=False):
+                        if not filters_match(message, value_filters, required=False):
                             continue
                         # remove already tested filters
                         else:
                             message_value_filters = {
-                                k: v for k, v in message_value_filters.items() if k not in header_keys
+                                k: v for k, v in value_filters.items() if k not in header_keys
                             }
 
                 message["skipExtraKeyAttributes"] = 1
 
                 if add_data or message_value_filters or message_required_columns:
                     message["unpack"] = 1
-
-                # if not hasattr(message, "get"):
-                #     setattr(message.__class__, "get", get_method)
 
                 observation: Dict[str, Any] = {}
 

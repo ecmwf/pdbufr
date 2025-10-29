@@ -79,10 +79,6 @@ def extract_observations(
 
             if bufr_key.key not in value_cache:
                 value_cache[bufr_key.key] = message.get(bufr_key.key)
-                # try:
-                #     value_cache[bufr_key.key] = message[bufr_key.key]
-                # except KeyError:
-                #     value_cache[bufr_key.key] = None
             value = value_cache[bufr_key.key]
 
             # extract compressed BUFR values. They are either numpy arrays (for numeric types)
