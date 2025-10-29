@@ -106,7 +106,7 @@ def extract_message(
                     # only keep the header keys in the result because they are the
                     # same for all the subsets
                     while len(current_observation) and "subsetNumber" in current_observation:
-                        # OrderedDict.popitem uses LIFO orde
+                        # OrderedDict.popitem uses LIFO order
                         current_observation.popitem()
 
                     for v in uncompressed_keys.values():
@@ -116,13 +116,10 @@ def extract_message(
 
             if is_compressed:
                 if key not in value_cache:
-                    try:
-                        value_cache[key] = message[key]
-                    except KeyError:
-                        value_cache[key] = None
+                    value_cache[key] = message.get(key)
                 value = value_cache[key]
             else:
-                value = message[key]
+                value = message.get(key)
 
             # extract compressed BUFR values. They are either numpy arrays (for numeric types)
             # or lists of strings
@@ -299,9 +296,9 @@ class FlatReader(Reader):
             column_info.first_count = 0
 
         for count, msg in enumerate(bufr_obj, 1):
-            # we use a context manager to automatically delete the handle of the BufrMessage.
+            # We use a context manager to automatically delete the handle of the BufrMessage.
             # We have to use a wrapper object here because a message can also be a dict
-            with MessageWrapper.wrap(msg) as message:
+            with MessageWrapper.wrap_context(msg) as message:
                 # count filter
                 if count_filter is not None and not count_filter.match(count):
                     continue

@@ -159,23 +159,22 @@ class CodesMessage(object):
         """Dump message's binary content."""
         return eccodes.codes_get_message(self.codes_id)
 
-    def get(self, key, ktype=None):
+    def get(self, key, default=None, ktype=None, raise_on_missing=False):
         """Get value of a given key as its native or specified type."""
-        # if key.endswith("->code"):
-        #     key = key.rpartition("->")[0]
-        #     name = key.rpartition("#")[2]
-        #     # print(name)
-        #     return self.code(key, name)
+        try:
+            with raise_keyerror(key):
+                if eccodes.codes_get_size(self.codes_id, key) > 1:
+                    ret = eccodes.codes_get_array(self.codes_id, key, ktype)
+                else:
+                    ret = eccodes.codes_get(self.codes_id, key, ktype)
+                return ret
+        except KeyError:
+            if raise_on_missing:
+                raise
+            return default
 
-        with raise_keyerror(key):
-            if eccodes.codes_get_size(self.codes_id, key) > 1:
-                ret = eccodes.codes_get_array(self.codes_id, key, ktype)
-            else:
-                ret = eccodes.codes_get(self.codes_id, key, ktype)
-            return ret
-
-    def _get(self, key, ktype=None):
-        return eccodes.codes_get(self.codes_id, key, ktype)
+    # def _get(self, key, ktype=None):
+    #     return eccodes.codes_get(self.codes_id, key, ktype)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Release message handle and inform host file of release."""
@@ -200,7 +199,7 @@ class CodesMessage(object):
 
     def __getitem__(self, key):
         """Return value associated with key as its native type."""
-        return self.get(key)
+        return self.get(key, raise_on_missing=True)
 
     def __iter__(self):
         return iter(self.keys())

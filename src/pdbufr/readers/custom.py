@@ -98,7 +98,7 @@ class CustomReader(Reader):
         for count, msg in enumerate(bufr_obj, 1):
             # we use a context manager to automatically delete the handle of the BufrMessage.
             # We have to use a wrapper object here because a message can also be a dict
-            with MessageWrapper.wrap(msg) as message:
+            with MessageWrapper.wrap_context(msg) as message:
                 # skip decoding messages above max_count
                 if self.max_count is not None and count > self.max_count:
                     break

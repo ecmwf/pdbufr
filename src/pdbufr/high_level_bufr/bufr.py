@@ -99,7 +99,8 @@ class BufrMessage(CodesMessage):
 
     def is_coord(self, key):
         try:
-            c = self._get(key + "->code", int)
+            c = eccodes.codes_get(self.codes_id, key + "->code", int)
+            # c = self._get(key + "->code", int)
             return bufr_code_is_coord(c)
         except Exception:
             return False

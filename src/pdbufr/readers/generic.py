@@ -78,10 +78,7 @@ def extract_observations(
                 current_levels.pop()
 
             if bufr_key.key not in value_cache:
-                try:
-                    value_cache[bufr_key.key] = message[bufr_key.key]
-                except KeyError:
-                    value_cache[bufr_key.key] = None
+                value_cache[bufr_key.key] = message.get(bufr_key.key)
             value = value_cache[bufr_key.key]
 
             # extract compressed BUFR values. They are either numpy arrays (for numeric types)
@@ -231,7 +228,7 @@ class GenericReader(Reader):
         for count, msg in enumerate(bufr_obj, 1):
             # we use a context manager to automatically delete the handle of the BufrMessage.
             # We have to use a wrapper object here because a message can also be a dict
-            with MessageWrapper.wrap(msg) as message:
+            with MessageWrapper.wrap_context(msg) as message:
                 if "count" in value_filters and not value_filters["count"].match(count):
                     continue
 
