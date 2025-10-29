@@ -106,7 +106,7 @@ def extract_message(
                     # only keep the header keys in the result because they are the
                     # same for all the subsets
                     while len(current_observation) and "subsetNumber" in current_observation:
-                        # OrderedDict.popitem uses LIFO orde
+                        # OrderedDict.popitem uses LIFO order
                         current_observation.popitem()
 
                     for v in uncompressed_keys.values():
@@ -116,13 +116,15 @@ def extract_message(
 
             if is_compressed:
                 if key not in value_cache:
-                    try:
-                        value_cache[key] = message[key]
-                    except KeyError:
-                        value_cache[key] = None
+                    value_cache[key] = message.get(key)
+                    # try:
+                    #     value_cache[key] = message[key]
+                    # except KeyError:
+                    #     value_cache[key] = None
                 value = value_cache[key]
             else:
-                value = message[key]
+                # value = message[key]
+                value = message.get(key)
 
             # extract compressed BUFR values. They are either numpy arrays (for numeric types)
             # or lists of strings
@@ -301,7 +303,7 @@ class FlatReader(Reader):
         for count, msg in enumerate(bufr_obj, 1):
             # we use a context manager to automatically delete the handle of the BufrMessage.
             # We have to use a wrapper object here because a message can also be a dict
-            with MessageWrapper.wrap(msg) as message:
+            with MessageWrapper.wrap_context(msg) as message:
                 # count filter
                 if count_filter is not None and not count_filter.match(count):
                     continue
@@ -311,25 +313,31 @@ class FlatReader(Reader):
 
                 header_keys = set()
                 if not add_header or prefilter_headers or value_filters or required_columns:
-                    header_keys = set(message.keys())
+                    if hasattr(message, "keys"):
+                        header_keys = set(message.keys())
+                    else:
+                        header_keys = set(message)
 
                     if required_columns:
                         message_required_columns = required_columns - set(header_keys)
 
                     # test header keys for failed matches before unpacking
                     if prefilter_headers:
-                        if not filters_match(message, value_filters, required=False):
+                        if not filters_match(message, message_value_filters, required=False):
                             continue
                         # remove already tested filters
                         else:
                             message_value_filters = {
-                                k: v for k, v in value_filters.items() if k not in header_keys
+                                k: v for k, v in message_value_filters.items() if k not in header_keys
                             }
 
                 message["skipExtraKeyAttributes"] = 1
 
                 if add_data or message_value_filters or message_required_columns:
                     message["unpack"] = 1
+
+                # if not hasattr(message, "get"):
+                #     setattr(message.__class__, "get", get_method)
 
                 observation: Dict[str, Any] = {}
 

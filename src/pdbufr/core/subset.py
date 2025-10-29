@@ -114,10 +114,11 @@ class BufrSubsetCollector:
                 current_levels.pop()
 
             if bufr_key.key not in value_cache:
-                try:
-                    value_cache[bufr_key.key] = self.owner.message[bufr_key.key]
-                except KeyError:
-                    value_cache[bufr_key.key] = None
+                value_cache[bufr_key.key] = self.owner.message.get(bufr_key.key)
+                # try:
+                #     value_cache[bufr_key.key] = self.owner.message[bufr_key.key]
+                # except KeyError:
+                #     value_cache[bufr_key.key] = None
             value = value_cache[bufr_key.key]
 
             # extract compressed BUFR values. They are either numpy arrays (for numeric types)
@@ -145,10 +146,11 @@ class BufrSubsetCollector:
             if name in keys:
                 units = None
                 if units_keys and name in units_keys:
-                    try:
-                        units = self.owner.message[bufr_key.key + "->units"]
-                    except KeyError:
-                        units = None
+                    units = self.owner.message.get(bufr_key.key + "->units")
+                    # try:
+                    #     units = self.owner.message[bufr_key.key + "->units"]
+                    # except KeyError:
+                    #     units = None
 
                 if value_and_units:
                     current_observation[name] = (value, units)

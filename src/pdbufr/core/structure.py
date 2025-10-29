@@ -15,6 +15,100 @@ from pdbufr.high_level_bufr.bufr import bufr_code_is_coord
 
 
 class MessageWrapper:
+    """Makes it possible to use context manager and additional wrapped methods for all
+    types of messages.
+    """
+
+    UNWRAPPED_CONTEXT: T.Set[T.Any] = set()
+    UNWRAPPED_METHODS: T.Set[T.Any] = set()
+
+    def __init__(self, d: T.Any, wrappers: T.List[T.Any] = []) -> None:
+        self.d = d
+        self.wrappers = wrappers
+
+    @staticmethod
+    def wrap_context(m: T.Any) -> T.Any:
+        t = type(m)
+        if t not in MessageWrapper.UNWRAPPED_CONTEXT:
+            wrappers = []
+            if not hasattr(m, "get"):
+                wrappers.append(GetWrapper)
+            if not hasattr(m, "is_coord"):
+                wrappers.append(IsCoordWrapper)
+
+            if wrappers or not (hasattr(m, "__enter__") and hasattr(m, "__exit__")):
+                m = MessageWrapper(m, wrappers=wrappers)
+
+            else:
+                MessageWrapper.UNWRAPPED_CONTEXT.add(t)
+
+        return m
+
+    @staticmethod
+    def wrap_methods(m: T.Any) -> T.Any:
+        t = type(m)
+        if t not in MessageWrapper.UNWRAPPED_METHODS:
+            wrapped = False
+            if not hasattr(m, "get"):
+                m = GetWrapper(m)
+                wrapped = True
+            if not hasattr(m, "is_coord"):
+                m = IsCoordWrapper(m)
+                wrapped = True
+
+            if not wrapped:
+                MessageWrapper.UNWRAPPED_METHODS.add(t)
+
+        return m
+
+    def __getattr__(self, name):
+        return getattr(self.d, name)
+
+    def __iter__(self):  # type: ignore
+        return self.d.__iter__()
+
+    def __getitem__(self, key: str) -> T.Any:
+        return self.d[key]
+
+    def __setitem__(self, key: str, value: T.Any) -> None:
+        self.d[key] = value
+
+    def __enter__(self) -> T.Any:
+        if hasattr(self.d, "__enter__"):
+            r = self.d.__enter__()
+        else:
+            r = self.d
+
+        print("__enter__", self, "wrapping with:", self.wrappers)
+        for w in self.wrappers:
+            r = w(r)
+        return r
+
+    def __exit__(self, *args) -> None:  # type: ignore
+        if hasattr(self.d, "__exit__"):
+            self.d.__exit__(*args)
+        else:
+            pass
+
+
+class GetWrapper(MessageWrapper):
+    def get(self, key, default=None):
+        try:
+            return self.d[key]
+        except KeyError:
+            return default
+
+
+class IsCoordWrapper(MessageWrapper):
+    def is_coord(self, key: str) -> bool:
+        try:
+            c = self.d[key + "->code"]
+            return bufr_code_is_coord(c)
+        except Exception:
+            return False
+
+
+class MessageWrapperOri:
     """Makes it possible to use context manager and is_coord method for all
     types of messages.
     """
@@ -26,6 +120,7 @@ class MessageWrapper:
         self.wrap_enter = not hasattr(d, "__enter__")
         self.wrap_exit = not hasattr(d, "__exit__")
         self.wrap_is_coord = not hasattr(d, "is_coord")
+        self.wrap_get = not hasattr(d, "get")
 
     @staticmethod
     def wrap(m: T.Any) -> T.Any:
@@ -37,6 +132,7 @@ class MessageWrapper:
                     hasattr(m, "__enter__"),
                     hasattr(m, "__exit__"),
                     hasattr(m, "is_coord"),
+                    hasattr(m, "get"),
                 ]
             )
 
@@ -109,7 +205,7 @@ def message_structure(message: T.Any) -> T.Iterator[T.Tuple[int, str]]:
     level = 0
     coords: T.Dict[str, int] = collections.OrderedDict()
 
-    message = MessageWrapper.wrap(message)
+    message = MessageWrapper.wrap_methods(message)
     is_coord_cache = IsCoordCache(message)
 
     for key in message:

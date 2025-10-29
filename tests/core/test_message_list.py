@@ -18,7 +18,8 @@ from pdbufr import read_bufr  # noqa: E402
 assert_frame_equal = pd.testing.assert_frame_equal
 
 
-def build_message_list() -> T.Any:
+@pytest.fixture
+def message_list_input() -> T.Any:
     messages = [
         {
             "edition": 3,
@@ -57,6 +58,9 @@ def build_message_list() -> T.Any:
         def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # type: ignore
             pass
 
+        def get(self, key: str) -> T.Any:
+            return self.d.get(key)
+
         def __iter__(self) -> T.Any:
             return iter(self.d)
 
@@ -81,8 +85,8 @@ def build_message_list() -> T.Any:
     return lst
 
 
-def test_message_list_1() -> None:
-    lst = build_message_list()
+def test_message_list_1(message_list_input) -> None:
+    lst = message_list_input
     res = read_bufr(lst, columns=("airTemperature"))
 
     ref = {"airTemperature": np.array([289.7, 249.1])}
@@ -91,8 +95,8 @@ def test_message_list_1() -> None:
     assert_frame_equal(res, ref)
 
 
-def test_message_list_2() -> None:
-    lst = build_message_list()
+def test_message_list_2(message_list_input) -> None:
+    lst = message_list_input
     res = read_bufr(lst, columns=("airTemperature"), filters={"stationNumber": 129})
 
     ref = {"airTemperature": np.array([249.1])}

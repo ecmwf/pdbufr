@@ -76,6 +76,9 @@ def test_message_structure() -> None:
 
     res = message_structure(message)
 
+    # for f in list(res)[:-2]:
+    #     print(f)
+
     assert list(res)[:-2] == expected
 
 
