@@ -28,6 +28,23 @@ class MessageWrapper:
 
     @staticmethod
     def wrap_context(m: T.Any) -> T.Any:
+        """Wrap message with context manager and additional methods if needed.
+
+        Parameters
+        ----------
+        m : Any
+            Message object to wrap.
+
+        The object is wrapped to ensure it supports context management, i.e., the `with` statement,
+        it has a `get` method, and an `is_coord` method. If the message already has these capabilities,
+        it is returned as is. Otherwise, it is wrapped with the appropriate wrappers.
+
+        The returned object is immediately supposed to be used as part of a `with` statement.
+
+        Example:
+            with MessageWrapper.wrap_context(message) as msg:
+                # use msg here
+        """
         t = type(m)
         if t not in MessageWrapper.UNWRAPPED_CONTEXT:
             wrappers = []
@@ -46,6 +63,25 @@ class MessageWrapper:
 
     @staticmethod
     def wrap_methods(m: T.Any) -> T.Any:
+        """Wrap message with additional methods if needed.
+
+        Parameters
+        ----------
+        m : Any
+            Message object to wrap.
+
+        The object is wrapped to ensure it has the `get` and `is_coord` methods.
+        If the message already has these capabilities, it is returned as is. Otherwise, it
+        is wrapped with the appropriate wrappers. The returned object is not supposed to be
+        used in a `with` statement.
+
+        Example:
+            msg = MessageWrapper.wrap_methods(message)
+            msg.get("key")
+            msg.get("key", None)
+            msg.is_coord("key")
+
+        """
         t = type(m)
         if t not in MessageWrapper.UNWRAPPED_METHODS:
             wrapped = False
@@ -106,75 +142,6 @@ class IsCoordWrapper(MessageWrapper):
             return bufr_code_is_coord(c)
         except Exception:
             return False
-
-
-class MessageWrapperOri:
-    """Makes it possible to use context manager and is_coord method for all
-    types of messages.
-    """
-
-    WRAP: T.Dict[T.Any, T.Any] = {}
-
-    def __init__(self, d: T.Any):
-        self.d = d
-        self.wrap_enter = not hasattr(d, "__enter__")
-        self.wrap_exit = not hasattr(d, "__exit__")
-        self.wrap_is_coord = not hasattr(d, "is_coord")
-        self.wrap_get = not hasattr(d, "get")
-
-    @staticmethod
-    def wrap(m: T.Any) -> T.Any:
-        t = type(m)
-        w = MessageWrapper.WRAP.get(t, None)
-        if w is None:
-            w = not all(
-                [
-                    hasattr(m, "__enter__"),
-                    hasattr(m, "__exit__"),
-                    hasattr(m, "is_coord"),
-                    hasattr(m, "get"),
-                ]
-            )
-
-            MessageWrapper.WRAP[t] = w
-
-        if not w:
-            return m
-        else:
-            return MessageWrapper(m)
-
-    def __enter__(self) -> T.Any:
-        if self.wrap_enter:
-            return self.d
-        else:
-            return self.d.__enter__()
-
-    def __exit__(self, *args) -> None:  # type: ignore
-        if self.wrap_exit:
-            pass
-        else:
-            self.d.__exit__(*args)
-
-    def __iter__(self):  # type: ignore
-        return self.d.__iter__()
-
-    def __getitem__(self, key: str) -> T.Any:
-        return self.d[key]
-
-    def __getattr__(self, fname):  # type: ignore
-        def call_func(*args, **kwargs):  # type: ignore
-            return getattr(self.d, fname, *args, **kwargs)
-
-        return call_func
-
-    def is_coord(self, key: str) -> bool:
-        if self.wrap_is_coord:
-            try:
-                return bufr_code_is_coord(self.d[key + "->code"])
-            except Exception:
-                return False
-        else:
-            return self.d.is_coord(key)  # type: ignore
 
 
 class IsCoordCache:

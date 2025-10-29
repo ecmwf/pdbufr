@@ -147,11 +147,6 @@ class BufrSubsetCollector:
                 units = None
                 if units_keys and name in units_keys:
                     units = self.owner.message.get(bufr_key.key + "->units")
-                    # try:
-                    #     units = self.owner.message[bufr_key.key + "->units"]
-                    # except KeyError:
-                    #     units = None
-
                 if value_and_units:
                     current_observation[name] = (value, units)
                 else:
