@@ -3,7 +3,7 @@
 Flat
 ==============
 
-.. py:function:: read_bufr(path, reader="flat", columns=[], filters={}, required_columns=True)
+.. py:function:: read_bufr(path, reader="flat", columns=[], filters={}, required_columns=True, prefilter_headers=False)
     :noindex:
 
     Extract data from BUFR as a pandas.DataFrame assuming a flat BUFR structure.
@@ -26,6 +26,8 @@ Flat
         * if it is a bool (either True or False), messages/subsets are always processed (supposing the filter conditions are met)
 
     :type required_columns: bool, iterable[str]
+    :param prefilter_headers: if True, the headers are filtered before unpacking the data section. This can significantly speed up the extraction when the ``filters`` contain header keys (and only a small fraction of messages/subsets matches). *New in version 0.15.0.*
+    :type prefilter_headers: bool
     :rtype: pandas.DataFrame
 
 

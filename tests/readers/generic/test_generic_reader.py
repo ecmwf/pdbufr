@@ -773,7 +773,7 @@ def test_sat_compressed_1() -> None:
     assert_frame_equal(res[12:13], ref_13[res.columns])
 
 
-def assert_simple_key_core(path, param, key, key_value, ref, part=False):
+def assert_simple_key_core(path, param, key, key_value, ref, part=False, **kwargs):
     columns = [param, key]
     filters = {key: key_value}
 
@@ -813,8 +813,11 @@ def test_bufr_header() -> None:
     assert_simple_key_core(TEST_DATA_10, "heightOfStation", "rdbType", 1, None)
 
 
-def test_ident() -> None:
-    assert_simple_key_core(TEST_DATA_10, "airTemperature", "ident", "91348", np.array([298.4]), part=True)
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+def test_ident(_kwargs: dict) -> None:
+    assert_simple_key_core(
+        TEST_DATA_10, "airTemperature", "ident", "91348", np.array([298.4]), part=True, **_kwargs
+    )
 
     assert_simple_key_core(
         TEST_DATA_10,
@@ -823,6 +826,7 @@ def test_ident() -> None:
         91,
         np.array([298.4, 301]),
         part=True,
+        **_kwargs,
     )
     assert_simple_key_core(
         TEST_DATA_10,
@@ -831,6 +835,7 @@ def test_ident() -> None:
         348,
         np.array([298.4]),
         part=True,
+        **_kwargs,
     )
     assert_simple_key_core(
         TEST_DATA_10,
@@ -839,6 +844,7 @@ def test_ident() -> None:
         [348, 408],
         np.array([298.4, 301]),
         part=True,
+        **_kwargs,
     )
     assert_simple_key_core(
         TEST_DATA_11,
@@ -846,6 +852,7 @@ def test_ident() -> None:
         "ident",
         "UOZDOZ2S",
         np.array([216.7, 217.2, 222.4, 222.7]),
+        **_kwargs,
     )
 
 

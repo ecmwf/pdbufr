@@ -10,7 +10,7 @@ Synop
 
 *New in version 0.13.0*
 
-.. py:function:: read_bufr(path, reader="synop", columns=[], filters=None, stnid_keys=None, units_system=None, units=None, units_columns=False, level_columns=False)
+.. py:function:: read_bufr(path, reader="synop", columns=[], filters=None, stnid_keys=None, units_system=None, units=None, units_columns=False, level_columns=False, prefilter_headers=False)
     :noindex:
 
     Extract :ref:`synop-like data <synop-like-data>` from BUFR using pre-defined :ref:`parameters <synop-params>`.
@@ -45,6 +45,8 @@ Synop
     :param units_columns: if True, a :ref:`units column <synop-units>` is added to the resulting DataFrame for each :ref:`parameter <synop-params>` having a units. The column name is formed by adding the "_units" suffix to the parameter name. The default is False.
     :type add_units: bool
     :param level_columns: if True, a :ref:`level column <synop-levels>` is added to the resulting DataFrame for each :ref:`parameter <synop-params>` having a level. The column name is formed by adding the "_level" suffix to the parameter name. The default is False.
+    :param prefilter_headers: if True, the headers are filtered before unpacking the data section. This can significantly speed up the extraction when the ``filters`` contain header keys (and only a small fraction of messages/subsets matches). *New in version 0.15.0.*
+    :type prefilter_headers: bool
     :rtype: pandas.DataFrame
 
 

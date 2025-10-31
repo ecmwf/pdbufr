@@ -9,7 +9,7 @@ Temp
 
 *New in version 0.13.0*
 
-.. py:function:: read_bufr(path, reader="temp", columns=[], filters=None, stnid_keys=None, geopotential="z", units_system=None, units=None, units_columns=False)
+.. py:function:: read_bufr(path, reader="temp", columns=[], filters=None, stnid_keys=None, geopotential="z", units_system=None, units=None, units_columns=False, prefilter_headers=False)
     :noindex:
 
     Extract :ref:`temp-like data <temp-like-data>` from BUFR using pre-defined :ref:`parameters <temp-params>`.
@@ -62,6 +62,7 @@ Temp
 
     :type units: dict, None
     :param units_columns: if True, a :ref:`units column <temp-units>` is added to the resulting DataFrame for each :ref:`parameter <temp-params>` having a units. The column name is formed by adding the "_units" suffix to the parameter name. The default is False.
+    :param prefilter_headers: if True, the headers are filtered before unpacking the data section. This can significantly speed up the extraction when the ``filters`` contain header keys (and only a small fraction of messages/subsets matches). *New in version 0.15.0.*
     :type add_units: bool
 
 

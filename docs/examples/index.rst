@@ -45,3 +45,12 @@ Temp reader
 
     r_temp_overview.ipynb
     r_temp_geopotential.ipynb
+
+
+Options
+++++++++++++++
+
+.. toctree::
+    :maxdepth: 1
+
+    prefilter_headers.ipynb

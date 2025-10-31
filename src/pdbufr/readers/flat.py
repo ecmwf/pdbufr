@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd  # type: ignore
 
 from pdbufr.core.filters import BufrFilter
-from pdbufr.core.filters import filters_match
+from pdbufr.core.filters import filters_match_header
 from pdbufr.core.keys import COMPUTED_KEYS
 from pdbufr.core.keys import UncompressedBufrKey
 from pdbufr.core.structure import MessageWrapper
@@ -50,7 +50,7 @@ def extract_message(
         is_uncompressed = int(message["numberOfSubsets"]) > 1
         subset_count = 1
 
-    # For messages with uncompressed subsets constnider this:
+    # For messages with uncompressed subsets consider this:
     # - for each data key we have a single value
     # - there is no way to identify the subset from the key
     # - we cannot directly iterate over a given subset
@@ -307,20 +307,26 @@ class FlatReader(Reader):
                 message_required_columns = required_columns
 
                 header_keys = set()
-                if not add_header or prefilter_headers or value_filters or required_columns:
-                    header_keys = set(message.keys())
 
-                    if required_columns:
-                        message_required_columns = required_columns - set(header_keys)
+                if not add_header or prefilter_headers or message_value_filters or message_required_columns:
+                    header_keys = set(message)
 
-                    # test header keys for failed matches before unpacking
-                    if prefilter_headers:
-                        if not filters_match(message, value_filters, required=False):
+                    if message_required_columns:
+                        message_required_columns = message_required_columns - header_keys
+
+                    # test filters on header keys before unpacking
+                    if prefilter_headers and message_value_filters:
+                        # we assume that computed keys are not in headers
+                        match, matched_keys = filters_match_header(
+                            message, header_keys, message_value_filters
+                        )
+
+                        if not match:
                             continue
-                        # remove already tested filters
-                        else:
+                        elif matched_keys:
+                            # remove header keys from filters
                             message_value_filters = {
-                                k: v for k, v in value_filters.items() if k not in header_keys
+                                k: v for k, v in message_value_filters.items() if k not in matched_keys
                             }
 
                 message["skipExtraKeyAttributes"] = 1
