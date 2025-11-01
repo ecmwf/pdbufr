@@ -35,14 +35,15 @@ REF_DATA_1 = reference_test_data_path("obs_3day_ref_1.csv")
 REF_DATA_2 = reference_test_data_path("synop_uncompressed_ref_1.csv")
 
 
-def test_read_flat_bufr_args() -> None:
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+def test_read_flat_bufr_args(_kwargs: dict) -> None:
     # The message structure is the same in all the messages
     # but some have #1#totalPrecipitationPast6Hours while
     # others have #1#totalPrecipitationPast24Hours at the
     # same position within the message
 
     # default args
-    res = pdbufr.read_bufr(TEST_DATA_1, flat=True)
+    res = pdbufr.read_bufr(TEST_DATA_1, flat=True, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -54,7 +55,7 @@ def test_read_flat_bufr_args() -> None:
 
     # various positional args
     for columns in ["", "all"]:
-        res = pdbufr.read_bufr(TEST_DATA_1, columns, flat=True)
+        res = pdbufr.read_bufr(TEST_DATA_1, columns, flat=True, **_kwargs)
 
         assert isinstance(res, pd.DataFrame)
         assert "edition" in res
@@ -66,7 +67,7 @@ def test_read_flat_bufr_args() -> None:
 
     # various kw args
     for columns in [[], "", [""], "all", ["all"]]:  # type: ignore
-        res = pdbufr.read_bufr(TEST_DATA_1, columns=columns, flat=True)
+        res = pdbufr.read_bufr(TEST_DATA_1, columns=columns, flat=True, **_kwargs)
 
         assert isinstance(res, pd.DataFrame)
         assert "edition" in res
@@ -77,29 +78,30 @@ def test_read_flat_bufr_args() -> None:
         assert len(res) == 50
 
     with pytest.raises(ValueError):
-        res = pdbufr.read_bufr(TEST_DATA_1, "a", flat=True)
+        res = pdbufr.read_bufr(TEST_DATA_1, "a", flat=True, **_kwargs)
 
     with pytest.raises(ValueError):
-        res = pdbufr.read_bufr(TEST_DATA_1, ["a", "a"], flat=True)
+        res = pdbufr.read_bufr(TEST_DATA_1, ["a", "a"], flat=True, **_kwargs)
 
     with pytest.raises(TypeError):
-        res = pdbufr.read_bufr(TEST_DATA_1, 3, flat=True)  # type: ignore
+        res = pdbufr.read_bufr(TEST_DATA_1, 3, flat=True, **_kwargs)  # type: ignore
 
     with pytest.raises(ValueError):
-        res = pdbufr.read_bufr(TEST_DATA_1, [3], flat=True)  # type: ignore
+        res = pdbufr.read_bufr(TEST_DATA_1, [3], flat=True, **_kwargs)  # type: ignore
 
     with pytest.raises(ValueError):
-        res = pdbufr.read_bufr(TEST_DATA_1, [3, 4], flat=True)  # type: ignore
+        res = pdbufr.read_bufr(TEST_DATA_1, [3, 4], flat=True, **_kwargs)  # type: ignore
 
 
-def test_read_flat_bufr_one_subset_one_filters() -> None:
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+def test_read_flat_bufr_one_subset_one_filters(_kwargs: dict) -> None:
     # The message structure is the same in all the messages
     # but some have #1#totalPrecipitationPast6Hours while
     # others have #1#totalPrecipitationPast24Hours at the
     # same position within the message
 
     # all
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True)
+    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -110,7 +112,7 @@ def test_read_flat_bufr_one_subset_one_filters() -> None:
     assert len(res) == 50
 
     # omitting header or data sections
-    res = pdbufr.read_bufr(TEST_DATA_1, "data", flat=True)
+    res = pdbufr.read_bufr(TEST_DATA_1, "data", flat=True, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" not in res
@@ -118,7 +120,7 @@ def test_read_flat_bufr_one_subset_one_filters() -> None:
     assert len(res.columns) == 53
     assert len(res) == 50
 
-    res = pdbufr.read_bufr(TEST_DATA_1, "header", flat=True)
+    res = pdbufr.read_bufr(TEST_DATA_1, "header", flat=True, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -129,15 +131,16 @@ def test_read_flat_bufr_one_subset_one_filters() -> None:
     # required columns
     required_columns = ["latitude", ["latitude"], ["latitude", "edition"]]
     for r in required_columns:
-        res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, required_columns=r)
-        print(f"r={r}")
+        res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, required_columns=r, **_kwargs)
         assert isinstance(res, pd.DataFrame)
         assert "edition" in res
         assert "#1#latitude" in res
         assert len(res.columns) == 103
         assert len(res) == 50
 
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, required_columns="totalPrecipitationPast6Hours")
+    res = pdbufr.read_bufr(
+        TEST_DATA_1, "all", flat=True, required_columns="totalPrecipitationPast6Hours", **_kwargs
+    )
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
     assert "#1#latitude" in res
@@ -150,6 +153,7 @@ def test_read_flat_bufr_one_subset_one_filters() -> None:
         "all",
         flat=True,
         required_columns="totalPrecipitationPast24Hours",
+        **_kwargs,
     )
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -158,7 +162,7 @@ def test_read_flat_bufr_one_subset_one_filters() -> None:
     assert len(res.columns) == 102
     assert len(res) == 7
 
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, required_columns="xyz")
+    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, required_columns="xyz", **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert res.empty
@@ -166,8 +170,7 @@ def test_read_flat_bufr_one_subset_one_filters() -> None:
     # omitting header or data sections + required columns
     required_columns = ["latitude", ["latitude"], ["latitude", "edition"]]
     for r in required_columns:
-        res = pdbufr.read_bufr(TEST_DATA_1, "data", flat=True, required_columns=r)
-        print(f"header=False r={r}")
+        res = pdbufr.read_bufr(TEST_DATA_1, "data", flat=True, required_columns=r, **_kwargs)
         assert isinstance(res, pd.DataFrame)
         assert "edition" not in res
         assert "#1#latitude" in res
@@ -176,8 +179,7 @@ def test_read_flat_bufr_one_subset_one_filters() -> None:
 
     required_columns = ["latitude", ["latitude"], ["latitude", "edition"]]
     for r in required_columns:
-        res = pdbufr.read_bufr(TEST_DATA_1, "header", flat=True, required_columns=r)
-        print(f"data=False r={r}")
+        res = pdbufr.read_bufr(TEST_DATA_1, "header", flat=True, required_columns=r, **_kwargs)
         assert isinstance(res, pd.DataFrame)
         assert "edition" in res
         assert "#1#latitude" not in res
@@ -185,7 +187,7 @@ def test_read_flat_bufr_one_subset_one_filters() -> None:
         assert len(res) == 50
 
     # filters
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"rdbtimeTime": "115557"})
+    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"rdbtimeTime": "115557"}, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -207,7 +209,7 @@ def test_read_flat_bufr_one_subset_one_filters() -> None:
     assert len(res.columns) == 103
     assert len(res) == 6
 
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"count": 1})
+    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"count": 1}, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -215,7 +217,7 @@ def test_read_flat_bufr_one_subset_one_filters() -> None:
     assert len(res.columns) == 102
     assert len(res) == 1
 
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"stationNumber": 894})
+    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"stationNumber": 894}, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -225,7 +227,7 @@ def test_read_flat_bufr_one_subset_one_filters() -> None:
     assert len(res.columns) == 102
     assert len(res) == 1
 
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"stationNumber": [894, 103]})
+    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"stationNumber": [894, 103]}, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -235,7 +237,7 @@ def test_read_flat_bufr_one_subset_one_filters() -> None:
     assert len(res.columns) == 103
     assert len(res) == 2
 
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"WMO_station_id": [3894, 7103]})
+    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"WMO_station_id": [3894, 7103]}, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -246,7 +248,7 @@ def test_read_flat_bufr_one_subset_one_filters() -> None:
     assert len(res) == 2
 
     # compare to csv
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"count": 2})
+    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"count": 2}, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -266,12 +268,9 @@ def test_read_flat_bufr_one_subset_one_filters() -> None:
     assert_frame_equal(res.iloc[:, :39], ref.iloc[:, :39])
 
 
-def test_read_flat_bufr_uncompressed_subsets() -> None:
-    res = pdbufr.read_bufr(
-        TEST_DATA_2,
-        "all",
-        flat=True,
-    )
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+def test_read_flat_bufr_uncompressed_subsets(_kwargs: dict) -> None:
+    res = pdbufr.read_bufr(TEST_DATA_2, "all", flat=True, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -280,7 +279,7 @@ def test_read_flat_bufr_uncompressed_subsets() -> None:
     assert len(res) == 12
 
     # required columns
-    res = pdbufr.read_bufr(TEST_DATA_2, "all", flat=True, required_columns=["airTemperature"])
+    res = pdbufr.read_bufr(TEST_DATA_2, "all", flat=True, required_columns=["airTemperature"], **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -288,7 +287,7 @@ def test_read_flat_bufr_uncompressed_subsets() -> None:
     assert len(res.columns) == 101
     assert len(res) == 12
 
-    res = pdbufr.read_bufr(TEST_DATA_2, "data", flat=True, required_columns=["airTemperature"])
+    res = pdbufr.read_bufr(TEST_DATA_2, "data", flat=True, required_columns=["airTemperature"], **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" not in res
@@ -296,7 +295,9 @@ def test_read_flat_bufr_uncompressed_subsets() -> None:
     assert len(res.columns) == 80
     assert len(res) == 12
 
-    res = pdbufr.read_bufr(TEST_DATA_2, "data", flat=True, required_columns=["edition", "airTemperature"])
+    res = pdbufr.read_bufr(
+        TEST_DATA_2, "data", flat=True, required_columns=["edition", "airTemperature"], **_kwargs
+    )
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" not in res
@@ -304,16 +305,15 @@ def test_read_flat_bufr_uncompressed_subsets() -> None:
     assert len(res.columns) == 80
     assert len(res) == 12
 
-    res = pdbufr.read_bufr(TEST_DATA_2, "data", flat=True, required_columns=["xyz", "airTemperature"])
+    res = pdbufr.read_bufr(
+        TEST_DATA_2, "data", flat=True, required_columns=["xyz", "airTemperature"], **_kwargs
+    )
 
     assert isinstance(res, pd.DataFrame)
     assert res.empty
 
     res = pdbufr.read_bufr(
-        TEST_DATA_2,
-        "header",
-        flat=True,
-        required_columns=["edition", "airTemperature"],
+        TEST_DATA_2, "header", flat=True, required_columns=["edition", "airTemperature"], **_kwargs
     )
 
     assert isinstance(res, pd.DataFrame)
@@ -323,7 +323,7 @@ def test_read_flat_bufr_uncompressed_subsets() -> None:
     assert len(res) == 12
 
     # header filter
-    res = pdbufr.read_bufr(TEST_DATA_2, "all", flat=True, filters={"observedData": 1})
+    res = pdbufr.read_bufr(TEST_DATA_2, "all", flat=True, filters={"observedData": 1}, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -332,7 +332,7 @@ def test_read_flat_bufr_uncompressed_subsets() -> None:
     assert len(res) == 12
 
     # data filter
-    res = pdbufr.read_bufr(TEST_DATA_2, "all", flat=True, filters={"stationNumber": 27})
+    res = pdbufr.read_bufr(TEST_DATA_2, "all", flat=True, filters={"stationNumber": 27}, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -340,7 +340,7 @@ def test_read_flat_bufr_uncompressed_subsets() -> None:
     assert len(res.columns) == 101
     assert len(res) == 1
 
-    res = pdbufr.read_bufr(TEST_DATA_2, "all", flat=True, filters={"stationNumber": [27, 84]})
+    res = pdbufr.read_bufr(TEST_DATA_2, "all", flat=True, filters={"stationNumber": [27, 84]}, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -353,10 +353,7 @@ def test_read_flat_bufr_uncompressed_subsets() -> None:
 
     # header + data filter
     res = pdbufr.read_bufr(
-        TEST_DATA_2,
-        "all",
-        flat=True,
-        filters={"observedData": 1, "stationNumber": [27, 84]},
+        TEST_DATA_2, "all", flat=True, filters={"observedData": 1, "stationNumber": [27, 84]}, **_kwargs
     )
 
     assert isinstance(res, pd.DataFrame)
@@ -375,6 +372,7 @@ def test_read_flat_bufr_uncompressed_subsets() -> None:
         flat=True,
         filters={"observedData": 1, "stationNumber": [27, 84]},
         required_columns=["edition", "airTemperature"],
+        **_kwargs,
     )
 
     assert isinstance(res, pd.DataFrame)
@@ -392,6 +390,7 @@ def test_read_flat_bufr_uncompressed_subsets() -> None:
         flat=True,
         filters={"observedData": 1, "stationNumber": [27, 84]},
         required_columns=["edition", "airTemperature"],
+        **_kwargs,
     )
 
     assert isinstance(res, pd.DataFrame)
@@ -402,12 +401,7 @@ def test_read_flat_bufr_uncompressed_subsets() -> None:
     assert len(res) == 2
 
     # compare to csv
-    res = pdbufr.read_bufr(
-        TEST_DATA_2,
-        "all",
-        flat=True,
-        filters={"stationNumber": [27, 84]},
-    )
+    res = pdbufr.read_bufr(TEST_DATA_2, "all", flat=True, filters={"stationNumber": [27, 84]}, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -435,8 +429,9 @@ def test_read_flat_bufr_uncompressed_subsets() -> None:
     assert_frame_equal(res.iloc[:, :39], ref.iloc[:, :39])
 
 
-def test_read_flat_bufr_compressed_subsets() -> None:
-    res = pdbufr.read_bufr(TEST_DATA_9, "all", flat=True)
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+def test_read_flat_bufr_compressed_subsets(_kwargs: dict) -> None:
+    res = pdbufr.read_bufr(TEST_DATA_9, "all", flat=True, **_kwargs)
 
     ref_val: T.Any
 
@@ -450,7 +445,7 @@ def test_read_flat_bufr_compressed_subsets() -> None:
     assert len(res) == 51
 
     # required columns
-    res = pdbufr.read_bufr(TEST_DATA_9, "all", flat=True, required_columns=["cape"])
+    res = pdbufr.read_bufr(TEST_DATA_9, "all", flat=True, required_columns=["cape"], **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -461,24 +456,23 @@ def test_read_flat_bufr_compressed_subsets() -> None:
     assert len(res.columns) == 149
     assert len(res) == 51
 
-    res = pdbufr.read_bufr(TEST_DATA_9, "data", flat=True, required_columns=["edition", "cape"])
+    res = pdbufr.read_bufr(TEST_DATA_9, "data", flat=True, required_columns=["edition", "cape"], **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" not in res
     assert "#1#latitude" in res
     for i in range(1, 62):
-        print(i)
-        assert f"#{i}#timePeriod" in res
-        assert f"#{i}#cape" in res
+        assert f"#{i}#timePeriod" in res, f"i={i}"
+        assert f"#{i}#cape" in res, f"i={i}"
     assert len(res.columns) == 130
     assert len(res) == 51
 
-    res = pdbufr.read_bufr(TEST_DATA_9, "data", flat=True, required_columns=["xyz", "cape"])
+    res = pdbufr.read_bufr(TEST_DATA_9, "data", flat=True, required_columns=["xyz", "cape"], **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert res.empty
 
-    res = pdbufr.read_bufr(TEST_DATA_9, "header", flat=True, required_columns=["edition", "cape"])
+    res = pdbufr.read_bufr(TEST_DATA_9, "header", flat=True, required_columns=["edition", "cape"], **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -487,7 +481,7 @@ def test_read_flat_bufr_compressed_subsets() -> None:
     assert len(res) == 51
 
     # header filter
-    res = pdbufr.read_bufr(TEST_DATA_9, "all", flat=True, filters={"observedData": 1})
+    res = pdbufr.read_bufr(TEST_DATA_9, "all", flat=True, filters={"observedData": 1}, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -498,7 +492,7 @@ def test_read_flat_bufr_compressed_subsets() -> None:
     np.testing.assert_allclose(ref_val, res["observedData"])
 
     # data filter
-    res = pdbufr.read_bufr(TEST_DATA_9, "all", flat=True, filters={"ensembleMemberNumber": 2})
+    res = pdbufr.read_bufr(TEST_DATA_9, "all", flat=True, filters={"ensembleMemberNumber": 2}, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -510,7 +504,7 @@ def test_read_flat_bufr_compressed_subsets() -> None:
     ref_val = [174.2]
     np.testing.assert_allclose(ref_val, res["#2#cape"])
 
-    res = pdbufr.read_bufr(TEST_DATA_9, "all", flat=True, filters={"ensembleMemberNumber": [2, 4]})
+    res = pdbufr.read_bufr(TEST_DATA_9, "all", flat=True, filters={"ensembleMemberNumber": [2, 4]}, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -528,6 +522,7 @@ def test_read_flat_bufr_compressed_subsets() -> None:
         "all",
         flat=True,
         filters={"observedData": 1, "ensembleMemberNumber": [2, 4]},
+        **_kwargs,
     )
 
     assert isinstance(res, pd.DataFrame)
@@ -548,6 +543,7 @@ def test_read_flat_bufr_compressed_subsets() -> None:
         flat=True,
         filters={"observedData": 1, "ensembleMemberNumber": [2, 4]},
         required_columns=["edition", "cape"],
+        **_kwargs,
     )
 
     assert isinstance(res, pd.DataFrame)
@@ -568,6 +564,7 @@ def test_read_flat_bufr_compressed_subsets() -> None:
         flat=True,
         filters={"observedData": 1, "ensembleMemberNumber": [2, 4]},
         required_columns=["edition", "cape"],
+        **_kwargs,
     )
 
     assert isinstance(res, pd.DataFrame)
@@ -579,10 +576,11 @@ def test_read_flat_bufr_compressed_subsets() -> None:
     assert len(res) == 2
 
 
-def test_read_flat_bufr_compressed_subsets_with_str() -> None:
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+def test_read_flat_bufr_compressed_subsets_with_str(_kwargs: dict) -> None:
     ref_str: T.Any
 
-    res = pdbufr.read_bufr(TEST_DATA_10, "all", flat=True)
+    res = pdbufr.read_bufr(TEST_DATA_10, "all", flat=True, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -595,7 +593,7 @@ def test_read_flat_bufr_compressed_subsets_with_str() -> None:
     assert len(res.columns) == 228
     assert len(res) == 128
 
-    res = pdbufr.read_bufr(TEST_DATA_10, filters={"stationOrSiteName": "DAV2-LPTR"}, flat=True)
+    res = pdbufr.read_bufr(TEST_DATA_10, filters={"stationOrSiteName": "DAV2-LPTR"}, flat=True, **_kwargs)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res

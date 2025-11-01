@@ -21,12 +21,10 @@ TEST_DATA_NEW = sample_test_data_path("syn_new.bufr")
 TEST_DATA_WIGOS = sample_test_data_path("synop_wigos.bufr")
 
 
-def test_synop_filter_wigos():
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+def test_synop_filter_wigos(_kwargs: dict) -> None:
     df = pdbufr.read_bufr(
-        TEST_DATA_WIGOS,
-        reader="synop",
-        columns="station",
-        filters={"stnid": "0-705-0-1931"},
+        TEST_DATA_WIGOS, reader="synop", columns="station", filters={"stnid": "0-705-0-1931"}, **_kwargs
     )
 
     df = df.replace(np.nan, None)
@@ -36,12 +34,14 @@ def test_synop_filter_wigos():
     assert np.isclose(df["elevation"].iloc[0], 673.0)
 
 
-def test_synop_filter_wmoid_new():
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+def test_synop_filter_wmoid_new(_kwargs: dict) -> None:
     df = pdbufr.read_bufr(
         TEST_DATA_NEW,
         reader="synop",
         columns="station",
         filters={"stnid": "11766"},
+        **_kwargs,
     )
 
     df = df.replace(np.nan, None)
@@ -51,12 +51,14 @@ def test_synop_filter_wmoid_new():
     assert np.isclose(df["elevation"].iloc[0], 748.1)
 
 
-def test_synop_filter_wmoid_uc():
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+def test_synop_filter_wmoid_uc(_kwargs: dict) -> None:
     df = pdbufr.read_bufr(
         TEST_DATA_UNCOMPRESSED,
         reader="synop",
         columns="station",
         filters={"stnid": ["1308", "1084"]},
+        **_kwargs,
     )
 
     df = df.replace(np.nan, None)
@@ -69,13 +71,15 @@ def test_synop_filter_wmoid_uc():
     assert np.isclose(df["elevation"].iloc[1], 7)
 
 
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
 @pytest.mark.skipif(True, reason="Not yet implemented")
-def test_synop_filter_new_1a():
+def test_synop_filter_new_1a(_kwargs: dict) -> None:
     df = pdbufr.read_bufr(
         TEST_DATA_NEW,
         reader="synop",
         columns="station",
         filters={"stnid": ["11766", "56257"], "t2m": slice(0, 275), "t2m_level": (0, 1.9)},
+        **_kwargs,
     )
 
     df = df.replace(np.nan, None)
@@ -85,22 +89,26 @@ def test_synop_filter_new_1a():
     assert np.isclose(df["elevation"].iloc[0], 748.1)
 
 
-def test_synop_filter_new_1b():
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+def test_synop_filter_new_1b(_kwargs: dict) -> None:
     with pytest.raises(ValueError):
         pdbufr.read_bufr(
             TEST_DATA_NEW,
             reader="synop",
             columns="station",
             filters={"stnid": ["11766", "56257"], "t2m": slice(0, 275), "t2m_level": (0, 1.9)},
+            **_kwargs,
         )
 
 
-def test_synop_filter_uc_1():
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+def test_synop_filter_uc_1(_kwargs: dict) -> None:
     df = pdbufr.read_bufr(
         TEST_DATA_UNCOMPRESSED,
         reader="synop",
         columns=["station", "t2m"],
         filters={"stnid": ["1308", "1084"], "t2m": slice(0, 275)},
+        **_kwargs,
     )
 
     df = df.replace(np.nan, None)
@@ -109,3 +117,70 @@ def test_synop_filter_uc_1():
     assert df["stnid"].iloc[0] == "1084"
     assert np.isclose(df["elevation"].iloc[0], 27)
     assert np.isclose(df["t2m"].iloc[0], 266.55)
+
+
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+def test_synop_filter_ident_new(_kwargs: dict) -> None:
+    df = pdbufr.read_bufr(
+        TEST_DATA_NEW,
+        reader="synop",
+        columns="station",
+        filters={"ident": "11766"},
+        **_kwargs,
+    )
+
+    df = df.replace(np.nan, None)
+
+    assert df.shape == (1, 5)
+    assert df["stnid"].iloc[0] == "11766"
+    assert np.isclose(df["elevation"].iloc[0], 748.1)
+
+
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+def test_synop_filter_header_wmoid_uc(_kwargs: dict) -> None:
+    df = pdbufr.read_bufr(
+        TEST_DATA_UNCOMPRESSED,
+        reader="synop",
+        columns="station",
+        filters={"bufrHeaderCentre": [88], "stnid": ["1308", "1084"]},
+        **_kwargs,
+    )
+
+    df = df.replace(np.nan, None)
+
+    assert df.shape == (2, 5)
+    assert df["stnid"].iloc[0] == "1084"
+    assert np.isclose(df["elevation"].iloc[0], 27)
+
+    assert df["stnid"].iloc[1] == "1308"
+    assert np.isclose(df["elevation"].iloc[1], 7)
+
+
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+@pytest.mark.skipif(True, reason="Not yet implemented")
+def test_synop_filter_ident_new_1a(_kwargs: dict) -> None:
+    df = pdbufr.read_bufr(
+        TEST_DATA_NEW,
+        reader="synop",
+        columns="station",
+        filters={"ident": ["11766", "56257"], "t2m": slice(0, 275), "t2m_level": (0, 1.9)},
+        **_kwargs,
+    )
+
+    df = df.replace(np.nan, None)
+
+    assert df.shape == (1, 5)
+    assert df["stnid"].iloc[0] == "11766"
+    assert np.isclose(df["elevation"].iloc[0], 748.1)
+
+
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+def test_synop_filter_ident_new_1b(_kwargs: dict) -> None:
+    with pytest.raises(ValueError):
+        pdbufr.read_bufr(
+            TEST_DATA_NEW,
+            reader="synop",
+            columns="station",
+            filters={"ident": ["11766", "56257"], "t2m": slice(0, 275), "t2m_level": (0, 1.9)},
+            **_kwargs,
+        )

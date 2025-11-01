@@ -606,19 +606,21 @@ class SynopReader(StationReader):
     def read_message(
         self,
         message: Mapping[str, Any],
+        bufr_filters: Optional[Dict[str, Any]] = None,
     ) -> Generator[Dict[str, Any], None, None]:
 
-        filtered_keys = self.get_filtered_keys(message, self.accessors, self.bufr_filters)
+        bufr_filters = bufr_filters or {}
+        filtered_keys = self.get_filtered_keys(message, self.accessors, bufr_filters)
         reader = BufrSubsetReader(message, filtered_keys)
 
         for subset in reader.subsets():
             d = {}
 
             # check generic filters first, this should be BUFR key filters
-            if self.bufr_filters:
+            if bufr_filters:
                 r = subset.collect(
-                    keys=list(self.bufr_filters.keys()),
-                    filters=self.bufr_filters,
+                    keys=list(bufr_filters.keys()),
+                    filters=bufr_filters,
                 )
                 if not list(r):
                     continue

@@ -17,6 +17,7 @@ from typing import Union
 import pandas as pd  # type: ignore
 
 from pdbufr.core.filters import BufrFilter
+from pdbufr.core.filters import filters_match_header
 from pdbufr.core.structure import MessageWrapper
 from pdbufr.core.structure import filter_keys_cached
 
@@ -36,6 +37,7 @@ class CustomReader(Reader):
         unit_system: Optional[str] = None,
         units: Optional[Dict[str, str]] = None,
         units_columns: bool = False,
+        prefilter_headers: bool = False,
         **kwargs: Any,
     ):
         super().__init__(*args)
@@ -43,6 +45,7 @@ class CustomReader(Reader):
         self.bufr_filters, self.count_filter, self.max_count = self.create_filters(filters)
         self.units_converter = self.create_units_converter(unit_system, units)
         self.add_units = units_columns
+        self.prefilter_headers = prefilter_headers
 
     @abstractmethod
     def filter_header(self, message: MessageWrapper) -> bool:
@@ -111,16 +114,28 @@ class CustomReader(Reader):
                 if not self.filter_header(message):
                     continue
 
+                bufr_filters = self.bufr_filters
+
+                if self.prefilter_headers and self.bufr_filters:
+                    header_keys = [k for k in message]
+                    match, matched_keys = filters_match_header(message, header_keys, self.bufr_filters)
+                    if not match:
+                        continue
+                    elif matched_keys:
+                        # remove header keys from filters
+                        bufr_filters = {k: v for k, v in self.bufr_filters.items() if k not in matched_keys}
+
                 # message["skipExtraKeyAttributes"] = 1
                 message["unpack"] = 1
 
-                for d in self.read_message(message):
+                for d in self.read_message(message, bufr_filters=bufr_filters):
                     yield d
 
     @abstractmethod
     def read_message(
         self,
         message: MessageWrapper,
+        bufr_filters: Optional[Dict[str, Any]] = None,
     ) -> Generator[Dict[str, Any], None, None]:
         pass
 

@@ -276,7 +276,10 @@ class TempReader(StationReader):
     def read_message(
         self,
         message: Mapping[str, Any],
+        bufr_filters: Optional[Dict[str, Any]] = None,
     ) -> Generator[Dict[str, Any], None, None]:
+
+        bufr_filters = bufr_filters or {}
         filtered_keys = self.get_filtered_keys(message, self.accessors, self.param_filters)
 
         if self.upper_accessors:

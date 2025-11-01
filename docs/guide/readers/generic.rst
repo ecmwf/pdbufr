@@ -3,7 +3,7 @@
 Generic
 ==============
 
-.. py:function:: read_bufr(path, reader="generic", columns=[], filters={}, required_columns=True)
+.. py:function:: read_bufr(path, reader="generic", columns=[], filters={}, required_columns=True, prefilter_headers=False)
     :noindex:
 
     Extract the specified ``columns`` from BUFR as a pandas.DataFrame using a :ref:`hierarchical collector <tree-structure>`.
@@ -25,6 +25,8 @@ Generic
           * False means no columns are required
 
     :type required_columns: bool, iterable[str]
+    :param prefilter_headers: if True, the headers are filtered before unpacking the data section. This can significantly speed up the extraction when the ``filters`` contain header keys (and only a small fraction of messages/subsets matches). *New in version 0.15.0.*
+    :type prefilter_headers: bool
     :rtype: pandas.DataFrame
 
 .. _tree-structure:

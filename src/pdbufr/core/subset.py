@@ -44,8 +44,12 @@ def subset_info(message: Mapping[str, Any]) -> Tuple[int, bool, bool]:
 def uncompressed_subset_ranges(filtered_keys: List[Any], subset_count: int) -> Tuple[List[int], List[int]]:
     subset_start = []
     subset_end = []
+    header_end = None
     for i, bufr_key in enumerate(filtered_keys):
         if bufr_key.name == "subsetNumber":
+            if header_end is None:
+                header_end = i - 1
+
             subset_start.append(i)
             if len(subset_start) > 1:
                 subset_end.append(i)
@@ -54,7 +58,10 @@ def uncompressed_subset_ranges(filtered_keys: List[Any], subset_count: int) -> T
             subset_end.append(len(filtered_keys))
             break
 
-    return subset_start, subset_end
+    if subset_start:
+        assert subset_start[0] == header_end + 1
+
+    return subset_start, subset_end, header_end
 
 
 class BufrSubsetCollector:
@@ -176,6 +183,14 @@ class BufrSubsetReader:
                 yield BufrSubsetCollector(self, self.filtered_keys, subset)
 
         elif self.is_uncompressed:
-            subset_start, subset_end = uncompressed_subset_ranges(self.filtered_keys, self.subset_count)
+            subset_start, subset_end, header_end = uncompressed_subset_ranges(
+                self.filtered_keys, self.subset_count
+            )
+            header_keys = []
+            if header_end is not None and header_end >= 0:
+                header_keys = self.filtered_keys[0 : header_end + 1]
+
             for i in range(self.subset_count):
-                yield BufrSubsetCollector(self, self.filtered_keys[subset_start[i] : subset_end[i]], i)
+                yield BufrSubsetCollector(
+                    self, header_keys + self.filtered_keys[subset_start[i] : subset_end[i]], i
+                )

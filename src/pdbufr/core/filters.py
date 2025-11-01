@@ -230,9 +230,28 @@ def filters_match(
             matches += 1
         else:
             return False
+
     if required and matches < len(compiled_filters):
         return False
     return True
+
+
+def filters_match_header(
+    message: Mapping[str, Any],
+    header_keys: Iterable[str],
+    compiled_filters: Dict[str, BufrFilter],
+) -> bool:
+    matches = []
+    for k, f in compiled_filters.items():
+        if k not in header_keys:
+            continue
+        if f.match(message[k]):
+            # LOG.debug(f"Header filter match key={k}, value={message[k]} against filter={f}")
+            matches.append(k)
+        else:
+            return False, None
+
+    return True, matches
 
 
 class ParamFilter(dict):
