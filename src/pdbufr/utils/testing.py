@@ -18,7 +18,7 @@ if not os.path.exists(os.path.join(ROOT_DIR, "tests", "data")):
 LOCAL_SAMPLE_DIR = os.path.join(ROOT_DIR, "tests", "sample_data")
 LOCAL_REF_DIR = os.path.join(ROOT_DIR, "tests", "ref_data")
 URL_DATA_DIR = os.path.join(ROOT_DIR, "url_data")
-URL_ROOT = "https://get.ecmwf.int/repository/test-data/pdbufr/test-data"
+URL_ROOT = "https://sites.ecmwf.int/repository/pdbufr/test-data"
 
 
 def sample_test_data_path(filename: str) -> str:

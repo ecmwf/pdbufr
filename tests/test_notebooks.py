@@ -23,7 +23,7 @@ IN_GITHUB = os.environ.get("GITHUB_WORKFLOW") is not None
 EXAMPLES = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "examples")
 LEGACY_EXAMPLES = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "legacy")
 
-SKIP = ()
+SKIP = ("prefilter_headers.ipynb",)  # data file too large to be downloaded in CI
 
 
 def notebooks_list() -> T.Iterable[str]:
