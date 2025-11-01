@@ -136,7 +136,7 @@ def test_synop_filter_ident_new(_kwargs: dict) -> None:
     assert np.isclose(df["elevation"].iloc[0], 748.1)
 
 
-@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": True}])
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
 def test_synop_filter_header_wmoid_uc(_kwargs: dict) -> None:
     df = pdbufr.read_bufr(
         TEST_DATA_UNCOMPRESSED,

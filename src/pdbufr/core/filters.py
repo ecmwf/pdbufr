@@ -223,17 +223,14 @@ def filters_match(
     required: bool = True,
 ) -> bool:
     matches = 0
-    print(f"len(compiled_filters)={len(compiled_filters)}")
     for k in message:
         if k not in compiled_filters:
             continue
-        print(f"Matching key={k}, value={message[k]} against filter={compiled_filters[k]}")
         if compiled_filters[k].match(message[k]):
             matches += 1
         else:
             return False
 
-    print(f"matches={matches}, required={required}, len(compiled_filters)={len(compiled_filters)}")
     if required and matches < len(compiled_filters):
         return False
     return True
