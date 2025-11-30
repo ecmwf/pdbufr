@@ -113,6 +113,25 @@ class ReaderMaker:
 
     def get(self, name: str) -> type[Reader]:
         here = os.path.dirname(__file__)
+
+        # n = len(directory)
+        # for path, _, files in os.walk(here):
+        #     path = path[n:]
+        #     for f in files:
+        #         if path.endswith(".py"):
+        #             base, _ = os.path.splitext(f)
+        #             p = base.replace("_", "-")
+
+        #             if p == name:
+        #                 try:
+        #                     module = import_module(f".{name}", package=__name__)
+        #                     if hasattr(module, "reader"):
+        #                         w = getattr(module, "reader")
+        #                         return w
+        #                 except Exception:
+        #                     LOG.exception("Error loading reader %s", name)
+        #                     raise
+
         for path in sorted(os.listdir(here)):
             if path[0] in ("_", "."):
                 continue

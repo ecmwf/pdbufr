@@ -191,7 +191,8 @@ class CodesMessage(object):
 
     def __contains__(self, key):
         """Check whether a key is present in message."""
-        return key in self.keys()
+        # return key in self.keys()
+        return eccodes.codes_is_defined(self.codes_id, key)
 
     def __len__(self):
         """Return key count."""

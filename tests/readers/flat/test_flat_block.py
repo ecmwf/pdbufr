@@ -35,8 +35,30 @@ REF_DATA_1 = reference_test_data_path("obs_3day_ref_1.csv")
 REF_DATA_2 = reference_test_data_path("synop_uncompressed_ref_1.csv")
 
 
+# @pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
+@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}])
+def test_read_flat_bufr_block_args_1(_kwargs: dict) -> None:
+    # The message structure is the same in all the messages
+    # but some have #1#totalPrecipitationPast6Hours while
+    # others have #1#totalPrecipitationPast24Hours at the
+    # same position within the message
+
+    # default args
+    res = pdbufr.read_bufr(TEST_DATA_1, flat=True, **_kwargs)
+
+    print(res.columns.to_list())
+
+    assert isinstance(res, pd.DataFrame)
+    assert "edition" in res
+    assert "#1#latitude" in res
+    assert "#1#totalPrecipitationPast6Hours" in res
+    assert "#1#totalPrecipitationPast24Hours" in res
+    assert len(res.columns) == 103
+    assert len(res) == 50
+
+
 @pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
-def test_read_flat_bufr_args(_kwargs: dict) -> None:
+def test_read_flat_bufr_block_args_2(_kwargs: dict) -> None:
     # The message structure is the same in all the messages
     # but some have #1#totalPrecipitationPast6Hours while
     # others have #1#totalPrecipitationPast24Hours at the

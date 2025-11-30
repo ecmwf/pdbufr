@@ -14,6 +14,7 @@ from typing import Callable
 from typing import Dict
 from typing import Iterable
 from typing import Mapping
+from typing import Tuple
 from typing import Union
 
 LOG = logging.getLogger(__name__)
@@ -280,3 +281,47 @@ class ParamFilter(dict):
                 self[full_name] = self[simple_name]
             else:
                 self.ignore.add(key)
+
+
+class HighLevelFilter(metaclass=ABCMeta):
+    def __init__(self, column, filter_item: BufrFilter) -> None:
+        self.column = column
+        self.key = column.name
+        self.name = column.name
+        self.filter = filter_item
+        self.header_only = column.header_only
+
+    def match(self, value: Any) -> Tuple[bool, Any]:
+        return self.filter.match(value)
+
+    @abstractmethod
+    def match_accessor(self, accessor: Any) -> Tuple[bool, Any]:
+        pass
+
+
+class RawKeyFilter(HighLevelFilter):
+    def match_accessor(self, accessor) -> bool:
+        value = accessor(self.key)
+        print(f"    -> matching filter for key: {self.key}, value: {value}")
+        return self.filter.match(value), value
+
+
+class ComputedKeyFilter(HighLevelFilter):
+    def __init__(self, column, filter_item) -> None:
+        super().__init__(column, filter_item)
+        self.keys = self.column.keys
+
+    def match_accessor(self, accessor) -> bool:
+        values = {k: v for k in self.keys if (v := accessor(k)) is not None}
+        # print(" -> filter computed column values:", values)
+        computed_value = None
+        try:
+            computed_value = self.column.method(values, "", self.keys)
+        except Exception:
+            # print(" -> filter exception in computed value method:", e)
+            return False, None
+
+        # print(" -> computed value for filter:", computed_value)
+        if computed_value is not None:
+            return self.filter.match(computed_value), computed_value
+        return False, None

@@ -51,6 +51,34 @@ class BufrKey:
         return prefix + self.name
 
 
+class UncompressedBufrKey1:
+    def __init__(self, key, name: str, rank):
+        self.key = key
+        self.name = name
+        self.rank = rank
+        self.ranked_name = f"#{rank}#{name}" if rank > 0 else name
+
+    @classmethod
+    def from_key(cls, key: str) -> "UncompressedBufrKey1":
+        rank_text, sep, name = key.rpartition("#")
+        try:
+            if sep == "#":
+                rank = int(rank_text[1:])
+            else:
+                rank = 1
+        except Exception:
+            rank = 1
+
+        return cls(key, name, rank)
+
+    def rerank(self, base_rank: int) -> str:
+        rel_rank = self.rank - base_rank + 1
+        if rel_rank > 0:
+            return f"#{rel_rank}#{self.name}"
+        else:
+            return self.ranked_name
+
+
 @attr.attrs(auto_attribs=True)
 class UncompressedBufrKey:
     current_rank: int
@@ -84,6 +112,20 @@ class UncompressedBufrKey:
         else:
             prefix = ""
         return prefix + self.name
+
+
+class RankedUncompressedBufrKey:
+    def __init__(self, key):
+        self.key = key
+        rank_text, sep, _ = key.rpartition("#")
+        try:
+            if sep == "#":
+                rank = int(rank_text[1:])
+            else:
+                rank = 0
+        except Exception:
+            rank = 0
+        self.base_rank = rank
 
 
 IS_KEY_COORD = {"subsetNumber": True, "operator": False}
@@ -172,11 +214,25 @@ def CRS_from_bufr(observation: Dict[str, Any], prefix: str, keys: List[str]) -> 
     return CRS_choices[bufr_CRS]
 
 
+# Each entry is a list of:
+#   1. list of bufr keys used to compute the value
+#   2. computed column name
+#   3. method to compute the column
+#   4. list of optional bufr keys
+#   5. header section keys only (True/False)
+
+# (list of bufr keys, computed column name, method to compute the column,
 COMPUTED_KEYS = [
     (
         ["year", "month", "day", "hour", "minute", "second"],
         "data_datetime",
         datetime_from_bufr,
+        [
+            "hour",
+            "minute",
+            "second",
+        ],
+        False,
     ),
     (
         [
@@ -189,8 +245,14 @@ COMPUTED_KEYS = [
         ],
         "typical_datetime",
         datetime_from_bufr,
+        [
+            "typicalHour",
+            "typicalMinute",
+            "typicalSecond",
+        ],
+        True,
     ),
-    (["blockNumber", "stationNumber"], "WMO_station_id", wmo_station_id_from_bufr),
+    (["blockNumber", "stationNumber"], "WMO_station_id", wmo_station_id_from_bufr, [], False),
     (
         [
             "longitude",
@@ -199,6 +261,10 @@ COMPUTED_KEYS = [
         ],
         "geometry",  # WMO_station_position (predefined to geometry for geopandas)
         wmo_station_position_from_bufr,
+        [
+            "heightOfStationGroundAboveMeanSeaLevel",
+        ],
+        False,
     ),
     (
         [
@@ -209,6 +275,13 @@ COMPUTED_KEYS = [
         ],
         "WIGOS_station_id",
         wigos_id_from_bufr,
+        [
+            "wigosIdentifierSeries",
+            "wigosIssuerOfIdentifier",
+            "wigosIssueNumber",
+            "wigosLocalIdentifierCharacter",
+        ],
+        False,
     ),
     (
         [
@@ -216,5 +289,11 @@ COMPUTED_KEYS = [
         ],
         "CRS",
         CRS_from_bufr,
+        ["coordinateReferenceSystem"],
+        False,
     ),
 ]
+
+
+HEADER_COMPUTED_KEYS = {k[1]: k for k in COMPUTED_KEYS if k[4]}  # type: ignore
+DATA_COMPUTED_KEYS = {k[1]: k for k in COMPUTED_KEYS if not k[4]}  # type: ignore
