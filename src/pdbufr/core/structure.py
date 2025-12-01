@@ -288,9 +288,10 @@ class BufrHeader:
             Filters to apply on the message keys. The header related filters are extracted
             from this dictionary and stored internally.
         """
+        SKIP = {"unexpandedDescriptors"}
         self.message = message
         # assert not message.get("unpack")
-        self.keys = set(self.message)
+        self.keys = [k for k in self.message if k not in SKIP]
 
         columns = columns or {}
         self.columns = []

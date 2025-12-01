@@ -22,7 +22,13 @@ assert_frame_equal = pd.testing.assert_frame_equal
 
 SAMPLE_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "sample-data")
 
+# The message structure is the same in all the messages
+# but some have #1#totalPrecipitationPast6Hours while
+# others have #1#totalPrecipitationPast24Hours at the
+# same position within the message
 TEST_DATA_1 = sample_test_data_path("obs_3day.bufr")
+
+
 TEST_DATA_2 = sample_test_data_path("synop_multi_subset_uncompressed.bufr")
 
 # contains 1 message - with 51 compressed subsets with multiple timePeriods
@@ -35,18 +41,35 @@ REF_DATA_1 = reference_test_data_path("obs_3day_ref_1.csv")
 REF_DATA_2 = reference_test_data_path("synop_uncompressed_ref_1.csv")
 
 
-# @pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
-@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}])
-def test_read_flat_bufr_block_args_1(_kwargs: dict) -> None:
-    # The message structure is the same in all the messages
-    # but some have #1#totalPrecipitationPast6Hours while
-    # others have #1#totalPrecipitationPast24Hours at the
-    # same position within the message
+@pytest.mark.parametrize("prefilter_headers", [True, False])
+@pytest.mark.parametrize(
+    "columns",
+    [
+        tuple(),
+        ("",),
+        ("all",),
+    ],
+)
+def test_read_flat_bufr_block_args_1(columns: T.Union[tuple, str], prefilter_headers: bool) -> None:
+    res = pdbufr.read_bufr(TEST_DATA_1, *columns, flat=True, prefilter_headers=prefilter_headers)
 
-    # default args
-    res = pdbufr.read_bufr(TEST_DATA_1, flat=True, **_kwargs)
+    assert isinstance(res, pd.DataFrame)
+    assert "edition" in res
+    assert "#1#latitude" in res
+    assert "#1#totalPrecipitationPast6Hours" in res
+    assert "#1#totalPrecipitationPast24Hours" in res
+    assert len(res.columns) == 103
+    assert len(res) == 50
 
-    print(res.columns.to_list())
+
+@pytest.mark.parametrize("prefilter_headers", [True, False])
+@pytest.mark.parametrize(
+    "columns",
+    [[], "", [""], "all", ["all"]],
+)
+def test_read_flat_bufr_block_args_2(columns: dict, prefilter_headers: bool) -> None:
+
+    res = pdbufr.read_bufr(TEST_DATA_1, columns=columns, flat=True, prefilter_headers=prefilter_headers)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -57,220 +80,216 @@ def test_read_flat_bufr_block_args_1(_kwargs: dict) -> None:
     assert len(res) == 50
 
 
-@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
-def test_read_flat_bufr_block_args_2(_kwargs: dict) -> None:
-    # The message structure is the same in all the messages
-    # but some have #1#totalPrecipitationPast6Hours while
-    # others have #1#totalPrecipitationPast24Hours at the
-    # same position within the message
+@pytest.mark.parametrize(
+    "columns,err",
+    [(3, TypeError), ([3], TypeError), ([3, 4], TypeError)],
+)
+def test_read_flat_bufr_block_args_bad(
+    columns: T.Union[tuple, str],
+    err: T.Type[Exception],
+) -> None:
 
-    # default args
-    res = pdbufr.read_bufr(TEST_DATA_1, flat=True, **_kwargs)
-
-    assert isinstance(res, pd.DataFrame)
-    assert "edition" in res
-    assert "#1#latitude" in res
-    assert "#1#totalPrecipitationPast6Hours" in res
-    assert "#1#totalPrecipitationPast24Hours" in res
-    assert len(res.columns) == 103
-    assert len(res) == 50
-
-    # various positional args
-    for columns in ["", "all"]:
-        res = pdbufr.read_bufr(TEST_DATA_1, columns, flat=True, **_kwargs)
-
-        assert isinstance(res, pd.DataFrame)
-        assert "edition" in res
-        assert "#1#latitude" in res
-        assert "#1#totalPrecipitationPast6Hours" in res
-        assert "#1#totalPrecipitationPast24Hours" in res
-        assert len(res.columns) == 103
-        assert len(res) == 50
-
-    # various kw args
-    for columns in [[], "", [""], "all", ["all"]]:  # type: ignore
-        res = pdbufr.read_bufr(TEST_DATA_1, columns=columns, flat=True, **_kwargs)
-
-        assert isinstance(res, pd.DataFrame)
-        assert "edition" in res
-        assert "#1#latitude" in res
-        assert "#1#totalPrecipitationPast6Hours" in res
-        assert "#1#totalPrecipitationPast24Hours" in res
-        assert len(res.columns) == 103
-        assert len(res) == 50
-
-    with pytest.raises(ValueError):
-        res = pdbufr.read_bufr(TEST_DATA_1, "a", flat=True, **_kwargs)
-
-    with pytest.raises(ValueError):
-        res = pdbufr.read_bufr(TEST_DATA_1, ["a", "a"], flat=True, **_kwargs)
-
-    with pytest.raises(TypeError):
-        res = pdbufr.read_bufr(TEST_DATA_1, 3, flat=True, **_kwargs)  # type: ignore
-
-    with pytest.raises(ValueError):
-        res = pdbufr.read_bufr(TEST_DATA_1, [3], flat=True, **_kwargs)  # type: ignore
-
-    with pytest.raises(ValueError):
-        res = pdbufr.read_bufr(TEST_DATA_1, [3, 4], flat=True, **_kwargs)  # type: ignore
+    with pytest.raises(err):
+        pdbufr.read_bufr(TEST_DATA_1, columns, flat=True)
 
 
-@pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
-def test_read_flat_bufr_one_subset_one_filters(_kwargs: dict) -> None:
-    # The message structure is the same in all the messages
-    # but some have #1#totalPrecipitationPast6Hours while
-    # others have #1#totalPrecipitationPast24Hours at the
-    # same position within the message
-
-    # all
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, **_kwargs)
+@pytest.mark.parametrize("prefilter_headers", [True, False])
+@pytest.mark.parametrize(
+    "_kwargs,ref_rownum, ref_colnum, ref_keys_include, ref_keys_exclude",
+    [
+        (
+            {"columns": "all"},
+            50,
+            103,
+            ["edition", "#1#latitude", "#1#totalPrecipitationPast6Hours", "#1#totalPrecipitationPast24Hours"],
+            [],
+        ),
+        (
+            {"columns": "data"},
+            50,
+            53,
+            ["#1#latitude", "#1#totalPrecipitationPast6Hours", "#1#totalPrecipitationPast24Hours"],
+            ["edition"],
+        ),
+        (
+            {"columns": "header"},
+            50,
+            50,
+            ["edition"],
+            ["#1#latitude", "#1#totalPrecipitationPast6Hours", "#1#totalPrecipitationPast24Hours"],
+        ),
+        (
+            {
+                "columns": "header",
+            },
+            50,
+            50,
+            ["edition"],
+            ["#1#latitude", "#1#totalPrecipitationPast6Hours", "#1#totalPrecipitationPast24Hours"],
+        ),
+    ],
+)
+def test_read_flat_bufr_block_standard_core(
+    _kwargs: dict,
+    ref_rownum: int,
+    ref_colnum: int,
+    ref_keys_include: list,
+    ref_keys_exclude: list,
+    prefilter_headers,
+) -> None:
+    res = pdbufr.read_bufr(TEST_DATA_1, **_kwargs, flat=True, prefilter_headers=prefilter_headers)
 
     assert isinstance(res, pd.DataFrame)
-    assert "edition" in res
-    assert "#1#latitude" in res
-    assert "#1#totalPrecipitationPast6Hours" in res
-    assert "#1#totalPrecipitationPast24Hours" in res
-    assert len(res.columns) == 103
-    assert len(res) == 50
+    assert len(res) == ref_rownum
+    assert len(res.columns) == ref_colnum
 
-    # omitting header or data sections
-    res = pdbufr.read_bufr(TEST_DATA_1, "data", flat=True, **_kwargs)
+    for k in ref_keys_include:
+        assert k in res
 
-    assert isinstance(res, pd.DataFrame)
-    assert "edition" not in res
-    assert "#1#latitude" in res
-    assert len(res.columns) == 53
-    assert len(res) == 50
+    for k in ref_keys_exclude:
+        assert k not in res
 
-    res = pdbufr.read_bufr(TEST_DATA_1, "header", flat=True, **_kwargs)
 
-    assert isinstance(res, pd.DataFrame)
-    assert "edition" in res
-    assert "#1#latitude" not in res
-    assert len(res.columns) == 50
-    assert len(res) == 50
-
-    # required columns
-    required_columns = ["latitude", ["latitude"], ["latitude", "edition"]]
-    for r in required_columns:
-        res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, required_columns=r, **_kwargs)
-        assert isinstance(res, pd.DataFrame)
-        assert "edition" in res
-        assert "#1#latitude" in res
-        assert len(res.columns) == 103
-        assert len(res) == 50
-
-    res = pdbufr.read_bufr(
-        TEST_DATA_1, "all", flat=True, required_columns="totalPrecipitationPast6Hours", **_kwargs
-    )
-    assert isinstance(res, pd.DataFrame)
-    assert "edition" in res
-    assert "#1#latitude" in res
-    assert "#1#totalPrecipitationPast6Hours" in res
-    assert len(res.columns) == 102
-    assert len(res) == 43
-
-    res = pdbufr.read_bufr(
-        TEST_DATA_1,
-        "all",
-        flat=True,
-        required_columns="totalPrecipitationPast24Hours",
-        **_kwargs,
-    )
-    assert isinstance(res, pd.DataFrame)
-    assert "edition" in res
-    assert "#1#latitude" in res
-    assert "#1#totalPrecipitationPast24Hours" in res
-    assert len(res.columns) == 102
-    assert len(res) == 7
-
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, required_columns="xyz", **_kwargs)
-
-    assert isinstance(res, pd.DataFrame)
-    assert res.empty
-
-    # omitting header or data sections + required columns
-    required_columns = ["latitude", ["latitude"], ["latitude", "edition"]]
-    for r in required_columns:
-        res = pdbufr.read_bufr(TEST_DATA_1, "data", flat=True, required_columns=r, **_kwargs)
-        assert isinstance(res, pd.DataFrame)
-        assert "edition" not in res
-        assert "#1#latitude" in res
-        assert len(res.columns) == 53
-        assert len(res) == 50
-
-    required_columns = ["latitude", ["latitude"], ["latitude", "edition"]]
-    for r in required_columns:
-        res = pdbufr.read_bufr(TEST_DATA_1, "header", flat=True, required_columns=r, **_kwargs)
-        assert isinstance(res, pd.DataFrame)
-        assert "edition" in res
-        assert "#1#latitude" not in res
-        assert len(res.columns) == 50
-        assert len(res) == 50
-
-    # filters
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"rdbtimeTime": "115557"}, **_kwargs)
+@pytest.mark.parametrize("prefilter_headers", [True, False])
+@pytest.mark.parametrize(
+    "_kwargs,ref_rownum, ref_colnum, ref_keys_include, ref_keys_exclude",
+    [
+        ({"columns": "all", "required_columns": "latitude"}, 50, 103, ["edition", "#1#latitude"], []),
+        ({"columns": "all", "required_columns": ["latitude"]}, 50, 103, ["edition", "#1#latitude"], []),
+        (
+            {"columns": "all", "required_columns": ["latitude", "edition"]},
+            50,
+            103,
+            ["edition", "#1#latitude"],
+            [],
+        ),
+        (
+            {"columns": "all", "required_columns": "totalPrecipitationPast6Hours"},
+            43,
+            102,
+            ["edition", "#1#latitude", "#1#totalPrecipitationPast6Hours"],
+            [],
+        ),
+        (
+            {"columns": "all", "required_columns": "totalPrecipitationPast24Hours"},
+            7,
+            102,
+            ["edition", "#1#latitude", "#1#totalPrecipitationPast24Hours"],
+            [],
+        ),
+        ({"columns": "data", "required_columns": "latitude"}, 50, 53, ["#1#latitude"], ["edition"]),
+        ({"columns": "data", "required_columns": ["latitude"]}, 50, 53, ["#1#latitude"], ["edition"]),
+        (
+            {"columns": "data", "required_columns": ["latitude", "edition"]},
+            50,
+            53,
+            ["#1#latitude"],
+            ["edition"],
+        ),
+        ({"columns": "header", "required_columns": "latitude"}, 50, 50, ["edition"], ["#1#latitude"]),
+        ({"columns": "header", "required_columns": ["latitude"]}, 50, 50, ["edition"], ["#1#latitude"]),
+        (
+            {"columns": "header", "required_columns": ["latitude", "edition"]},
+            50,
+            50,
+            ["edition"],
+            ["#1#latitude"],
+        ),
+        ({"columns": "all", "required_columns": "xyz"}, 0, 0, [], []),
+    ],
+)
+def test_read_flat_bufr_block_standard_required_columns(
+    _kwargs: dict,
+    ref_rownum: int,
+    ref_colnum: int,
+    ref_keys_include: list,
+    ref_keys_exclude: list,
+    prefilter_headers,
+) -> None:
+    res = pdbufr.read_bufr(TEST_DATA_1, **_kwargs, flat=True, prefilter_headers=prefilter_headers)
 
     assert isinstance(res, pd.DataFrame)
-    assert "edition" in res
-    assert "#1#latitude" in res
-    assert len(res.columns) == 103
-    assert len(res) == 6
+    assert len(res) == ref_rownum
+    if ref_rownum == 0:
+        assert res.empty
+    else:
+        assert len(res.columns) == ref_colnum
+        for k in ref_keys_include:
+            assert k in res
 
-    res = pdbufr.read_bufr(
-        TEST_DATA_1,
-        "all",
-        flat=True,
-        filters={"rdbtimeTime": "115557"},
-        required_columns=["latitude", "edition"],
-    )
+        for k in ref_keys_exclude:
+            assert k not in res
+
+
+@pytest.mark.parametrize("prefilter_headers", [True, False])
+@pytest.mark.parametrize(
+    "_kwargs,ref_rownum, ref_colnum, ref_keys_include, ref_keys_exclude",
+    [
+        ({"columns": "all", "filters": {"rdbtimeTime": "115557"}}, 6, 103, ["edition", "#1#latitude"], []),
+        # ({"columns": "all", "filters": {"count": "1"}}, 6, 102, ["edition", "#1#latitude"], []),
+        # (
+        #     {"columns": "all", "filters": {"stationNumber": 894}},
+        #     1,
+        #     102,
+        #     ["edition", "#1#latitude", "#1#totalPrecipitationPast6Hours"],
+        #     ["#1#totalPrecipitationPast24Hours"],
+        # ),
+        # (
+        #     {"columns": "all", "filters": {"stationNumber": [894, 103]}},
+        #     2,
+        #     103,
+        #     ["edition", "#1#latitude", "#1#totalPrecipitationPast6Hours", "#1#totalPrecipitationPast24Hours"],
+        #     [],
+        # ),
+        # (
+        #     {"columns": "all", "filters": {"WMO_station_id": [3894, 7103]}},
+        #     2,
+        #     103,
+        #     ["edition", "#1#latitude", "#1#totalPrecipitationPast6Hours", "#1#totalPrecipitationPast24Hours"],
+        #     [],
+        # ),
+        # (
+        #     {"columns": "all", "filters": {"count": 2}},
+        #     2,
+        #     102,
+        #     ["edition", "#1#latitude", "#1#totalPrecipitationPast6Hours"],
+        #     ["#1#totalPrecipitationPast24Hours"],
+        # ),
+        # (
+        #     {
+        #         "columns": "all",
+        #         "filters": {"rdbtimeTime": "115557"},
+        #         "required_columns": ["latitude", "edition"],
+        #     },
+        #     6,
+        #     103,
+        #     ["edition", "#1#latitude"],
+        #     [],
+        # ),
+    ],
+)
+def test_read_flat_bufr_block_standard_filters(
+    _kwargs: dict,
+    ref_rownum: int,
+    ref_colnum: int,
+    ref_keys_include: list,
+    ref_keys_exclude: list,
+    prefilter_headers,
+) -> None:
+    res = pdbufr.read_bufr(TEST_DATA_1, **_kwargs, flat=True, prefilter_headers=prefilter_headers)
 
     assert isinstance(res, pd.DataFrame)
-    assert "edition" in res
-    assert "#1#latitude" in res
-    assert len(res.columns) == 103
-    assert len(res) == 6
+    assert len(res) == ref_rownum
+    assert len(res.columns) == ref_colnum
+    for k in ref_keys_include:
+        assert k in res
 
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"count": 1}, **_kwargs)
+    for k in ref_keys_exclude:
+        assert k not in res
 
-    assert isinstance(res, pd.DataFrame)
-    assert "edition" in res
-    assert "#1#latitude" in res
-    assert len(res.columns) == 102
-    assert len(res) == 1
 
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"stationNumber": 894}, **_kwargs)
-
-    assert isinstance(res, pd.DataFrame)
-    assert "edition" in res
-    assert "#1#latitude" in res
-    assert "#1#totalPrecipitationPast6Hours" in res
-    assert "#1#totalPrecipitationPast24Hours" not in res
-    assert len(res.columns) == 102
-    assert len(res) == 1
-
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"stationNumber": [894, 103]}, **_kwargs)
-
-    assert isinstance(res, pd.DataFrame)
-    assert "edition" in res
-    assert "#1#latitude" in res
-    assert "#1#totalPrecipitationPast6Hours" in res
-    assert "#1#totalPrecipitationPast24Hours" in res
-    assert len(res.columns) == 103
-    assert len(res) == 2
-
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"WMO_station_id": [3894, 7103]}, **_kwargs)
-
-    assert isinstance(res, pd.DataFrame)
-    assert "edition" in res
-    assert "#1#latitude" in res
-    assert "#1#totalPrecipitationPast6Hours" in res
-    assert "#1#totalPrecipitationPast24Hours" in res
-    assert len(res.columns) == 103
-    assert len(res) == 2
-
-    # compare to csv
-    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"count": 2}, **_kwargs)
+def test_read_flat_bufr_block_standard_compare_csv() -> None:
+    res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"count": 2}, prefilter_headers=False)
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -288,6 +307,162 @@ def test_read_flat_bufr_one_subset_one_filters(_kwargs: dict) -> None:
 
     assert res.columns.to_list() == ref.columns.to_list()
     assert_frame_equal(res.iloc[:, :39], ref.iloc[:, :39])
+
+    # # omitting header or data sections
+    # res = pdbufr.read_bufr(TEST_DATA_1, "data", flat=True, **_kwargs, prefilter_headers=prefilter_headers)
+
+    # assert isinstance(res, pd.DataFrame)
+    # assert "edition" not in res
+    # assert "#1#latitude" in res
+    # assert len(res.columns) == 53
+    # assert len(res) == 50
+
+    # res = pdbufr.read_bufr(TEST_DATA_1, "header", flat=True, **_kwargs)
+
+    # assert isinstance(res, pd.DataFrame)
+    # assert "edition" in res
+    # assert "#1#latitude" not in res
+    # assert len(res.columns) == 50
+    # assert len(res) == 50
+
+    # # required columns
+    # required_columns = ["latitude", ["latitude"], ["latitude", "edition"]]
+    # for r in required_columns:
+    #     res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, required_columns=r, **_kwargs)
+    #     assert isinstance(res, pd.DataFrame)
+    #     assert "edition" in res
+    #     assert "#1#latitude" in res
+    #     assert len(res.columns) == 103
+    #     assert len(res) == 50
+
+    # res = pdbufr.read_bufr(
+    #     TEST_DATA_1, "all", flat=True, required_columns="totalPrecipitationPast6Hours", **_kwargs
+    # )
+    # assert isinstance(res, pd.DataFrame)
+    # assert "edition" in res
+    # assert "#1#latitude" in res
+    # assert "#1#totalPrecipitationPast6Hours" in res
+    # assert len(res.columns) == 102
+    # assert len(res) == 43
+
+    # res = pdbufr.read_bufr(
+    #     TEST_DATA_1,
+    #     "all",
+    #     flat=True,
+    #     required_columns="totalPrecipitationPast24Hours",
+    #     **_kwargs,
+    # )
+    # assert isinstance(res, pd.DataFrame)
+    # assert "edition" in res
+    # assert "#1#latitude" in res
+    # assert "#1#totalPrecipitationPast24Hours" in res
+    # assert len(res.columns) == 102
+    # assert len(res) == 7
+
+    # res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, required_columns="xyz", **_kwargs)
+
+    # assert isinstance(res, pd.DataFrame)
+    # assert res.empty
+
+    # omitting header or data sections + required columns
+    # required_columns = ["latitude", ["latitude"], ["latitude", "edition"]]
+    # for r in required_columns:
+    #     res = pdbufr.read_bufr(TEST_DATA_1, "data", flat=True, required_columns=r, **_kwargs)
+    #     assert isinstance(res, pd.DataFrame)
+    #     assert "edition" not in res
+    #     assert "#1#latitude" in res
+    #     assert len(res.columns) == 53
+    #     assert len(res) == 50
+
+    # required_columns = ["latitude", ["latitude"], ["latitude", "edition"]]
+    # for r in required_columns:
+    #     res = pdbufr.read_bufr(TEST_DATA_1, "header", flat=True, required_columns=r, **_kwargs)
+    #     assert isinstance(res, pd.DataFrame)
+    #     assert "edition" in res
+    #     assert "#1#latitude" not in res
+    #     assert len(res.columns) == 50
+    #     assert len(res) == 50
+
+    # filters
+    # res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"rdbtimeTime": "115557"}, **_kwargs)
+
+    # assert isinstance(res, pd.DataFrame)
+    # assert "edition" in res
+    # assert "#1#latitude" in res
+    # assert len(res.columns) == 103
+    # assert len(res) == 6
+
+    # res = pdbufr.read_bufr(
+    #     TEST_DATA_1,
+    #     "all",
+    #     flat=True,
+    #     filters={"rdbtimeTime": "115557"},
+    #     required_columns=["latitude", "edition"],
+    # )
+
+    # assert isinstance(res, pd.DataFrame)
+    # assert "edition" in res
+    # assert "#1#latitude" in res
+    # assert len(res.columns) == 103
+    # assert len(res) == 6
+
+    # res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"count": 1}, **_kwargs)
+
+    # assert isinstance(res, pd.DataFrame)
+    # assert "edition" in res
+    # assert "#1#latitude" in res
+    # assert len(res.columns) == 102
+    # assert len(res) == 1
+
+    # res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"stationNumber": 894}, **_kwargs)
+
+    # assert isinstance(res, pd.DataFrame)
+    # assert "edition" in res
+    # assert "#1#latitude" in res
+    # assert "#1#totalPrecipitationPast6Hours" in res
+    # assert "#1#totalPrecipitationPast24Hours" not in res
+    # assert len(res.columns) == 102
+    # assert len(res) == 1
+
+    # res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"stationNumber": [894, 103]}, **_kwargs)
+
+    # assert isinstance(res, pd.DataFrame)
+    # assert "edition" in res
+    # assert "#1#latitude" in res
+    # assert "#1#totalPrecipitationPast6Hours" in res
+    # assert "#1#totalPrecipitationPast24Hours" in res
+    # assert len(res.columns) == 103
+    # assert len(res) == 2
+
+    # res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"WMO_station_id": [3894, 7103]}, **_kwargs)
+
+    # assert isinstance(res, pd.DataFrame)
+    # assert "edition" in res
+    # assert "#1#latitude" in res
+    # assert "#1#totalPrecipitationPast6Hours" in res
+    # assert "#1#totalPrecipitationPast24Hours" in res
+    # assert len(res.columns) == 103
+    # assert len(res) == 2
+
+    # compare to csv
+    # res = pdbufr.read_bufr(TEST_DATA_1, "all", flat=True, filters={"count": 2}, **_kwargs)
+
+    # assert isinstance(res, pd.DataFrame)
+    # assert "edition" in res
+    # assert "#1#latitude" in res
+    # assert "#1#totalPrecipitationPast6Hours" in res
+    # assert "#1#totalPrecipitationPast24Hours" not in res
+    # assert len(res.columns) == 102
+    # assert len(res) == 1
+
+    # # res.to_csv(REF_DATA_1, index=False)
+    # ref = pd.read_csv(
+    #     REF_DATA_1,
+    #     dtype={"typicalDate": str, "typicalTime": str, "rdbtimeTime": str},
+    # )
+
+    # assert res.columns.to_list() == ref.columns.to_list()
+    # assert_frame_equal(res.iloc[:, :39], ref.iloc[:, :39])
 
 
 @pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])

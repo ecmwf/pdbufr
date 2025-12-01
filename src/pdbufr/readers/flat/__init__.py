@@ -255,6 +255,10 @@ class FlatReader(Reader):
 
         print("columns:", columns)
 
+        for col in columns:
+            if not isinstance(col, str):
+                raise TypeError(f"all columns must be strings! {col} is a {type(col)}")
+
         if "all" in columns:
             if len(columns) > 1:
                 raise ValueError("when 'all' is specified no other columns can be specified")
@@ -566,7 +570,7 @@ class FlatReader(Reader):
                 # data_columns = {k: v for k, v in columns.items() if k not in header.columns}
 
                 # test filters on header keys before unpacking
-                if prefilter_headers and not header.filters_match():
+                if prefilter_headers and not header.match_filters():
                     continue
 
                 data_required_columns_keys = required_columns_keys
