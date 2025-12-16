@@ -138,9 +138,9 @@ When using parameters like "t2m" we do not need to know the actual encoding, but
 
 SYNOP parameters can be divided into three groups:
 
-- `station/platform related parameters <synop-station-params>`_,
-- `default observed parameters <synop-default-obs-params>`_,
-- `additional observed parameters <synop-extra-obs-params>`_.
+- :ref:`station/platform related parameters <synop-station-params>`,
+- :ref:`default observed parameters <synop-default-obs-params>`,
+- :ref:`additional observed parameters <synop-extra-obs-params>`.
 
 
 .. _synop-station-params:
