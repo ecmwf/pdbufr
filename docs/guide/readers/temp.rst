@@ -105,8 +105,8 @@ A parameter is a high-level concept in ``pdbufr``. It was introduced to overcome
 
 SYNOP parameters can be divided into three groups:
 
-- `station/platform related parameters <temp-station-params>`_,
-- `upper parameters <temp-upper-params>`_,
+- :ref:`station/platform related parameters <temp-station-params>`,
+- :ref:`upper parameters <temp-upper-params>`,
 
 .. _temp-station-params:
 
