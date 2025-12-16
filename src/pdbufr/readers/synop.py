@@ -657,7 +657,6 @@ class SynopReader(StationReader):
         # TODO: find a better solution to handle accessors like "latlon" where the column
         # names do not start with the accessor name
         for name in self.accessors:
-            print(f" -> processing accessor: name={name}")
             for i, c in enumerate(columns):
                 if c is None:
                     continue
