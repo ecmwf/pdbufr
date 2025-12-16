@@ -441,8 +441,8 @@ class LongWaveRadiationAccessor(MultiAllAccessor):
     ]
 
 
-class ShortWaveRadiationAccessor(MultiAllAccessor):
-    param: PARAMS.Parameter = PARAMS.SHORT_WAVE_RADIATION
+class NetRadiationAccessor(MultiAllAccessor):
+    param: PARAMS.Parameter = PARAMS.NET_RADIATION
     accessors: List[Accessor] = [
         CoordAccessor(
             keys={"netRadiationIntegratedOverPeriodSpecified": PARAMS.NET_RADIATION},
@@ -452,8 +452,8 @@ class ShortWaveRadiationAccessor(MultiAllAccessor):
     ]
 
 
-class NetRadiationAccessor(MultiAllAccessor):
-    param: PARAMS.Parameter = PARAMS.NET_RADIATION
+class ShortWaveRadiationAccessor(MultiAllAccessor):
+    param: PARAMS.Parameter = PARAMS.SHORT_WAVE_RADIATION
     accessors: List[Accessor] = [
         CoordAccessor(
             keys={"shortWaveRadiationIntegratedOverPeriodSpecified": PARAMS.SHORT_WAVE_RADIATION},
@@ -657,6 +657,7 @@ class SynopReader(StationReader):
         # TODO: find a better solution to handle accessors like "latlon" where the column
         # names do not start with the accessor name
         for name in self.accessors:
+            print(f" -> processing accessor: name={name}")
             for i, c in enumerate(columns):
                 if c is None:
                     continue
@@ -668,7 +669,9 @@ class SynopReader(StationReader):
                     columns[i] = None
 
         # LOG.debug(f" -> after accessors: columns={columns}")
+        # TODO: make it less rigid
         assert len(r) == len(columns), f"Expected {len(columns)} columns, got {len(r)}"
+
         # LOG.debug(f" -> r={r}")
 
         return r

@@ -1,6 +1,13 @@
 Version 0.14 Updates
 /////////////////////////
 
+
+Version 0.14.1
+===============
+
+- Fixed issue in the :ref:`synop <synop-reader>` when the extraction of the "sw_radiation" and "net_radiation" parametes did not work.
+
+
 Version 0.14.0
 ===============
 

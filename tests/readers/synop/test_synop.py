@@ -641,3 +641,113 @@ def test_synop_stnid_keys_3(stnd_keys, expected_result):
     )
 
     assert df["stnid"].iloc[0] == expected_result, f"Expected {expected_result}, got {df['stnid'].iloc[0]}"
+
+
+@pytest.mark.parametrize(
+    "columns, expected_values",
+    [
+        (
+            ["station", "sw_radiation"],
+            [
+                {"sw_radiation_10min": 0.0, "sw_radiation_24h": None, "sw_radiation_1h": None},
+                {"sw_radiation_10min": None, "sw_radiation_24h": 9343000.0, "sw_radiation_1h": 0.0},
+            ],
+        ),
+        (
+            ["station", "lw_radiation"],
+            [
+                {"lw_radiation_10min": None, "lw_radiation_24h": None, "lw_radiation_1h": None},
+                {"lw_radiation_10min": None, "lw_radiation_24h": None, "lw_radiation_1h": None},
+            ],
+        ),
+        (
+            ["station", "net_radiation"],
+            [
+                {"net_radiation": None, "net_radiation_24h": None, "net_radiation_1h": None},
+                {"net_radiation": None, "net_radiation_24h": None, "net_radiation_1h": None},
+            ],
+        ),
+        (
+            ["station", "global_solar_radiation"],
+            [
+                {
+                    "global_solar_radiation_10min": 0.0,
+                    "global_solar_radiation_24h": None,
+                    "global_solar_radiation_1h": None,
+                },
+                {
+                    "global_solar_radiation_10min": None,
+                    "global_solar_radiation_24h": None,
+                    "global_solar_radiation_1h": None,
+                },
+            ],
+        ),
+        (
+            ["station", "diffuse_solar_radiation"],
+            [
+                {
+                    "diffuse_solar_radiation_10min": None,
+                    "diffuse_solar_radiation_24h": None,
+                    "diffuse_solar_radiation_1h": None,
+                },
+                {
+                    "diffuse_solar_radiation_10min": None,
+                    "diffuse_solar_radiation_24h": None,
+                    "diffuse_solar_radiation_1h": None,
+                },
+            ],
+        ),
+        (
+            ["station", "direct_solar_radiation"],
+            [
+                {
+                    "direct_solar_radiation_10min": None,
+                    "direct_solar_radiation_24h": None,
+                    "direct_solar_radiation_1h": None,
+                },
+                {
+                    "direct_solar_radiation_10min": None,
+                    "direct_solar_radiation_24h": None,
+                    "direct_solar_radiation_1h": None,
+                },
+            ],
+        ),
+    ],
+)
+def test_synop_radiation(columns, expected_values):
+    df = pdbufr.read_bufr(
+        sample_test_data_path("synop_radiation.bufr"),
+        reader="synop",
+        columns=columns,
+    )
+
+    ref_stations = [
+        {
+            "stnid": "_3483d8a",
+            "lat": 46.575,
+            "lon": 18.8472,
+            "elevation": 98.0,
+            "time": datetime.datetime.fromisoformat("2024-03-29T23:50:00.000"),
+        },
+        {
+            "stnid": "08579",
+            "lat": 38.7662,
+            "lon": -9.1275,
+            "elevation": 103.9,
+            "time": datetime.datetime.fromisoformat("2024-03-30T00:00:00.000"),
+        },
+    ]
+
+    ref = [{**ref_stations[0], **expected_values[0]}, {**ref_stations[1], **expected_values[1]}]
+
+    df_ref = pd.DataFrame.from_dict(ref)
+    df_ref.reset_index(drop=True, inplace=True)
+    df = df.replace(np.nan, None)
+
+    try:
+        pd.testing.assert_frame_equal(
+            df, df_ref, check_dtype=False, check_index_type=False, check_datetimelike_compat=True
+        )
+    except Exception as e:
+        print("e=", e)
+        raise
