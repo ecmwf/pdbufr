@@ -1,6 +1,13 @@
 Version 0.14 Updates
 /////////////////////////
 
+
+Version 0.14.1
+===============
+
+- Fixed issue in the :ref:`synop <synop-reader>` reader when the extraction of the "sw_radiation" and "net_radiation" parameters caused an AssertionError (:pr:`108`).
+
+
 Version 0.14.0
 ===============
 
