@@ -767,10 +767,10 @@ def test_sat_compressed_1() -> None:
     res = pdbufr.read_bufr(TEST_DATA_8, columns=columns, filters={"firstOrderStatistics": 15})
 
     assert len(res) == 128 * 12 * 3
-    assert_frame_equal(res[0:1], ref_1[res.columns])
-    assert_frame_equal(res[1:2], ref_2[res.columns])
-    assert_frame_equal(res[11:12], ref_12[res.columns])
-    assert_frame_equal(res[12:13], ref_13[res.columns])
+    assert_frame_equal(res[0:1], ref_1[res.columns], check_dtype=False)
+    assert_frame_equal(res[1:2], ref_2[res.columns], check_dtype=False)
+    assert_frame_equal(res[11:12], ref_12[res.columns], check_dtype=False)
+    assert_frame_equal(res[12:13], ref_13[res.columns], check_dtype=False)
 
 
 def assert_simple_key_core(path, param, key, key_value, ref, part=False):

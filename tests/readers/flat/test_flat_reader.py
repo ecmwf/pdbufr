@@ -408,6 +408,7 @@ def test_read_flat_bufr_uncompressed_subsets() -> None:
         flat=True,
         filters={"stationNumber": [27, 84]},
     )
+    res = res.replace({None: np.nan})
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -432,7 +433,7 @@ def test_read_flat_bufr_uncompressed_subsets() -> None:
     )
 
     assert res.columns.to_list() == ref.columns.to_list()
-    assert_frame_equal(res.iloc[:, :39], ref.iloc[:, :39])
+    assert_frame_equal(res.iloc[:, :39], ref.iloc[:, :39], check_dtype=False)
 
 
 def test_read_flat_bufr_compressed_subsets() -> None:

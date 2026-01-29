@@ -31,7 +31,10 @@ DATA = _get_data()
 
 
 def test_temp_reader():
-    df = pdbufr.read_bufr(TEST_DATA_CLASSIC, reader="temp", filters={"count": 1})
+    df = pdbufr.read_bufr(
+        TEST_DATA_CLASSIC, reader="temp", filters={"count": 1}
+    )
+    df = df.replace({None: np.nan})
 
     # r = df.to_dict()
     # print("r=", r)
@@ -48,7 +51,6 @@ def test_temp_reader():
 
     df_ref = pd.DataFrame.from_dict(DATA.REF)
     df_ref.reset_index(drop=True, inplace=True)
-    df = df.replace(np.nan, None)
 
     # print("df=", df.columns.tolist())
     # print("df_ref=", df_ref.columns.tolist())

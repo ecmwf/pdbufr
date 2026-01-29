@@ -38,6 +38,7 @@ def test_synop_reader():
         level_columns=False,
         units_columns=False,
     )
+    df = df.replace({None: np.nan})
 
     # r = df.to_dict()
     # print("r=", r)
@@ -52,8 +53,7 @@ def test_synop_reader():
 
     df_ref = pd.DataFrame.from_dict(DATA.REF)
     df_ref.reset_index(drop=True, inplace=True)
-
-    df = df.replace(np.nan, None)
+    df_ref = df_ref.replace({None: np.nan})
 
     print("df=", df.columns.tolist())
     print("df_ref=", df_ref.columns.tolist())
@@ -720,6 +720,7 @@ def test_synop_radiation(columns, expected_values):
         reader="synop",
         columns=columns,
     )
+    df = df.replace({None: np.nan})
 
     ref_stations = [
         {
@@ -742,11 +743,15 @@ def test_synop_radiation(columns, expected_values):
 
     df_ref = pd.DataFrame.from_dict(ref)
     df_ref.reset_index(drop=True, inplace=True)
-    df = df.replace(np.nan, None)
+    df_ref = df_ref.replace({None: np.nan})
 
     try:
         pd.testing.assert_frame_equal(
-            df, df_ref, check_dtype=False, check_index_type=False, check_datetimelike_compat=True
+            df,
+            df_ref,
+            check_dtype=False,
+            check_index_type=False,
+            check_datetimelike_compat=True,
         )
     except Exception as e:
         print("e=", e)
