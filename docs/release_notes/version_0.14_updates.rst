@@ -2,6 +2,13 @@ Version 0.14 Updates
 /////////////////////////
 
 
+Version 0.14.2
+===============
+
+- Fixed tests when run with pandas 3.0
+- Removed support for Python 3.9
+
+
 Version 0.14.1
 ===============
 

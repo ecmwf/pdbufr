@@ -599,6 +599,7 @@ def test_read_flat_bufr_uncompressed_subsets(_kwargs: dict) -> None:
 
     # compare to csv
     res = pdbufr.read_bufr(TEST_DATA_2, "all", flat=True, filters={"stationNumber": [27, 84]}, **_kwargs)
+    res = res.replace({None: np.nan})
 
     assert isinstance(res, pd.DataFrame)
     assert "edition" in res
@@ -623,7 +624,7 @@ def test_read_flat_bufr_uncompressed_subsets(_kwargs: dict) -> None:
     )
 
     assert res.columns.to_list() == ref.columns.to_list()
-    assert_frame_equal(res.iloc[:, :39], ref.iloc[:, :39])
+    assert_frame_equal(res.iloc[:, :39], ref.iloc[:, :39], check_dtype=False)
 
 
 @pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
