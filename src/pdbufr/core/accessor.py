@@ -203,10 +203,10 @@ class ComputedKeyAccessor(Accessor):
 
         key = list(self.keys.keys())[0]
         assert isinstance(key, str)
-        for k in COMPUTED_KEYS:
-            if k[1] == key:
-                self._meth = k[2]
-                self._keys = k[0]
+        for ck in COMPUTED_KEYS.values():
+            if ck.column_name == key:
+                self._meth = ck.compute_method
+                self._keys = ck.bufr_keys
                 break
 
         if not hasattr(self, "_meth"):

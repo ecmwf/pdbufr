@@ -292,6 +292,9 @@ class BufrHeader:
         self.message = message
         # assert not message.get("unpack")
         self.keys = [k for k in self.message if k not in SKIP]
+        self._last_key = self.keys[-1] if self.keys else None
+        self.keys_list = list(self.keys)
+        self.keys = set(self.keys)
 
         columns = columns or {}
         self.columns = []
@@ -331,9 +334,10 @@ class BufrHeader:
         return value
 
     def last_key(self) -> str:
-        if self.keys:
-            return self.keys[-1]
-        return None
+        # if self.keys:
+        #     return self.keys[-1]
+        # return None
+        return self._last_key
 
     def columns_values(self) -> T.Dict[str, T.Any]:
         if self._columns_values is None:
@@ -362,7 +366,7 @@ class BufrHeader:
 
     def values(self) -> T.Dict[str, T.Any]:
         res = {}
-        for key in self.keys:
+        for key in self.keys_list:
             name = key
             value = self._get(key)
             res[name] = value

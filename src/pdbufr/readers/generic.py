@@ -117,7 +117,12 @@ def add_computed_keys(
     filters: Dict[str, BufrFilter] = {},
 ) -> Dict[str, Any]:
     augmented_observation = observation.copy()
-    for keys, computed_key, getter in COMPUTED_KEYS:
+    # for keys, computed_key, getter in COMPUTED_KEYS:
+    for ck in COMPUTED_KEYS.values():
+        computed_key = ck.column_name
+        keys = ck.bufr_keys
+        getter = ck.compute_method
+
         if computed_key not in filters:
             if computed_key not in included_keys:
                 continue
@@ -214,10 +219,10 @@ class GenericReader(Reader):
         included_keys = set(value_filters)
         included_keys |= set(columns)
         computed_keys = []
-        for keys, computed_key, _ in COMPUTED_KEYS:
-            if computed_key in included_keys:
-                included_keys |= set(keys)
-                computed_keys.append(computed_key)
+        for ck in COMPUTED_KEYS.values():
+            if ck.column_name in included_keys:
+                included_keys |= set(ck.bufr_keys)
+                computed_keys.append(ck.column_name)
 
         value_filters_without_computed = {k: v for k, v in value_filters.items() if k not in computed_keys}
 

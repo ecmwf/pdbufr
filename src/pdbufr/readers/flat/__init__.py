@@ -78,14 +78,14 @@ class ComputedColumn:
     prefix = ""
 
     def __init__(self, conf) -> None:
-        self.name = conf[1]
-        self.keys = conf[0]
+        self.name = conf.column_name
+        self.keys = conf.bufr_keys
         assert len(self.keys) > 0
         self.ranked_keys = [_parse_key(k)[1] for k in self.keys]
-        self.method = conf[2]
-        self.optional_keys = conf[3]
+        self.method = conf.compute_method
+        self.optional_keys = conf.optional_bufr_keys
         self.mandatory_keys = [k for k in self.keys if k not in self.optional_keys]
-        self.header_only = conf[4]
+        self.header_only = conf.header_only
 
     def get_value(self, accessor, ranked=True) -> Any:
         values = dict()
@@ -140,7 +140,7 @@ class ComputedColumn:
 #         self.cache[uid] = self._keys(message, self.columns, self.required_columns)
 
 
-COMPUTED_COLUMNS = {conf[1]: ComputedColumn(conf) for conf in COMPUTED_KEYS}
+COMPUTED_COLUMNS = {conf.column_name: ComputedColumn(conf) for conf in COMPUTED_KEYS.values()}
 
 
 # def test_computed_keys(
@@ -237,6 +237,8 @@ class FlatReader(Reader):
 
         # we assume computed keys are not using keys from the header
 
+        print("required_columns", required_columns)
+
         add_header = False
         add_data = False
         computed_columns = []
@@ -268,7 +270,7 @@ class FlatReader(Reader):
                     "when both 'header' and 'data' is specified no other columns can be specified"
                 )
 
-        if any(col in ("all", "header", "data   ") for col in columns):
+        if any(col in ("all", "header", "data") for col in columns):
             yield from self.read_blocks(
                 bufr_obj,
                 columns,
@@ -453,6 +455,7 @@ class FlatReader(Reader):
         prefilter_headers: bool = False,
         column_info: Any = None,
     ):
+
         # block_keys = ("all", "header", "data")
         # key_columns = [col for col in columns if col not in block_keys]
 
@@ -481,11 +484,19 @@ class FlatReader(Reader):
         # else:
         #     raise TypeError("required_columns must be a bool, str or an iterable")
 
+        print("required_columns", required_columns)
+
+        add_header = False
+        add_data = False
+
         if "all" in columns or "header" in columns:
             add_header = True
 
         if "all" in columns or "data" in columns:
             add_data = True
+
+        if not add_header and not add_data:
+            raise ValueError("at least one of 'header' or 'data' must be specified in columns")
 
         # filters
         filters = dict(filters)
@@ -505,19 +516,39 @@ class FlatReader(Reader):
             if name in COMPUTED_COLUMNS:
                 filters[name] = ComputedKeyFilter(COMPUTED_COLUMNS[name], filters[name])
             else:
-                filters[name] = RawKeyFilter(name, filters[name])
+                filters[name] = RawKeyFilter(SimpleColumn(name), filters[name])
 
         # all filters keys must be present so we do not need them in the required columns
         # required_columns = required_columns - set(filters.keys())
-
         if isinstance(required_columns, bool):
-            required_columns = set()
+            required_columns = []
+
+        #     if required_columns:
+        #         required_columns = columns
+        #     else:
+        #         required_columns = []
         elif isinstance(required_columns, str):
-            required_columns = {required_columns}
-        elif isinstance(required_columns, Iterable):
-            required_columns = set(required_columns)
-        else:
+            required_columns = [required_columns]
+        elif not isinstance(required_columns, Iterable):
             raise TypeError("required_columns must be a bool, str or an iterable")
+
+        print("required_columns", required_columns)
+
+        for k in required_columns:
+            if k in ("all", "header", "data"):
+                raise ValueError(
+                    f"invalid required column: {k} "
+                    f"(cannot be one of 'all', 'header' or 'data' when using block mode)"
+                )
+
+        # if isinstance(required_columns, bool):
+        #     required_columns = set()
+        # elif isinstance(required_columns, str):
+        #     required_columns = {required_columns}
+        # elif isinstance(required_columns, Iterable):
+        #     required_columns = set(required_columns)
+        # else:
+        #     raise TypeError("required_columns must be a bool, str or an iterable")
 
         required_columns, required_columns_keys, required_columns_names = self.prepare_required_columns(
             required_columns, filters
@@ -557,6 +588,9 @@ class FlatReader(Reader):
         if column_info is not None:
             column_info.first_count = 0
 
+        print("max count:", max_count)
+        print("count filter:", count_filter)
+
         for count, msg in enumerate(bufr_obj, 1):
             # We use a context manager to automatically delete the handle of the BufrMessage.
             # We have to use a wrapper object here because a message can also be a dict
@@ -574,9 +608,12 @@ class FlatReader(Reader):
                     continue
 
                 data_required_columns_keys = required_columns_keys
+                header_required_columns_keys = set()
                 if data_required_columns_keys:
                     data_required_columns_keys = data_required_columns_keys - header.keys
                     data_required_columns_keys = {k for k in data_required_columns_keys}
+                    if len(data_required_columns_keys) != required_columns_keys:
+                        header_required_columns_keys = required_columns_keys - data_required_columns_keys
 
                 # data_required_columns = required_columns
                 # if data_required_columns:
@@ -591,6 +628,7 @@ class FlatReader(Reader):
                     add_data,
                     data_filters,
                     add_filters,
+                    header_required_columns_keys,
                     data_required_columns_keys,
                 ):
                     if record:
@@ -764,11 +802,13 @@ class FlatReader(Reader):
     ) -> None:
         r = []
         for k in required_columns:
+            print("processing required column:", k)
             if isinstance(k, str):
                 if k in COMPUTED_COLUMNS:
-                    r.append(ComputedColumn(COMPUTED_COLUMNS[k]))
+                    # print(f"Adding computed column {COMPUTED_COLUMNS[k]} to required columns")
+                    r.append(COMPUTED_COLUMNS[k])
                 else:
-                    r.append(SimpleColumn(k).keys)
+                    r.append(SimpleColumn(k))
             else:
                 r.append(k)
 

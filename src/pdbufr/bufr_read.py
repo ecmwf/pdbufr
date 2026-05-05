@@ -33,6 +33,8 @@ def read_bufr(
 
     kwargs = dict(**kwargs)
     flat = kwargs.pop("flat", False)
+
+    print("kwargs", kwargs)
     reader = get_reader(reader, path_or_messages, flat=flat, columns=columns, **kwargs)
     return reader.execute()
     # return reader(columns=columns, **kwargs)

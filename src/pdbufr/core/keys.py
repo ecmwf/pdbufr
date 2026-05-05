@@ -222,7 +222,7 @@ def CRS_from_bufr(observation: Dict[str, Any], prefix: str, keys: List[str]) -> 
 #   5. header section keys only (True/False)
 
 # (list of bufr keys, computed column name, method to compute the column,
-COMPUTED_KEYS = [
+_COMPUTED_KEYS = [
     (
         ["year", "month", "day", "hour", "minute", "second"],
         "data_datetime",
@@ -295,5 +295,28 @@ COMPUTED_KEYS = [
 ]
 
 
-HEADER_COMPUTED_KEYS = {k[1]: k for k in COMPUTED_KEYS if k[4]}  # type: ignore
-DATA_COMPUTED_KEYS = {k[1]: k for k in COMPUTED_KEYS if not k[4]}  # type: ignore
+class ComputedKey:
+    def __init__(
+        self,
+        bufr_keys: List[str],
+        column_name: str,
+        compute_method,
+        optional_bufr_keys: List[str],
+        header_only: bool,
+    ):
+        self.bufr_keys = bufr_keys
+        self.column_name = column_name
+        self.compute_method = compute_method
+        self.optional_bufr_keys = optional_bufr_keys
+        self.header_only = header_only
+
+
+COMPUTED_KEYS = dict()
+for k in _COMPUTED_KEYS:
+    COMPUTED_KEYS[k[1]] = ComputedKey(*k)
+
+# HEADER_COMPUTED_KEYS = {k[1]: k for k in _COMPUTED_KEYS if k[4]}  # type: ignore
+# DATA_COMPUTED_KEYS = {k[1]: k for k in _COMPUTED_KEYS if not k[4]}  # type: ignore
+
+HEADER_COMPUTED_KEYS = {k: v for k, v in COMPUTED_KEYS.items() if v.header_only}
+DATA_COMPUTED_KEYS = {k: v for k, v in COMPUTED_KEYS.items() if not v.header_only}

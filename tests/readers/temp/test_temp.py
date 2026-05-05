@@ -31,9 +31,7 @@ DATA = _get_data()
 
 
 def test_temp_reader():
-    df = pdbufr.read_bufr(
-        TEST_DATA_CLASSIC, reader="temp", filters={"count": 1}
-    )
+    df = pdbufr.read_bufr(TEST_DATA_CLASSIC, reader="temp", filters={"count": 1})
     df = df.replace({None: np.nan})
 
     # r = df.to_dict()
