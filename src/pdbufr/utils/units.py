@@ -64,9 +64,7 @@ class UnitsConverter(metaclass=ABCMeta):
         pass
 
     @staticmethod
-    def make(
-        unit_system: Optional[str], units: Optional[Union[str, Dict[str, str]]] = None
-    ) -> "UnitsConverter":
+    def make(unit_system: Optional[str], units: Optional[Union[str, Dict[str, str]]] = None) -> "UnitsConverter":
         base = None
         if unit_system is not None:
             if unit_system == "pdbufr":

@@ -131,9 +131,7 @@ class RankedUncompressedBufrKey:
 IS_KEY_COORD = {"subsetNumber": True, "operator": False}
 
 
-def datetime_from_bufr(
-    observation: Dict[str, Any], prefix: str, datetime_keys: List[str]
-) -> datetime.datetime:
+def datetime_from_bufr(observation: Dict[str, Any], prefix: str, datetime_keys: List[str]) -> datetime.datetime:
     hours = observation.get(prefix + datetime_keys[3], 0)
     minutes = observation.get(prefix + datetime_keys[4], 0)
     seconds = observation.get(prefix + datetime_keys[5], 0.0)

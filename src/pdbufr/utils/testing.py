@@ -41,9 +41,7 @@ def get_remote_test_data_path(filename: str, subfolder: str) -> str:
     return os.path.join(URL_ROOT, subfolder, filename)
 
 
-def get_remote_test_data(
-    filename: Union[str, List[str]], subfolder: Optional[str] = None
-) -> Union[str, List[str]]:
+def get_remote_test_data(filename: Union[str, List[str]], subfolder: Optional[str] = None) -> Union[str, List[str]]:
     if not isinstance(filename, list):
         filename = [filename]
 

@@ -66,9 +66,7 @@ class Reader(metaclass=ABCMeta):
     #     return pd.DataFrame.from_records(rows)
 
     @abstractmethod
-    def read_records(
-        self, bufr_obj: Iterable[MutableMapping[str, Any]], **kwargs: Any
-    ) -> Iterator[Dict[str, Any]]:
+    def read_records(self, bufr_obj: Iterable[MutableMapping[str, Any]], **kwargs: Any) -> Iterator[Dict[str, Any]]:
         pass
 
     @abstractmethod
@@ -79,9 +77,7 @@ class Reader(metaclass=ABCMeta):
 class ReaderMaker:
     READERS = {}
 
-    def __call__(
-        self, name_or_reader: Union[str, Reader], *args: Any, flat: bool = False, **kwargs
-    ) -> Reader:
+    def __call__(self, name_or_reader: Union[str, Reader], *args: Any, flat: bool = False, **kwargs) -> Reader:
         if isinstance(name_or_reader, Reader):
             return name_or_reader
 

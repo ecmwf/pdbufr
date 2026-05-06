@@ -107,8 +107,6 @@ class BufrMessage(CodesMessage):
 
 
 class BufrFile(CodesFile):
-    __doc__ = "\n".join(CodesFile.__doc__.splitlines()[4:]).format(
-        prod_type="BUFR", classname="BufrFile", alias="bufr"
-    )
+    __doc__ = "\n".join(CodesFile.__doc__.splitlines()[4:]).format(prod_type="BUFR", classname="BufrFile", alias="bufr")
 
     MessageClass = BufrMessage

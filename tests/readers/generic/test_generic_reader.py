@@ -815,9 +815,7 @@ def test_bufr_header() -> None:
 
 @pytest.mark.parametrize("_kwargs", [{"prefilter_headers": False}, {"prefilter_headers": True}])
 def test_ident(_kwargs: dict) -> None:
-    assert_simple_key_core(
-        TEST_DATA_10, "airTemperature", "ident", "91348", np.array([298.4]), part=True, **_kwargs
-    )
+    assert_simple_key_core(TEST_DATA_10, "airTemperature", "ident", "91348", np.array([298.4]), part=True, **_kwargs)
 
     assert_simple_key_core(
         TEST_DATA_10,

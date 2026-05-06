@@ -108,60 +108,7 @@ class ComputedColumn:
         return computed_value
 
 
-# class StructureCache:
-#     def __init__(self, required_columns, columns) -> None:
-#         self.cache = dict()
-#         self.required_columns = required_columns
-#         self.columns = columns
-
-#     def create_uid(self, message: Mapping[str, Any]) -> str:
-#         return make_message_uid(message)
-
-#     def get(self, uid: str) -> Any:
-#         return self.cache.get(uid, None)
-
-#     @staticmethod
-#     def _keys(message, columns, required_columns):
-#         message = MessageWrapper.wrap_methods(message)
-#         if required_columns:
-#             if not all(key in message for key in required_columns):
-#                 return []
-
-#         result = []
-#         for key in columns:
-#             if key in required_columns or key in message:
-#                 result.append(key)
-
-#         return result
-
-#     def add(self, uid: str, message) -> None:
-#         if uid in self.cache:
-#             return
-#         self.cache[uid] = self._keys(message, self.columns, self.required_columns)
-
-
 COMPUTED_COLUMNS = {conf.column_name: ComputedColumn(conf) for conf in COMPUTED_KEYS.values()}
-
-
-# def test_computed_keys(
-#     observation: Dict[str, Any],
-#     filters: Dict[str, BufrFilter] = {},
-#     prefix: str = "",
-# ) -> bool:
-#     # print("testing computed keys with filters:", filters, prefix)
-#     for keys, computed_key, getter in COMPUTED_KEYS:
-#         if computed_key in filters:
-#             computed_value = None
-#             try:
-#                 computed_value = getter(observation, prefix, keys)
-#             except Exception:
-#                 return False
-#             if computed_value is not None:
-#                 if not filters[computed_key].match(computed_value):
-#                     return False
-#             else:
-#                 return False
-#     return True
 
 
 class FlatReader(Reader):
@@ -234,14 +181,27 @@ class FlatReader(Reader):
         prefilter_headers: bool = False,
         column_info: Any = None,
     ) -> Iterator[Dict[str, Any]]:
+        """
+        Read records from a BUFR message, either by blocks (header and data sections) or by keys.
 
-        # we assume computed keys are not using keys from the header
-
-        print("required_columns", required_columns)
-
-        add_header = False
-        add_data = False
-        computed_columns = []
+        Parameters
+        ----------
+        bufr_obj: Iterable[MutableMapping[str, Any]]
+            An iterable of BUFR messages (e.g. a list of eccodes.Message objects or a list of dicts).
+        columns: Union[Sequence[str], str]
+            The columns to read from the BUFR messages. Can be a list of column names or a single
+            string (e.g. "all", "header", "data").
+        filters: Mapping[str, Any]
+            A mapping of column names to filter values. The filters will be applied to the corresponding columns in the
+            BUFR messages. The filter values can be of any type supported by BufrFilter.from_user.
+        filter_columns: bool
+            Whether to add the columns used in the filters to the output records (default: True).
+        required_columns: Union[bool, Iterable[str]]
+            The columns that are required to be present in the output records. Can be a boolean (True means all columns, False means no columns) or a list of column names (default: True).
+        prefilter_headers: bool
+            Whether to apply the filters to the header keys before unpacking the data (default: False).
+        column_info: Any
+        """
         add_filters = filter_columns
 
         # columns
@@ -255,8 +215,6 @@ class FlatReader(Reader):
 
         assert len(columns) > 0
 
-        print("columns:", columns)
-
         for col in columns:
             if not isinstance(col, str):
                 raise TypeError(f"all columns must be strings! {col} is a {type(col)}")
@@ -266,9 +224,7 @@ class FlatReader(Reader):
                 raise ValueError("when 'all' is specified no other columns can be specified")
         elif "header" in columns and "data" in columns:
             if len(columns) > 2:
-                raise ValueError(
-                    "when both 'header' and 'data' is specified no other columns can be specified"
-                )
+                raise ValueError("when both 'header' and 'data' is specified no other columns can be specified")
 
         if any(col in ("all", "header", "data") for col in columns):
             yield from self.read_blocks(
@@ -291,160 +247,6 @@ class FlatReader(Reader):
             )
         return
 
-        if "all" in columns or "header" in columns:
-            add_header = True
-
-        if "all" in columns or "data" in columns:
-            add_data = True
-
-        block_keys = ("all", "header", "data")
-        key_columns = [col for col in columns if col not in block_keys]
-
-        block_mode = add_header or add_data
-
-        # convert to column objects
-        columns = dict()
-        for k in key_columns:
-            name = k
-            if name in COMPUTED_COLUMNS:
-                columns[k] = ComputedColumn(COMPUTED_COLUMNS[name])
-            else:
-                columns[k] = RawColumn(name)
-
-        # if isinstance(required_columns, bool):
-        #     if block_mode:
-        #         required_columns = set()
-        #     elif required_columns:
-        #         required_columns = set(columns.keys())
-        #     else:
-        #         required_columns = set()
-        # elif isinstance(required_columns, str):
-        #     required_columns = {required_columns}
-        # elif isinstance(required_columns, Iterable):
-        #     required_columns = set(required_columns)
-        # else:
-        #     raise TypeError("required_columns must be a bool, str or an iterable")
-
-        # filters
-        filters = dict(filters)
-        filters = {k: BufrFilter.from_user(filters[k], key=k) for k in filters}
-
-        # prepare count filter
-        if "count" in filters:
-            max_count = filters["count"].max()
-        else:
-            max_count = None
-
-        count_filter = filters.pop("count", None)
-
-        # convert to filter objects
-        all_filters_keys = []
-        for k in list(filters.keys()):
-            name = k
-            if name in COMPUTED_COLUMNS:
-                filters[name] = ComputedKeyFilter(COMPUTED_COLUMNS[name], filters[name])
-                all_filters_keys.extend(filters[name].keys)
-            else:
-                filters[name] = RawKeyFilter(name, filters[name])
-                all_filters_keys.append(name)
-
-        # all filters keys must be present so we do not need them in the required columns
-        # required_columns = required_columns - set(filters.keys())
-
-        if isinstance(required_columns, bool):
-            if block_mode:
-                required_columns = set()
-            elif required_columns:
-                required_columns = set(columns.keys())
-            else:
-                required_columns = set()
-        elif isinstance(required_columns, str):
-            required_columns = {required_columns}
-        elif isinstance(required_columns, Iterable):
-            required_columns = set(required_columns)
-        else:
-            raise TypeError("required_columns must be a bool, str or an iterable")
-
-        r = []
-        for k in required_columns:
-            if isinstance(k, str):
-                if k in COMPUTED_COLUMNS:
-                    r.append(ComputedColumn(COMPUTED_COLUMNS[k]))
-                else:
-                    r.append(RawColumn(k).keys)
-            else:
-                r.append(k)
-
-        for k, v in filters.items():
-            r.append(v.column)
-
-        required_columns = r
-
-        if column_info is not None:
-            column_info.first_count = 0
-
-        structure_cache = StructureCache(required_columns, columns)
-
-        for count, msg in enumerate(bufr_obj, 1):
-            # We use a context manager to automatically delete the handle of the BufrMessage.
-            # We have to use a wrapper object here because a message can also be a dict
-            with MessageWrapper.wrap_context(msg) as message:
-                # count filter
-                if count_filter is not None and not count_filter.match(count):
-                    continue
-
-                header = BufrHeader(message, columns, filters)
-                data_filters = {k: v for k, v in filters.items() if k not in header.filters}
-                data_columns = {k: v for k, v in columns.items() if k not in header.columns}
-
-                # test filters on header keys before unpacking
-                if prefilter_headers and not header.filters_match():
-                    continue
-
-                data_required_columns = required_columns
-                if data_required_columns:
-                    data_required_columns = data_required_columns - header.keys
-
-                # check computed keys in header
-                uid = structure_cache.create_uid(message)
-                state = structure_cache.get(uid)
-                if uid in structure_cache:
-                    if not structure_cache[uid]:
-                        return
-
-                # get full header or data sections
-                if add_header or add_data:
-                    for record in extract_blocks(
-                        message,
-                        header,
-                        add_header,
-                        add_data,
-                        data_filters,
-                        add_filters,
-                        data_required_columns,
-                    ):
-                        if record:
-                            if column_info is not None and column_info.first_count == 0:
-                                column_info.first_count = len(record)
-                            yield record
-
-                # get list of specific keys
-                else:
-                    for record in extract_keys(
-                        message,
-                        header,
-                        data_filters,
-                        add_filters,
-                        data_columns,
-                        data_required_columns,
-                    ):
-                        if record:
-                            yield record
-
-            # optimisation: skip decoding messages above max_count
-            if max_count is not None and count >= max_count:
-                break
-
     def read_blocks(
         self,
         bufr_obj: Iterable[MutableMapping[str, Any]],
@@ -455,36 +257,6 @@ class FlatReader(Reader):
         prefilter_headers: bool = False,
         column_info: Any = None,
     ):
-
-        # block_keys = ("all", "header", "data")
-        # key_columns = [col for col in columns if col not in block_keys]
-
-        # block_mode = add_header or add_data
-
-        # convert to column objects
-        # columns = dict()
-        # for k in key_columns:
-        #     name = k
-        #     if name in COMPUTED_COLUMNS:
-        #         columns[k] = ComputedColumn(COMPUTED_COLUMNS[name])
-        #     else:
-        #         columns[k] = SimpleColumn(name)
-
-        # if isinstance(required_columns, bool):
-        #     if block_mode:
-        #         required_columns = set()
-        #     elif required_columns:
-        #         required_columns = set(columns.keys())
-        #     else:
-        #         required_columns = set()
-        # elif isinstance(required_columns, str):
-        #     required_columns = {required_columns}
-        # elif isinstance(required_columns, Iterable):
-        #     required_columns = set(required_columns)
-        # else:
-        #     raise TypeError("required_columns must be a bool, str or an iterable")
-
-        print("required_columns", required_columns)
 
         add_header = False
         add_data = False
@@ -541,55 +313,12 @@ class FlatReader(Reader):
                     f"(cannot be one of 'all', 'header' or 'data' when using block mode)"
                 )
 
-        # if isinstance(required_columns, bool):
-        #     required_columns = set()
-        # elif isinstance(required_columns, str):
-        #     required_columns = {required_columns}
-        # elif isinstance(required_columns, Iterable):
-        #     required_columns = set(required_columns)
-        # else:
-        #     raise TypeError("required_columns must be a bool, str or an iterable")
-
         required_columns, required_columns_keys, required_columns_names = self.prepare_required_columns(
             required_columns, filters
         )
 
-        # r = []
-        # for k in required_columns:
-        #     if isinstance(k, str):
-        #         if k in COMPUTED_COLUMNS:
-        #             r.append(ComputedColumn(COMPUTED_COLUMNS[k]))
-        #         else:
-        #             r.append(SimpleColumn(k).keys)
-        #     else:
-        #         r.append(k)
-
-        # for k, v in filters.items():
-        #     r.append(v.column)
-
-        # required_columns = r
-
-        # required_columns_keys = set()
-        # required_columns_names = set()
-        # for col in required_columns:
-        #     required_columns_names.add(col.name)
-        #     if hasattr(col, "header_only"):
-        #         if not col.header_only:
-        #             required_columns_keys.update(col.mandatory_keys)
-        #     else:
-        #         required_columns_keys.update(col.mandatory_keys)
-
-        # def ensure_rank(key):
-        #     if key.startswith("#"):
-        #         return key
-        #     else:
-        #         return f"#1#{key}"
-
         if column_info is not None:
             column_info.first_count = 0
-
-        print("max count:", max_count)
-        print("count filter:", count_filter)
 
         for count, msg in enumerate(bufr_obj, 1):
             # We use a context manager to automatically delete the handle of the BufrMessage.
@@ -702,47 +431,6 @@ class FlatReader(Reader):
         required_columns, required_columns_keys, required_columns_names = self.prepare_required_columns(
             required_columns, filters
         )
-
-        # print("required_columns after processing:", required_columns)
-        # r = []
-        # for k in required_columns:
-        #     if isinstance(k, str):
-        #         if k in COMPUTED_COLUMNS:
-        #             r.append(COMPUTED_COLUMNS[k])
-        #         else:
-        #             r.append(SimpleColumn(k))
-        #     else:
-        #         r.append(k)
-
-        # for k, v in filters.items():
-        #     r.append(v.column)
-
-        # print("required_columns after processing:", r)
-
-        # required_columns = r
-        # required_columns_keys = set()
-        # required_columns_names = set()
-        # for col in required_columns:
-        #     required_columns_names.add(col.name)
-        #     if hasattr(col, "header_only"):
-        #         if not col.header_only:
-        #             required_columns_keys.update(col.mandatory_keys)
-        #     else:
-        #         required_columns_keys.update(col.mandatory_keys)
-
-        # columns_keys = set()
-        # columns_names = set()
-        # for col in columns.values():
-        #     columns_keys.update(col.keys)
-        #     columns_names.add(col.name)
-
-        # print("columns_keys:", columns_keys)
-        # print("columns_names:", columns_names)
-
-        # print("required_columns_keys:", required_columns_keys)
-        # print("required_columns_names:", required_columns_names)
-
-        # structure_cache = StructureCache(required_columns, columns)
 
         def ensure_rank(key):
             if key.startswith("#"):

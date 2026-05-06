@@ -274,9 +274,7 @@ def test_read_flat_bufr_key_standard_filters(prefilter_headers, _kwargs, num_row
         ),
     ],
 )
-def test_read_flat_bufr_key_compressed_core_header(
-    prefilter_headers, _kwargs, num_rows, ref_rows, ref
-) -> None:
+def test_read_flat_bufr_key_compressed_core_header(prefilter_headers, _kwargs, num_rows, ref_rows, ref) -> None:
     # The message structure is the same in all the messages
     # but some have #1#totalPrecipitationPast6Hours while
     # others have #1#totalPrecipitationPast24Hours at the
@@ -474,9 +472,7 @@ def test_read_flat_bufr_key_compressed_core_data(prefilter_headers, _kwargs, num
         ),
     ],
 )
-def test_read_flat_bufr_key_compressed_core_mixed(
-    prefilter_headers, _kwargs, num_rows, ref_rows, ref
-) -> None:
+def test_read_flat_bufr_key_compressed_core_mixed(prefilter_headers, _kwargs, num_rows, ref_rows, ref) -> None:
     # The message structure is the same in all the messages
     # but some have #1#totalPrecipitationPast6Hours while
     # others have #1#totalPrecipitationPast24Hours at the
@@ -547,9 +543,7 @@ def test_read_flat_bufr_key_compressed_filters(prefilter_headers, _kwargs, num_r
         ),
     ],
 )
-def test_read_flat_bufr_key_uncompressed_core_header(
-    prefilter_headers, _kwargs, num_rows, ref_rows, ref
-) -> None:
+def test_read_flat_bufr_key_uncompressed_core_header(prefilter_headers, _kwargs, num_rows, ref_rows, ref) -> None:
     """Use only header section keys"""
     df = pdbufr.read_bufr(TEST_DATA_2, flat=True, **_kwargs, prefilter_headers=prefilter_headers)
     _compare_df(df, num_rows, ref_rows, ref)
@@ -658,9 +652,7 @@ def test_read_flat_bufr_key_uncompressed_core_header(
         ),
     ],
 )
-def test_read_flat_bufr_key_uncompressed_core_data(
-    prefilter_headers, _kwargs, num_rows, ref_rows, ref
-) -> None:
+def test_read_flat_bufr_key_uncompressed_core_data(prefilter_headers, _kwargs, num_rows, ref_rows, ref) -> None:
     """Use only data section keys"""
     df = pdbufr.read_bufr(TEST_DATA_2, flat=True, **_kwargs, prefilter_headers=prefilter_headers)
     _compare_df(df, num_rows, ref_rows, ref)
@@ -702,9 +694,7 @@ def test_read_flat_bufr_key_uncompressed_core_data(
         ),
     ],
 )
-def test_read_flat_bufr_key_uncompressed_core_mixed(
-    prefilter_headers, _kwargs, num_rows, ref_rows, ref
-) -> None:
+def test_read_flat_bufr_key_uncompressed_core_mixed(prefilter_headers, _kwargs, num_rows, ref_rows, ref) -> None:
     """Use both header and data section keys"""
     df = pdbufr.read_bufr(TEST_DATA_2, flat=True, **_kwargs, prefilter_headers=prefilter_headers)
     print(df)

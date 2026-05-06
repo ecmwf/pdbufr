@@ -30,6 +30,8 @@ SKIP_KEYS = {
     "operator",
 }
 
+SKIP_HEADER_KEYS = {"unexpandedDescriptors"}
+
 
 class RefRank:
     def __init__(self, value=-1):
@@ -54,9 +56,6 @@ def extract_blocks(
     data_required_columns_keys: Set[str] = set(),
 ) -> Iterator[Dict[str, Any]]:
 
-    print(
-        f"extracting blocks with filters: {add_header=}, {add_data=}, {data_filters=}, {add_filters=}, {data_required_columns_keys=}"
-    )
     try:
         is_compressed = bool(message["compressedData"])
     except KeyError:
@@ -198,9 +197,6 @@ def extract_blocks_compressed(
         if header_required_columns_keys:
             result.update({k: header._get(k) for k in header_required_columns_keys if k in header})
 
-    print("result", result)
-    print("header.last_key", header.last_key())
-
     if add_data or data_filters or data_required_columns_keys:
         # data_required_columns_match_count = 0
 
@@ -219,11 +215,7 @@ def extract_blocks_compressed(
 
             # extract compressed BUFR values. They are either numpy arrays (for numeric types)
             # or lists of strings
-            if (
-                key != "unexpandedDescriptors"
-                and isinstance(value, (np.ndarray, list))
-                and len(value) == subset_count
-            ):
+            if key != "unexpandedDescriptors" and isinstance(value, (np.ndarray, list)) and len(value) == subset_count:
                 value = value[subset]
 
             if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
@@ -236,12 +228,10 @@ def extract_blocks_compressed(
         # columns = list(data_filters.keys()) + list(data_required_columns_keys)
 
         for subset in range(subset_count):
-            print("SUBSET", subset)
             current_result = dict(result)
 
             matched = True
             for f in data_filters.values():
-                print(f" -> matching filter for key: {f.key}")
                 match, value = f.match_accessor(_get_value)
                 # print(f"    match: {match}, value: {value}")
                 if not match:
@@ -335,8 +325,12 @@ def extract_blocks_uncompressed(
         if header_required_columns_keys:
             result.update({k: header._get(k) for k in header_required_columns_keys if k in header})
 
-    print("result", result)
-    print("header.last_key", header.last_key())
+    if result:
+        for key in SKIP_HEADER_KEYS:
+            result.pop(key, None)
+
+    # print("result", result)
+    # print("header.last_key", header.last_key())
 
     if add_data or data_filters or data_required_columns_keys:
         message["skipExtraKeyAttributes"] = 1
@@ -344,23 +338,11 @@ def extract_blocks_uncompressed(
 
         if any(key not in message for key in data_required_columns_keys):
             # LOG.debug("missing required columns keys")
-            # print(" -> missing required columns keys")
             return
 
         # create set of all data keys to extract from a given subset
         # contains re-ranked keys
-        # subset_keys = set()
         ref_rank = {}
-        # for col in chain(data_filters.values(), data_columns.values()):
-        #     for key in col.keys:
-        #         if key not in subset_keys:
-        #             b = UncompressedBufrKey1.from_key(key)
-        #             subset_keys.add(b.ranked_name)
-        #             if b.name not in ref_rank:
-        #                 ref_rank[b.name] = RefRank()
-
-        # print("subset_keys:", subset_keys)
-        # print("ref_rank:", ref_rank)
 
         def _get_value(key):
             value = message.get(key)
@@ -371,60 +353,75 @@ def extract_blocks_uncompressed(
             return value
 
         subset_values = dict()
-        current_result = dict()
+
+        allowed_keys = set()
+        if not add_data:
+            allowed_keys.update(data_filters.keys())
+            if data_required_columns_keys:
+                allowed_keys.update(data_required_columns_keys)
 
         def _get_value_subset(key):
-            return subset_values.get(key)
+            if key.startswith("#"):
+                return subset_values.get(key)
+            else:
+                if key in subset_values:
+                    return subset_values[key]
+                else:
+                    rkey = "#1#" + key
+                    if rkey in subset_values:
+                        return subset_values[rkey]
 
-        # subset_keys_count = 0
-        # subset_keys_num = len(subset_keys)
+            return None
+
+        def _yield_subset():
+            current_result = dict(result)
+
+            # apply filters
+            matched = True
+            matched_keys = {}
+            for f in data_filters.values():
+                match, value = f.match_accessor(_get_value_subset)
+                if not match:
+                    matched = False
+                    break
+
+                if add_filters:
+                    matched_keys[f.key] = value
+
+            if not matched:
+                return None
+
+            if not add_data and matched_keys:
+                for k in matched_keys:
+                    subset_values.pop(k, None)
+
+            if add_data:
+                current_result["subsetNumber"] = subset
+
+            current_result.update(subset_values)
+
+            if current_result:
+                yield dict(current_result)
+
         subset = 0
         for key in message:
             if key == "subsetNumber":
-                print(" -> starting new subset")
-                # subset_keys_count = 0
                 if subset >= 1:
-                    print("    subset_values:", subset_values)
-
-                    current_result = dict(result)
-
-                    # generate result for previous subset
-                    matched = True
-                    # for f in data_filters.values():
-                    #     match, value = f.match(_get_value_subset)
-                    #     if not match:
-                    #         matched = False
-                    #         break
-
-                    #     if add_filters:
-                    #         current_result[f.key] = value
-                    if not matched:
-                        continue
-
-                        # b = UncompressedBufrKey1.from_key(key)
-                        # if b.name in ref_rank:
-                        #     ref_rank[b.name].set(b.rank)
-                        # else:
-                        #     ref_rank[b.name] = RefRank(b.rank)
-
-                        # v = _get_value(key)
-                        # reranked_key = b.rerank(ref_rank[b.name].value)
-                        # current_result[reranked_key] = v
-
-                    if current_result:
-                        # print("yielding:", current_result)
-                        yield dict(current_result)
-
-                    print(".    yielded current_result:", current_result)
+                    yield from _yield_subset()
 
                 subset += 1
-                # subset_values.clear()
-                current_result.clear()
                 for x in ref_rank.values():
                     x.reset()
 
             elif subset >= 1:
                 b = UncompressedBufrKey1.from_key(key)
+
+                if b.name in SKIP_KEYS:
+                    continue
+
+                if allowed_keys and not (key in allowed_keys or b.name in allowed_keys):
+                    continue
+
                 if b.name in ref_rank:
                     ref_rank[b.name].set(b.rank)
                 else:
@@ -432,29 +429,13 @@ def extract_blocks_uncompressed(
 
                 v = _get_value(key)
                 reranked_key = b.rerank(ref_rank[b.name].value)
-                current_result[reranked_key] = v
+                # print(f" -> processing data key: {reranked_key}")
+                subset_values[reranked_key] = v
 
         # last subset
-        # if subset_values:
-        #     current_result = dict(result)
+        if subset_values:
+            yield from _yield_subset()
 
-        # for f in data_filters.values():
-        #     match, value = f.match(_get_value_subset)
-        #     if not match:
-        #         return
-
-        #     if add_filters:
-        #         current_result[f.key] = value
-
-        # for key, c in data_columns.items():
-        #     # LOG.debug(f"getting data column key: {key}")
-        #     if key not in current_result:
-        #         v = c.get_value(_get_value_subset)
-        #         current_result[key] = v
-
-        if current_result:
-            # print("yielding:", current_result)
-            yield dict(current_result)
     else:
         if result:
             yield dict(result)

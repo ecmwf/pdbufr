@@ -131,9 +131,7 @@ def test_computedKeys_Filter_with_valid_value_2() -> None:
     required_columns = ["airTemperature"]
 
     # the input file contains messages with valid WMO_station_ids
-    rs = pdbufr.read_bufr(
-        TEST_DATA_SYNOP_WMOID, columns=columns, filters=filters, required_columns=required_columns
-    )
+    rs = pdbufr.read_bufr(TEST_DATA_SYNOP_WMOID, columns=columns, filters=filters, required_columns=required_columns)
     assert isinstance(rs, pd.DataFrame)
     assert len(rs) == 1
 
@@ -154,8 +152,6 @@ def test_computedKeys_Filter_with_missing_value_2() -> None:
     required_columns = ["airTemperature"]
 
     # the input file contains 3 messages with missing WMO_station_id
-    rs = pdbufr.read_bufr(
-        TEST_DATA_SYNOP_WIGOS, columns=columns, filters=filters, required_columns=required_columns
-    )
+    rs = pdbufr.read_bufr(TEST_DATA_SYNOP_WIGOS, columns=columns, filters=filters, required_columns=required_columns)
     assert isinstance(rs, pd.DataFrame)
     assert len(rs) == 0

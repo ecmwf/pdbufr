@@ -90,9 +90,7 @@ def extract_keys(
         )
 
 
-def extract_keys_standard(
-    message, header, data_filters, add_filters, data_columns, data_required_columns_keys
-):
+def extract_keys_standard(message, header, data_filters, add_filters, data_columns, data_required_columns_keys):
     result = dict()
 
     if not header.match_filters():
@@ -200,11 +198,7 @@ def extract_keys_compressed(
 
             # extract compressed BUFR values. They are either numpy arrays (for numeric types)
             # or lists of strings
-            if (
-                key != "unexpandedDescriptors"
-                and isinstance(value, (np.ndarray, list))
-                and len(value) == subset_count
-            ):
+            if key != "unexpandedDescriptors" and isinstance(value, (np.ndarray, list)) and len(value) == subset_count:
                 value = value[subset]
 
             if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
