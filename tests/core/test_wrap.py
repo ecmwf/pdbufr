@@ -11,9 +11,7 @@ import typing as T
 import numpy as np
 import pytest
 
-from pdbufr.core.structure import GetWrapper
-from pdbufr.core.structure import IsCoordWrapper
-from pdbufr.core.structure import MessageWrapper
+from pdbufr.core.structure import GetWrapper, IsCoordWrapper, MessageWrapper
 
 MESSAGES = [
     {
@@ -52,7 +50,7 @@ def _make_message_list(maker):
 
 @pytest.fixture
 def input_data_wrap_context() -> T.Any:
-    """Message class without context manager"""
+    """Message class without context manager."""
 
     class _Msg:
         def __init__(self, d: T.Any) -> None:
@@ -91,7 +89,7 @@ def input_data_wrap_context() -> T.Any:
 
 @pytest.fixture
 def input_data_wrap_get() -> T.Any:
-    """Message class without get method"""
+    """Message class without get method."""
 
     class _Msg:
         def __init__(self, d: T.Any) -> None:
@@ -133,7 +131,7 @@ def input_data_wrap_get() -> T.Any:
 
 @pytest.fixture
 def input_data_wrap_is_coord() -> T.Any:
-    """Message class without is_coord method"""
+    """Message class without is_coord method."""
 
     class _Msg:
         def __init__(self, d: T.Any) -> None:
@@ -178,7 +176,7 @@ def input_data_wrap_is_coord() -> T.Any:
 
 @pytest.fixture
 def input_data_wrap_context_and_get() -> T.Any:
-    """Message class without context manager"""
+    """Message class without context manager."""
 
     class _Msg:
         def __init__(self, d: T.Any) -> None:

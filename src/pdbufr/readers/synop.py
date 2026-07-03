@@ -8,29 +8,25 @@
 
 
 import logging
-from typing import Any
-from typing import Dict
-from typing import Generator
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Union
 
 import pandas as pd
 
 import pdbufr.core.param as PARAMS
-from pdbufr.core.accessor import Accessor
-from pdbufr.core.accessor import AccessorManager
-from pdbufr.core.accessor import AccessorManagerCache
-from pdbufr.core.accessor import CoordAccessor
-from pdbufr.core.accessor import DatetimeAccessor
-from pdbufr.core.accessor import ElevationAccessor
-from pdbufr.core.accessor import LatLonAccessor
-from pdbufr.core.accessor import MultiAllAccessor
-from pdbufr.core.accessor import MultiFirstAccessor
-from pdbufr.core.accessor import SidAccessor
-from pdbufr.core.accessor import SimpleAccessor
-from pdbufr.core.accessor import StationNameAccessor
+from pdbufr.core.accessor import (
+    Accessor,
+    AccessorManager,
+    AccessorManagerCache,
+    CoordAccessor,
+    DatetimeAccessor,
+    ElevationAccessor,
+    LatLonAccessor,
+    MultiAllAccessor,
+    MultiFirstAccessor,
+    SidAccessor,
+    SimpleAccessor,
+    StationNameAccessor,
+)
 from pdbufr.core.filters import ParamFilter
 from pdbufr.core.subset import BufrSubsetReader
 

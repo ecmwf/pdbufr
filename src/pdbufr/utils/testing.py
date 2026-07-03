@@ -7,9 +7,7 @@
 # nor does it submit to any jurisdiction.
 
 import os
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import List, Optional, Union
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 if not os.path.exists(os.path.join(ROOT_DIR, "tests", "data")):

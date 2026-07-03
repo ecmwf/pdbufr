@@ -6,10 +6,8 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-from abc import ABCMeta
-from abc import abstractmethod
-from typing import Any
-from typing import Tuple
+from abc import ABCMeta, abstractmethod
+from typing import Any, Tuple
 
 from pdbufr.core.filters import BufrFilter
 from pdbufr.core.keys import COMPUTED_KEYS

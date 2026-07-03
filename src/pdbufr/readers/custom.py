@@ -8,18 +8,12 @@
 
 import logging
 from abc import abstractmethod
-from typing import Any
-from typing import Dict
-from typing import Generator
-from typing import Optional
-from typing import Union
+from typing import Any, Dict, Generator, Optional, Union
 
 import pandas as pd  # type: ignore
 
-from pdbufr.core.filters import BufrFilter
-from pdbufr.core.filters import filters_match_header
-from pdbufr.core.structure import MessageWrapper
-from pdbufr.core.structure import filter_keys_cached
+from pdbufr.core.filters import BufrFilter, filters_match_header
+from pdbufr.core.structure import MessageWrapper, filter_keys_cached
 
 from . import Reader
 

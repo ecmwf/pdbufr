@@ -17,7 +17,7 @@ import eccodes
 
 @contextmanager
 def raise_keyerror(key):
-    """Make operations on a key raise a KeyError if not found"""
+    """Make operations on a key raise a KeyError if not found."""
     try:
         yield
     except eccodes.KeyValueNotFoundError:
@@ -26,8 +26,7 @@ def raise_keyerror(key):
 
 class CodesMessage(object):
     """
-    An abstract class to specify and/or implement common behaviour that
-    messages read by ecCodes should implement.
+    Abstract class to specify and/or implement common behaviour that messages read by ecCodes should implement.
 
     A {prod_type} message.
 
@@ -96,7 +95,7 @@ class CodesMessage(object):
         :param sample: A valid sample path to create ``CodesMessage`` from
         """
         if not other_args_found and codes_file is None and clone is None and sample is None:
-            raise RuntimeError("CodesMessage initialization parameters not " "present.")
+            raise RuntimeError("CodesMessage initialization parameters not present.")
         #: Unique ID, for ecCodes interface
         self.codes_id = None
         #: File containing message

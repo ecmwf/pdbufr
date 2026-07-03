@@ -9,13 +9,8 @@
 
 import logging
 import re
-from abc import ABCMeta
-from abc import abstractmethod
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
+from abc import ABCMeta, abstractmethod
+from typing import Any, Dict, List, Optional, Union
 
 import pdbufr.core.param as PARAMS
 from pdbufr.core.keys import COMPUTED_KEYS
@@ -366,9 +361,9 @@ class CoordAccessor(SimpleAccessor):
 
             # LOG.debug(f"Period: {period}, coords: {coords}, units: {units}")
 
-            assert len(r) <= len(
-                self.key_labels
-            ), f"Record {r} has more keys than expected: {self.key_labels}! {len(r)} != {len(self.key_labels)}"
+            assert len(r) <= len(self.key_labels), (
+                f"Record {r} has more keys than expected: {self.key_labels}! {len(r)} != {len(self.key_labels)}"
+            )
 
             for k, v in r.items():
                 if k in self.key_labels:

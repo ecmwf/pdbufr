@@ -8,17 +8,9 @@
 
 import logging
 import os
-from abc import ABCMeta
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from importlib import import_module
-from typing import Any
-from typing import Dict
-from typing import Iterable
-from typing import Iterator
-from typing import List
-from typing import MutableMapping
-from typing import Optional
-from typing import Union
+from typing import Any, Dict, Iterable, Iterator, MutableMapping, Union
 
 import pandas as pd  # type: ignore
 

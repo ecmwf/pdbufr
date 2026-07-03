@@ -7,12 +7,7 @@
 # nor does it submit to any jurisdiction.
 
 import os
-from typing import TYPE_CHECKING
-from typing import Any
-from typing import Iterable
-from typing import MutableMapping
-from typing import Sequence
-from typing import Union
+from typing import TYPE_CHECKING, Any, Iterable, MutableMapping, Sequence, Union
 
 if TYPE_CHECKING:
     import pandas as pd  # type: ignore
@@ -25,10 +20,7 @@ def read_bufr(
     reader: str = "generic",
     **kwargs: Any,
 ) -> "pd.DataFrame":
-    """
-    Read selected observations from a BUFR file into DataFrame.
-    """
-
+    """Read selected observations from a BUFR file into DataFrame."""
     from .readers import get_reader
 
     kwargs = dict(**kwargs)

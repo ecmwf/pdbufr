@@ -9,8 +9,7 @@
 import collections
 import typing as T
 
-from pdbufr.core.keys import IS_KEY_COORD
-from pdbufr.core.keys import BufrKey
+from pdbufr.core.keys import IS_KEY_COORD, BufrKey
 from pdbufr.high_level_bufr.bufr import bufr_code_is_coord
 
 
@@ -144,7 +143,7 @@ class IsCoordWrapper(MessageWrapper):
 
 
 class IsCoordCache:
-    """Caches if a BUFR key is a coordinate descriptor"""
+    """Caches if a BUFR key is a coordinate descriptor."""
 
     def __init__(self, message: T.Any) -> None:
         self.message = message

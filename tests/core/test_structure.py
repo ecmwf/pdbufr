@@ -14,13 +14,8 @@ import pytest
 
 from pdbufr import stream_bufr
 from pdbufr.core.filters import BufrFilter
-from pdbufr.core.keys import BufrKey
-from pdbufr.core.keys import datetime_from_bufr
-from pdbufr.core.keys import wigos_id_from_bufr
-from pdbufr.core.keys import wmo_station_id_from_bufr
-from pdbufr.core.structure import filter_keys
-from pdbufr.core.structure import filter_keys_cached
-from pdbufr.core.structure import message_structure
+from pdbufr.core.keys import BufrKey, datetime_from_bufr, wigos_id_from_bufr, wmo_station_id_from_bufr
+from pdbufr.core.structure import filter_keys, filter_keys_cached, message_structure
 from pdbufr.readers.generic import extract_observations
 
 
@@ -431,9 +426,7 @@ def test_stream_bufr() -> None:
 
 
 def test_code_is_coord() -> None:
-    """Ensures that the different ways of identifying a coordinate key from
-    the BUFR descriptor/code agree"""
-
+    """Ensures that the different ways of identifying a coordinate key from the BUFR descriptor/code agree."""
     from pdbufr.high_level_bufr.bufr import bufr_code_is_coord
 
     data = {

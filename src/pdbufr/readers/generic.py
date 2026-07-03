@@ -7,29 +7,28 @@
 # nor does it submit to any jurisdiction.
 
 import collections
-from typing import Any
-from typing import Container
-from typing import Dict
-from typing import Hashable
-from typing import Iterable
-from typing import Iterator
-from typing import List
-from typing import Mapping
-from typing import MutableMapping
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from typing import (
+    Any,
+    Container,
+    Dict,
+    Hashable,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import eccodes  # type: ignore
 import numpy as np
 
-from pdbufr.core.filters import BufrFilter
-from pdbufr.core.filters import filters_match_header
-from pdbufr.core.keys import COMPUTED_KEYS
-from pdbufr.core.keys import BufrKey
-from pdbufr.core.structure import MessageWrapper
-from pdbufr.core.structure import filter_keys_cached
+from pdbufr.core.filters import BufrFilter, filters_match_header
+from pdbufr.core.keys import COMPUTED_KEYS, BufrKey
+from pdbufr.core.structure import MessageWrapper, filter_keys_cached
 
 from . import Reader
 
