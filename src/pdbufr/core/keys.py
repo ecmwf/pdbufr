@@ -51,83 +51,6 @@ class BufrKey:
         return prefix + self.name
 
 
-class UncompressedBufrKey1:
-    def __init__(self, key, name: str, rank):
-        self.key = key
-        self.name = name
-        self.rank = rank
-        self.ranked_name = f"#{rank}#{name}" if rank > 0 else name
-
-    @classmethod
-    def from_key(cls, key: str) -> "UncompressedBufrKey1":
-        rank_text, sep, name = key.rpartition("#")
-        try:
-            if sep == "#":
-                rank = int(rank_text[1:])
-            else:
-                rank = 1
-        except Exception:
-            rank = 1
-
-        return cls(key, name, rank)
-
-    def rerank(self, base_rank: int) -> str:
-        rel_rank = self.rank - base_rank + 1
-        if rel_rank > 0:
-            return f"#{rel_rank}#{self.name}"
-        else:
-            return self.ranked_name
-
-
-@attr.attrs(auto_attribs=True)
-class UncompressedBufrKey:
-    current_rank: int
-    ref_rank: int
-    name: str
-
-    @classmethod
-    def from_key(cls, key: str) -> "UncompressedBufrKey":
-        rank_text, sep, name = key.rpartition("#")
-        try:
-            if sep == "#":
-                rank = int(rank_text[1:])
-            else:
-                rank = 0
-        except Exception:
-            rank = 0
-
-        return cls(rank, 0, name)
-
-    def update_rank(self, key: str) -> None:
-        self.current_rank = rank_from_key(key)
-
-    def adjust_ref_rank(self) -> None:
-        self.ref_rank = self.current_rank
-
-    @property
-    def relative_key(self) -> str:
-        if self.current_rank > 0:
-            rel_rank = self.current_rank - self.ref_rank
-            prefix = f"#{rel_rank}#"
-        else:
-            prefix = ""
-        return prefix + self.name
-
-
-class RankedUncompressedBufrKey:
-    def __init__(self, key):
-        self.key = key
-        rank_text, sep, _ = key.rpartition("#")
-        try:
-            if sep == "#":
-                rank = int(rank_text[1:])
-            else:
-                rank = 0
-        except Exception:
-            rank = 0
-        self.base_rank = rank
-
-
 IS_KEY_COORD = {"subsetNumber": True, "operator": False}
 
 
@@ -312,9 +235,6 @@ class ComputedKey:
 COMPUTED_KEYS = dict()
 for k in _COMPUTED_KEYS:
     COMPUTED_KEYS[k[1]] = ComputedKey(*k)
-
-# HEADER_COMPUTED_KEYS = {k[1]: k for k in _COMPUTED_KEYS if k[4]}  # type: ignore
-# DATA_COMPUTED_KEYS = {k[1]: k for k in _COMPUTED_KEYS if not k[4]}  # type: ignore
 
 HEADER_COMPUTED_KEYS = {k: v for k, v in COMPUTED_KEYS.items() if v.header_only}
 DATA_COMPUTED_KEYS = {k: v for k, v in COMPUTED_KEYS.items() if not v.header_only}

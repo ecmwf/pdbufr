@@ -10,8 +10,6 @@ from itertools import chain
 
 import eccodes
 
-from pdbufr.core.keys import UncompressedBufrKey1
-
 SKIP_KEYS = {
     "unexpandedDescriptors",
     "shortDelayedDescriptorReplicationFactor",
@@ -22,6 +20,34 @@ SKIP_KEYS = {
     "dataPresentIndicator",
     "operator",
 }
+
+
+class UncompressedBufrKey1:
+    def __init__(self, key, name: str, rank):
+        self.key = key
+        self.name = name
+        self.rank = rank
+        self.ranked_name = f"#{rank}#{name}" if rank > 0 else name
+
+    @classmethod
+    def from_key(cls, key: str) -> "UncompressedBufrKey1":
+        rank_text, sep, name = key.rpartition("#")
+        try:
+            if sep == "#":
+                rank = int(rank_text[1:])
+            else:
+                rank = 1
+        except Exception:
+            rank = 1
+
+        return cls(key, name, rank)
+
+    def rerank(self, base_rank: int) -> str:
+        rel_rank = self.rank - base_rank + 1
+        if rel_rank > 0:
+            return f"#{rel_rank}#{self.name}"
+        else:
+            return self.ranked_name
 
 
 class RefRank:

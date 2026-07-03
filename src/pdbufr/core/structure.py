@@ -246,35 +246,6 @@ def filter_keys_cached(
     return cache[filtered_message_uid]
 
 
-def filter_keys_1(
-    message: T.Mapping[str, T.Any],
-    columns: T.Container[str] = (),
-) -> T.Iterator[BufrKey]:
-
-    message = MessageWrapper.wrap_methods(message)
-    found_cnt = 0
-    for key in message:
-        if key in columns:
-            columns[key] = True  # access to ensure key exists
-            found_cnt += 1
-
-        if found_cnt >= len(columns):
-            return
-
-
-def filter_keys_cached_1(
-    message: T.Mapping[str, T.Any],
-    cache: T.Dict[T.Tuple[T.Hashable, ...], T.List[BufrKey]],
-    include: T.Iterable[str] = (),
-) -> T.List[BufrKey]:
-    message_uid = make_message_uid(message)
-    include_uid = tuple(sorted(include))
-    filtered_message_uid: T.Tuple[T.Hashable, ...] = message_uid + include_uid
-    if filtered_message_uid not in cache:
-        cache[filtered_message_uid] = list(filter_keys_1(message, include_uid))
-    return cache[filtered_message_uid]
-
-
 class BufrHeader:
     def __init__(self, message, columns, filters) -> None:
         """Wraps a BUFR message header with filtering capabilities.
