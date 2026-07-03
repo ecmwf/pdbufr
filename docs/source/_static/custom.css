@@ -1,0 +1,121 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap");
+
+:root {
+    --font-stack: "Nunito", sans-serif;
+    --font-stack--monospace: "Nunito", sans-serif;
+}
+
+body {
+    font-family: "Nunito", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: "Nunito", sans-serif;
+}
+
+/* Sidebar solid background colour – matches earthkit family */
+.sidebar-drawer {
+    background: #262640;
+}
+
+/* SVG overlay – absolute on mobile so it collapses with the drawer */
+.sidebar-drawer::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url("octahedral-grid.svg") no-repeat top center / auto 150vh;
+    opacity: 0.08;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/*
+  On desktop, switch the overlay to position: fixed so it stays in place
+  while scrolling (avoids background-attachment:fixed Safari flicker).
+  Width values mirror Furo's own sidebar-drawer widths at each breakpoint.
+*/
+@media screen and (min-width: 63em) {
+    .sidebar-drawer::before {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: calc(50% - 18.5em);
+        min-width: 15em;
+        height: 100vh;
+    }
+}
+
+@media screen and (min-width: 82em) {
+    .sidebar-drawer::before {
+        width: calc(50% - 26em);
+    }
+}
+
+/* Homepage card icon styling */
+.sd-card .sd-card-img-top {
+    height: 100px;
+    width: auto;
+    object-fit: contain;
+    margin: 1rem auto 0 auto;
+    display: block;
+    background: transparent;
+    filter: brightness(0.8) invert(0.1);
+    transition: filter 0.2s ease;
+}
+
+/* Dark mode – explicit toggle */
+[data-theme="dark"] .sd-card .sd-card-img-top {
+    filter: invert(1) brightness(0.6);
+}
+
+/* Dark mode – auto theme following OS preference */
+@media (prefers-color-scheme: dark) {
+    body:not([data-theme="light"]) .sd-card .sd-card-img-top {
+        filter: invert(1) brightness(0.6);
+    }
+}
+
+/* pandas DataFrame dark-mode fix */
+@media (prefers-color-scheme: dark) {
+    body:not([data-theme="light"]) table.dataframe {
+        color: rgba(255, 255, 255, 0.87);
+        border-color: #555;
+    }
+
+    body:not([data-theme="light"]) table.dataframe th {
+        background-color: var(--color-background-secondary, #1a1c1e);
+        color: rgba(255, 255, 255, 0.87);
+        border-color: #555;
+    }
+
+    body:not([data-theme="light"]) table.dataframe td {
+        background-color: var(--color-background-primary, #131416);
+        color: rgba(255, 255, 255, 0.87);
+        border-color: #555;
+    }
+}
+
+body[data-theme="dark"] table.dataframe {
+    color: rgba(255, 255, 255, 0.87);
+    border-color: #555;
+}
+
+body[data-theme="dark"] table.dataframe th {
+    background-color: var(--color-background-secondary, #1a1c1e);
+    color: rgba(255, 255, 255, 0.87);
+    border-color: #555;
+}
+
+body[data-theme="dark"] table.dataframe td {
+    background-color: var(--color-background-primary, #131416);
+    color: rgba(255, 255, 255, 0.87);
+    border-color: #555;
+}

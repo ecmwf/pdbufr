@@ -62,9 +62,9 @@ Example
 Examples
 -----------
 
-    - :ref:`/examples/r_generic_aircraft.ipynb`
-    - :ref:`/examples/r_generic_ens.ipynb`
-    - :ref:`/examples/r_generic_radiosonde.ipynb`
-    - :ref:`/examples/r_generic_synop.ipynb`
-    - :ref:`/examples/r_generic_tropical_cyclone.ipynb`
-    - :ref:`/examples/r_generic_sat.ipynb`
+    - :ref:`/how-tos/r_generic_aircraft.ipynb`
+    - :ref:`/how-tos/r_generic_ens.ipynb`
+    - :ref:`/how-tos/r_generic_radiosonde.ipynb`
+    - :ref:`/how-tos/r_generic_synop.ipynb`
+    - :ref:`/how-tos/r_generic_tropical_cyclone.ipynb`
+    - :ref:`/how-tos/r_generic_sat.ipynb`

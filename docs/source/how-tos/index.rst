@@ -1,9 +1,9 @@
-.. _examples:
+.. _how-tos:
 
-Examples
+How-tos
 ============
 
-Here is a list of example notebooks to illustrate how to use pdbufr.
+A collection of notebooks demonstrating how to use pdbufr for common tasks.
 
 Generic reader
 ++++++++++++++

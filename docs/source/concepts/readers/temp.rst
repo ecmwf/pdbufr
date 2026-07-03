@@ -229,5 +229,5 @@ Filtering parameter values
 Examples
 ++++++++++++++++++++++++++++
 
- - :ref:`/examples/r_temp_overview.ipynb`
- - :ref:`/examples/r_temp_geopotential.ipynb`
+ - :ref:`/how-tos/r_temp_overview.ipynb`
+ - :ref:`/how-tos/r_temp_geopotential.ipynb`

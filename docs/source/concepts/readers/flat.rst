@@ -68,7 +68,7 @@ In the results the original :ref:`ecCodes keys <eccodes-bufr-keys>` containing t
 .. admonition:: Non-aligned columns in the output DataFrame
    :class: warning
 
-    Messages/subsets in a BUFR file can have a different set of BUFR keys. When a new message/subset is processed the :ref:`flat reader <flat-reader>` adds it to the resulting DataFrame as a new record and columns that are not yet present in the output are automatically appended by Pandas to the end changing the original order of keys for that message. When this happens pdbufr prints a warning message to the stdout (see the example below or the :ref:`/examples/r_flat.ipynb` notebook for details).
+    Messages/subsets in a BUFR file can have a different set of BUFR keys. When a new message/subset is processed the :ref:`flat reader <flat-reader>` adds it to the resulting DataFrame as a new record and columns that are not yet present in the output are automatically appended by Pandas to the end changing the original order of keys for that message. When this happens pdbufr prints a warning message to the stdout (see the example below or the :ref:`/how-tos/r_flat.ipynb` notebook for details).
 
 
 .. _flat-individual-key-extraction:
@@ -194,4 +194,4 @@ This warning can be disabled by using the **warnings** module. The code below pr
 Further examples
 -------------------
 
-- :ref:`/examples/r_flat.ipynb`
+- :ref:`/how-tos/r_flat.ipynb`
