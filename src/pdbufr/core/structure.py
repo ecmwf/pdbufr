@@ -320,10 +320,7 @@ class BufrHeader:
     def _get(self, key: str) -> T.Any:
         import eccodes
 
-        print("Getting header key:", key)
-
         value = self.message.get(key)
-        print(" -> header key:", key, "value:", value)
 
         # print(" -> header key:", key, "value:", value)
         if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:

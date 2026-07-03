@@ -6,9 +6,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-import collections
-from email.mime import message
-from sys import prefix
+import logging
 from typing import Any
 from typing import Dict
 from typing import Iterable
@@ -19,96 +17,18 @@ from typing import Sequence
 from typing import Set
 from typing import Union
 
-import eccodes  # type: ignore
-import numpy as np
 import pandas as pd  # type: ignore
 
-from pdbufr.core import structure
-from pdbufr.core.accessor import resolve_period_key
 from pdbufr.core.filters import BufrFilter
-from pdbufr.core.filters import ComputedKeyFilter
-from pdbufr.core.filters import RawKeyFilter
-from pdbufr.core.filters import filters_match_header
-from pdbufr.core.keys import COMPUTED_KEYS
-from pdbufr.core.keys import RankedUncompressedBufrKey
-from pdbufr.core.keys import UncompressedBufrKey
 from pdbufr.core.keys import rank_from_key
 from pdbufr.core.structure import BufrHeader
 from pdbufr.core.structure import MessageWrapper
-from pdbufr.core.structure import make_message_uid
 
 from .. import Reader
 from .block import extract_blocks
+from .column import create_column
+from .column import create_filter
 from .key import extract_keys
-
-
-def _parse_key(key) -> None:
-    if key.startswith("#"):
-        _, _, name = key.rpartition("#")
-        return name, key
-    else:
-        return key, f"#1#{key}"
-
-
-class SimpleColumn:
-    def __init__(self, name: str) -> None:
-        self.name = name
-        self.raw_key, self.ranked_key = _parse_key(name)
-
-        self.keys = [name]
-        self.mandatory_keys = [self.name]
-        self.optional_keys = []
-
-        self.header_only = False
-
-    def get_value(self, accessor, ranked=True) -> Any:
-        key = self.ranked_key if ranked else self.raw_key
-        return accessor(key)
-
-    @staticmethod
-    def _parse(key) -> None:
-        if key.startswith("#"):
-            _, _, name = key.rpartition("#")
-            return name, key
-        else:
-            return key, f"#1#{key}"
-
-
-class ComputedColumn:
-    prefix = ""
-
-    def __init__(self, conf) -> None:
-        self.name = conf.column_name
-        self.keys = conf.bufr_keys
-        assert len(self.keys) > 0
-        self.ranked_keys = [_parse_key(k)[1] for k in self.keys]
-        self.method = conf.compute_method
-        self.optional_keys = conf.optional_bufr_keys
-        self.mandatory_keys = [k for k in self.keys if k not in self.optional_keys]
-        self.header_only = conf.header_only
-
-    def get_value(self, accessor, ranked=True) -> Any:
-        values = dict()
-        if ranked:
-            for k, rk in zip(self.keys, self.ranked_keys):
-                if (v := accessor(rk)) is not None:
-                    values[k] = v
-        else:
-            values = {k: v for k in self.keys if (v := accessor(k)) is not None}
-
-        print(" -> computed column values:", values)
-        print("    keys:", self.keys)
-
-        computed_value = None
-        try:
-            computed_value = self.method(values, ComputedColumn.prefix, self.keys)
-        except Exception:
-            # print("Error computing value for", self.name, ":", e)
-            return None
-        return computed_value
-
-
-COMPUTED_COLUMNS = {conf.column_name: ComputedColumn(conf) for conf in COMPUTED_KEYS.values()}
 
 
 class FlatReader(Reader):
@@ -132,23 +52,9 @@ class FlatReader(Reader):
 
     def execute(
         self,
-        # columns: Union[Sequence[str], str] = [],
-        # filters: Mapping[str, Any] = {},
-        # required_columns: Union[bool, Iterable[str]] = True,
-        # **kwargs,
     ) -> pd.DataFrame:
-        # class ColumnInfo:
-        #     def __init__(self) -> None:
-        #         self.first_count = 0
 
-        # column_info = ColumnInfo()
-        df = super().execute(
-            # columns=columns,
-            # filters=filters,
-            # required_columns=required_columns,
-            # column_info=column_info,
-            # **kwargs,
-        )
+        df = super().execute()
 
         # compare the column count in the first record to that of the
         # dataframe. If the latter is larger, then there were non-aligned columns,
@@ -284,27 +190,16 @@ class FlatReader(Reader):
 
         # convert to filter objects
         for k in list(filters.keys()):
-            name = k
-            if name in COMPUTED_COLUMNS:
-                filters[name] = ComputedKeyFilter(COMPUTED_COLUMNS[name], filters[name])
-            else:
-                filters[name] = RawKeyFilter(SimpleColumn(name), filters[name])
+            filters[k] = create_filter(k, filters[k])
 
         # all filters keys must be present so we do not need them in the required columns
         # required_columns = required_columns - set(filters.keys())
         if isinstance(required_columns, bool):
             required_columns = []
-
-        #     if required_columns:
-        #         required_columns = columns
-        #     else:
-        #         required_columns = []
         elif isinstance(required_columns, str):
             required_columns = [required_columns]
         elif not isinstance(required_columns, Iterable):
             raise TypeError("required_columns must be a bool, str or an iterable")
-
-        print("required_columns", required_columns)
 
         for k in required_columns:
             if k in ("all", "header", "data"):
@@ -330,7 +225,6 @@ class FlatReader(Reader):
 
                 header = BufrHeader(message, None, filters)
                 data_filters = {k: v for k, v in filters.items() if k not in header.filters}
-                # data_columns = {k: v for k, v in columns.items() if k not in header.columns}
 
                 # test filters on header keys before unpacking
                 if prefilter_headers and not header.match_filters():
@@ -344,12 +238,7 @@ class FlatReader(Reader):
                     if len(data_required_columns_keys) != required_columns_keys:
                         header_required_columns_keys = required_columns_keys - data_required_columns_keys
 
-                # data_required_columns = required_columns
-                # if data_required_columns:
-                #     data_required_columns = data_required_columns - header.keys
-
                 # get full header or data sections
-
                 for record in extract_blocks(
                     message,
                     header,
@@ -385,13 +274,7 @@ class FlatReader(Reader):
         columns_input = list(columns)
         columns = dict()
         for k in columns_input:
-            name = k
-            if name in COMPUTED_COLUMNS:
-                columns[k] = COMPUTED_COLUMNS[name]
-            else:
-                columns[k] = SimpleColumn(name)
-
-        # print("columns:", columns)
+            columns[k] = create_column(k, allow_multi_rank=False)
 
         # filters
         filters = dict(filters)
@@ -407,16 +290,8 @@ class FlatReader(Reader):
 
         # convert filters to objects
         for k in list(filters.keys()):
-            name = k
-            if name in COMPUTED_COLUMNS:
-                filters[name] = ComputedKeyFilter(COMPUTED_COLUMNS[name], filters[name])
-            else:
-                filters[name] = RawKeyFilter(SimpleColumn(name), filters[name])
+            filters[k] = create_filter(k, filters[k])
 
-        # all filters keys must be present so we do not need them in the required columns
-        # required_columns = required_columns - set(filters.keys())
-
-        print("required_columns before processing:", required_columns)
         # define required columns and convert to column objects
         if isinstance(required_columns, bool):
             if required_columns:
@@ -442,8 +317,6 @@ class FlatReader(Reader):
             # We use a context manager to automatically delete the handle of the BufrMessage.
             # We have to use a wrapper object here because a message can also be a dict
             with MessageWrapper.wrap_context(msg) as message:
-                # print(f"MESSAGE: {count}")
-
                 # count filter
                 if count_filter is not None and not count_filter.match(count):
                     continue
@@ -451,10 +324,6 @@ class FlatReader(Reader):
                 header = BufrHeader(message, columns, filters)
                 data_filters = {k: v for k, v in filters.items() if k not in header.filters}
                 data_columns = {k: v for k, v in columns.items() if v not in header.columns}
-
-                print("header columns:", header.columns)
-                # print("data_filters:", data_filters)
-                print("data_columns:", data_columns)
 
                 # test filters on header keys before unpacking
                 if prefilter_headers and not header.match_filters():
@@ -465,8 +334,6 @@ class FlatReader(Reader):
                     data_required_columns_keys = data_required_columns_keys - header.keys
                     data_required_columns_keys = {ensure_rank(k) for k in data_required_columns_keys}
 
-                print("data_required_columns_keys:", data_required_columns_keys)
-                print("data_filters:", data_filters)
                 for record in extract_keys(
                     message,
                     header,
@@ -476,7 +343,6 @@ class FlatReader(Reader):
                     data_required_columns_keys,
                 ):
                     if record and any(v is not None for v in record.values()):
-                        print(" -> yielding record:", record)
                         yield record
 
             # optimisation: skip decoding messages above max_count
@@ -489,16 +355,8 @@ class FlatReader(Reader):
         filters: Mapping[str, Any],
     ) -> None:
         r = []
-        for k in required_columns:
-            print("processing required column:", k)
-            if isinstance(k, str):
-                if k in COMPUTED_COLUMNS:
-                    # print(f"Adding computed column {COMPUTED_COLUMNS[k]} to required columns")
-                    r.append(COMPUTED_COLUMNS[k])
-                else:
-                    r.append(SimpleColumn(k))
-            else:
-                r.append(k)
+        for col in required_columns:
+            r.append(create_column(col, allow_multi_rank=False))
 
         for k, v in filters.items():
             r.append(v.column)
@@ -520,9 +378,6 @@ class FlatReader(Reader):
     def adjust_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         columns = df.columns.tolist()
 
-        print(" -> before accessors: columns=", columns)
-        print(" -> self.columns=", self.columns)
-
         r = []
         for name in self.columns:
             for i, c in enumerate(columns):
@@ -539,7 +394,6 @@ class FlatReader(Reader):
 
         # LOG.debug(f" -> after accessors: columns={columns}")
         assert len(r) == len(columns), f"Expected {len(columns)} columns, got {len(r)}"
-        print(" -> r=", r)
 
         df = df[r]
         return df

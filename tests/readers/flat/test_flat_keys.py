@@ -243,6 +243,42 @@ def test_read_flat_bufr_key_standard_core_mixed(prefilter_headers, _kwargs, num_
                 },
             ],
         ),
+        (
+            {"columns": ["latitude", "longitude"], "filters": {"#1#cloudType": 35, "#2#cloudType": 27}},
+            2,
+            [
+                0,
+                1,
+            ],
+            [
+                {
+                    "latitude": 48.72,
+                    "longitude": 2.38,
+                    "#1#cloudType": 35,
+                    "#2#cloudType": 27,
+                },
+                {
+                    "latitude": 48.77,
+                    "longitude": 2.01,
+                    "#1#cloudType": 35,
+                    "#2#cloudType": 27,
+                },
+            ],
+        ),
+        (
+            {"columns": ["latitude", "longitude", "ident"], "filters": {"~cloudType": 62}},
+            3,
+            [
+                0,
+                1,
+                2,
+            ],
+            [
+                {"latitude": 55.68, "longitude": -6.25, "ident": "03105"},
+                {"latitude": 53.22, "longitude": 3.22, "ident": "06252"},
+                {"latitude": 51.44, "longitude": 3.60, "ident": "06310"},
+            ],
+        ),
     ],
 )
 def test_read_flat_bufr_key_standard_filters(prefilter_headers, _kwargs, num_rows, ref_rows, ref) -> None:
@@ -512,6 +548,23 @@ def test_read_flat_bufr_key_compressed_core_mixed(prefilter_headers, _kwargs, nu
                 },
             ],
         ),
+        (
+            {
+                "columns": ["latitude", "longitude", "ensembleMemberNumber", "timePeriod", "cape"],
+                "filters": {"ensembleMemberNumber": [0, 2], "~cape": slice(250, None)},
+            },
+            1,
+            [0],
+            [
+                {
+                    "latitude": 51.52,
+                    "longitude": 0.97,
+                    "ensembleMemberNumber": 0,
+                    "timePeriod": 0,
+                    "cape": 0.1,
+                },
+            ],
+        ),
     ],
 )
 def test_read_flat_bufr_key_compressed_filters(prefilter_headers, _kwargs, num_rows, ref_rows, ref) -> None:
@@ -523,6 +576,8 @@ def test_read_flat_bufr_key_compressed_filters(prefilter_headers, _kwargs, num_r
     # default args
     df = pdbufr.read_bufr(TEST_DATA_9, flat=True, **_kwargs, prefilter_headers=prefilter_headers)
 
+    # print("df=", df)
+    # assert False
     _compare_df(df, num_rows, ref_rows, ref)
 
 
@@ -697,5 +752,58 @@ def test_read_flat_bufr_key_uncompressed_core_data(prefilter_headers, _kwargs, n
 def test_read_flat_bufr_key_uncompressed_core_mixed(prefilter_headers, _kwargs, num_rows, ref_rows, ref) -> None:
     """Use both header and data section keys"""
     df = pdbufr.read_bufr(TEST_DATA_2, flat=True, **_kwargs, prefilter_headers=prefilter_headers)
-    print(df)
+    _compare_df(df, num_rows, ref_rows, ref)
+
+
+@pytest.mark.parametrize("prefilter_headers", [True, False])
+@pytest.mark.parametrize(
+    "_kwargs,num_rows,ref_rows,ref",
+    [
+        (
+            {
+                "columns": ["latitude", "longitude", "stationNumber", "airTemperature"],
+                "filters": {"airTemperature": slice(276, None)},
+            },
+            4,
+            [0],
+            [
+                {"latitude": 69.6523, "longitude": 18.9057, "stationNumber": 27, "airTemperature": 276.45},
+            ],
+        ),
+        (
+            {
+                "columns": ["latitude", "longitude", "stationNumber"],
+                "filters": {"airTemperature": slice(276, None)},
+            },
+            4,
+            [0],
+            [
+                {"latitude": 69.6523, "longitude": 18.9057, "stationNumber": 27, "airTemperature": 276.45},
+            ],
+        ),
+        (
+            {
+                "columns": ["latitude", "longitude", "stationNumber"],
+                "filters": {"~airTemperature": slice(276, None)},
+            },
+            4,
+            [0],
+            [
+                {
+                    "latitude": 69.6523,
+                    "longitude": 18.9057,
+                    "stationNumber": 27,
+                },
+            ],
+        ),
+    ],
+)
+def test_read_flat_bufr_key_uncompressed_filters(prefilter_headers, _kwargs, num_rows, ref_rows, ref) -> None:
+    # The message structure is the same in all the messages
+    # but some have #1#totalPrecipitationPast6Hours while
+    # others have #1#totalPrecipitationPast24Hours at the
+    # same position within the message
+
+    # default args
+    df = pdbufr.read_bufr(TEST_DATA_2, flat=True, **_kwargs, prefilter_headers=prefilter_headers)
     _compare_df(df, num_rows, ref_rows, ref)
