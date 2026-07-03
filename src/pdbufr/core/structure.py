@@ -115,7 +115,6 @@ class MessageWrapper:
         else:
             r = self.d
 
-        print("__enter__", self, "wrapping with:", self.wrappers)
         for w in self.wrappers:
             r = w(r)
         return r
@@ -245,6 +244,101 @@ def filter_keys_cached(
     if filtered_message_uid not in cache:
         cache[filtered_message_uid] = list(filter_keys(message, include_uid))
     return cache[filtered_message_uid]
+
+
+class BufrHeader:
+    def __init__(self, message, columns, filters) -> None:
+        """Wraps a BUFR message header with filtering capabilities.
+
+        Parameters
+        ----------
+        message : Any
+            The BUFR message to wrap. It must be unpacked. For performance reasons, the class does not check
+            if the message is unpacked. The caller is responsible for ensuring this.
+        filters : Dict[str, BufrFilter]
+            Filters to apply on the message keys. The header related filters are extracted
+            from this dictionary and stored internally.
+        """
+        SKIP = {"unexpandedDescriptors"}
+        self.message = message
+        # assert not message.get("unpack")
+        self.keys = [k for k in self.message if k not in SKIP]
+        self._last_key = self.keys[-1] if self.keys else None
+        self.keys_list = list(self.keys)
+        self.keys = set(self.keys)
+
+        columns = columns or {}
+        self.columns = []
+        for k, c in columns.items():
+            if k in self.keys or c.header_only:
+                self.columns.append(c)
+
+        # self.columns = [col for col in columns if col in self.keys or col.header_only]
+        self._columns_values = None
+
+        filters = filters or dict()
+        self.filters = {}
+        for k, f in filters.items():
+            if k in self.keys or f.header_only:
+                self.filters[k] = f
+
+        self._matched = None
+        self._filters_values = dict()
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.keys
+
+    def _get(self, key: str) -> T.Any:
+        import eccodes
+
+        value = self.message.get(key)
+
+        # print(" -> header key:", key, "value:", value)
+        if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
+            value = None
+        elif isinstance(value, int) and value == eccodes.CODES_MISSING_LONG:
+            value = None
+
+        return value
+
+    def last_key(self) -> str:
+        # if self.keys:
+        #     return self.keys[-1]
+        # return None
+        return self._last_key
+
+    def columns_values(self) -> T.Dict[str, T.Any]:
+        if self._columns_values is None:
+            self._columns_values = {c.name: c.get_value(self._get, ranked=False) for c in self.columns}
+        return self._columns_values
+
+    def _filter(self) -> None:
+        for f in self.filters.values():
+            value = f.column.get_value(self._get, ranked=False)
+            print(" -> header filter:", f, "name:", f.name, "value:", value)
+            if value is not None and f.match(value):
+                self._filters_values[f.column.name] = value
+            else:
+                return False
+        return True
+
+    def match_filters(self) -> bool:
+        if self._matched is None:
+            self._matched = self._filter()
+        return self._matched
+
+    def filters_values(self) -> T.Dict[str, T.Any]:
+        if self.match_filters():
+            return self._filters_values
+        return {}
+
+    def values(self) -> T.Dict[str, T.Any]:
+        res = {}
+        for key in self.keys_list:
+            name = key
+            value = self._get(key)
+            res[name] = value
+        return res
 
 
 # def add_computed_keys(

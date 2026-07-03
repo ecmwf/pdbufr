@@ -1,7 +1,7 @@
 
 .. _filters:
 
-Filters
+Filter types
 --------------
 
 The filter conditions are specified as a dict via the ``filters`` keyword argument of :func:`read_bufr` and determine when the data will actually be extracted.
@@ -23,6 +23,7 @@ Single value
 
           # However, implicit str to int  conversion is done for the first 3 values, so this is also valid.
           filters = {"WIGOsS_station_id": ("0", "705", "0", "1931")}
+
 
 List/tuple/set of values
 ++++++++++++++++++++++++++

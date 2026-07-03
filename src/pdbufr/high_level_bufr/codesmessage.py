@@ -102,9 +102,7 @@ class CodesMessage(object):
         #: File containing message
         self.codes_file = None
         if codes_file is not None:
-            self.codes_id = eccodes.codes_new_from_file(
-                codes_file.file_handle, self.product_kind, headers_only
-            )
+            self.codes_id = eccodes.codes_new_from_file(codes_file.file_handle, self.product_kind, headers_only)
             if self.codes_id is None:
                 raise IOError("CodesFile %s is exhausted" % codes_file.name)
             self.codes_file = codes_file
@@ -191,7 +189,8 @@ class CodesMessage(object):
 
     def __contains__(self, key):
         """Check whether a key is present in message."""
-        return key in self.keys()
+        # return key in self.keys()
+        return eccodes.codes_is_defined(self.codes_id, key)
 
     def __len__(self):
         """Return key count."""

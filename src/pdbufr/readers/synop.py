@@ -593,9 +593,7 @@ class SynopReader(StationReader):
                 key = name + suffix
                 if key in self.bufr_filters:
                     if name not in self.accessors:
-                        raise ValueError(
-                            f"Parameter={name} cannot be used in filters unless it is in columns"
-                        )
+                        raise ValueError(f"Parameter={name} cannot be used in filters unless it is in columns")
                     self.param_filters[key] = self.bufr_filters.pop(key)
         self.param_filters = ParamFilter(self.param_filters, period=True)
 

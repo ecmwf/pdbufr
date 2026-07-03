@@ -36,6 +36,9 @@ def normalise_wigos(value):
 
 
 class BufrFilter(metaclass=ABCMeta):
+    def __init__(self, multi_rank: bool = False) -> None:
+        self._multi_rank = multi_rank
+
     @abstractmethod
     def match(self, value: Any) -> bool:
         pass
@@ -46,16 +49,28 @@ class BufrFilter(metaclass=ABCMeta):
 
     @staticmethod
     def from_user(value: Any, key: Union[str, None] = None) -> "BufrFilter":
+        multi_rank = key and key.startswith("~")
+
+        if multi_rank:
+            from pdbufr.core.keys import COMPUTED_KEYS
+
+            if len(key) == 1:
+                raise ValueError(f"Invalid multi-rank key: {key}")
+            if key[1:] in COMPUTED_KEYS:
+                raise ValueError(f"Multi-rank filters are not supported for computed keys: {key}")
+
         if isinstance(value, slice):
-            return SliceBufrFilter(value)
+            return SliceBufrFilter(value, multi_rank=multi_rank)
         elif callable(value):
-            return CallableBufrFilter(value)
+            return CallableBufrFilter(value, multi_rank=multi_rank)
         else:
             if key == WIGOS_ID_KEY:
+                if multi_rank:
+                    raise ValueError(f"Multi-rank WIGOS ID filters are not supported: {value}")
                 value = normalise_wigos(value)
                 return WigosValueBufrFilter(value)
             else:
-                return ValueBufrFilter(value)
+                return ValueBufrFilter(value, multi_rank=multi_rank)
 
 
 # class EmptyBufrFilter(BufrFilter):
@@ -70,7 +85,8 @@ class BufrFilter(metaclass=ABCMeta):
 
 
 class SliceBufrFilter(BufrFilter):
-    def __init__(self, v: slice) -> None:
+    def __init__(self, v: slice, multi_rank: bool = False) -> None:
+        BufrFilter.__init__(self, multi_rank=multi_rank)
         self.slice = v
         if self.slice.step is not None:
             LOG.warning(f"slice filters ignore the step={self.slice.step} in slice={self.slice}")
@@ -78,10 +94,15 @@ class SliceBufrFilter(BufrFilter):
     def match(self, value: Any) -> bool:
         if value is None:
             return False
-        if self.slice.start is not None and value < self.slice.start:
-            return False
-        elif self.slice.stop is not None and value > self.slice.stop:
-            return False
+
+        if hasattr(value, "__iter__") and not isinstance(value, str):
+            return any(self.match(x) for x in value)
+        else:
+            print(f"    -> matching slice filter: {self.slice.start} <= {value} <= {self.slice.stop}")
+            if self.slice.start is not None and value < self.slice.start:
+                return False
+            elif self.slice.stop is not None and value > self.slice.stop:
+                return False
         return True
 
     def max(self) -> Any:
@@ -92,12 +113,16 @@ class SliceBufrFilter(BufrFilter):
 
 
 class CallableBufrFilter(BufrFilter):
-    def __init__(self, v: Callable[[Any], bool]) -> None:
+    def __init__(self, v: Callable[[Any], bool], multi_rank: bool = False) -> None:
+        BufrFilter.__init__(self, multi_rank=multi_rank)
         self.callable = v
 
     def match(self, value: Any) -> bool:
+        print(f"    -> matching callable filter: {value}")
         if value is None:
             return False
+        if self._multi_rank and hasattr(value, "__iter__") and not isinstance(value, str):
+            return any(self.callable(x) for x in value)
         return bool(self.callable(value))
 
     def max(self) -> Any:
@@ -105,7 +130,8 @@ class CallableBufrFilter(BufrFilter):
 
 
 class ValueBufrFilter(BufrFilter):
-    def __init__(self, v: Any) -> None:
+    def __init__(self, v: Any, multi_rank: bool = False) -> None:
+        BufrFilter.__init__(self, multi_rank=multi_rank)
         if isinstance(v, Iterable) and not isinstance(v, str):
             self.set = set(v)
         else:
@@ -114,6 +140,8 @@ class ValueBufrFilter(BufrFilter):
     def match(self, value: Any) -> bool:
         if value is None:
             return False
+        if self._multi_rank and hasattr(value, "__iter__") and not isinstance(value, str):
+            return any(x in self.set for x in value)
         return value in self.set
 
     def max(self) -> Any:
@@ -121,9 +149,14 @@ class ValueBufrFilter(BufrFilter):
 
 
 class NotValueBufrFilter(ValueBufrFilter):
+    def __init__(self, v: Any, multi_rank: bool = False) -> None:
+        super().__init__(v, multi_rank=multi_rank)
+
     def match(self, value: Any) -> bool:
         if value is None:
             return False
+        if self._multi_rank and hasattr(value, "__iter__") and not isinstance(value, str):
+            return all(x not in self.set for x in value)
         return value not in self.set
 
     def max(self) -> Any:
@@ -131,6 +164,9 @@ class NotValueBufrFilter(ValueBufrFilter):
 
 
 class WigosValueBufrFilter(ValueBufrFilter):
+    def __init__(self, v: Any) -> None:
+        super().__init__(v, multi_rank=False)
+
     def match(self, value: Any) -> bool:
         if value is None:
             return False

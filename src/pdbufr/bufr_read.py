@@ -35,4 +35,3 @@ def read_bufr(
     flat = kwargs.pop("flat", False)
     reader = get_reader(reader, path_or_messages, flat=flat, columns=columns, **kwargs)
     return reader.execute()
-    # return reader(columns=columns, **kwargs)

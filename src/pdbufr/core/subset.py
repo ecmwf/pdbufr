@@ -183,14 +183,10 @@ class BufrSubsetReader:
                 yield BufrSubsetCollector(self, self.filtered_keys, subset)
 
         elif self.is_uncompressed:
-            subset_start, subset_end, header_end = uncompressed_subset_ranges(
-                self.filtered_keys, self.subset_count
-            )
+            subset_start, subset_end, header_end = uncompressed_subset_ranges(self.filtered_keys, self.subset_count)
             header_keys = []
             if header_end is not None and header_end >= 0:
                 header_keys = self.filtered_keys[0 : header_end + 1]
 
             for i in range(self.subset_count):
-                yield BufrSubsetCollector(
-                    self, header_keys + self.filtered_keys[subset_start[i] : subset_end[i]], i
-                )
+                yield BufrSubsetCollector(self, header_keys + self.filtered_keys[subset_start[i] : subset_end[i]], i)

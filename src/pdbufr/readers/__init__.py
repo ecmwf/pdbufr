@@ -66,9 +66,7 @@ class Reader(metaclass=ABCMeta):
     #     return pd.DataFrame.from_records(rows)
 
     @abstractmethod
-    def read_records(
-        self, bufr_obj: Iterable[MutableMapping[str, Any]], **kwargs: Any
-    ) -> Iterator[Dict[str, Any]]:
+    def read_records(self, bufr_obj: Iterable[MutableMapping[str, Any]], **kwargs: Any) -> Iterator[Dict[str, Any]]:
         pass
 
     @abstractmethod
@@ -79,9 +77,7 @@ class Reader(metaclass=ABCMeta):
 class ReaderMaker:
     READERS = {}
 
-    def __call__(
-        self, name_or_reader: Union[str, Reader], *args: Any, flat: bool = False, **kwargs
-    ) -> Reader:
+    def __call__(self, name_or_reader: Union[str, Reader], *args: Any, flat: bool = False, **kwargs) -> Reader:
         if isinstance(name_or_reader, Reader):
             return name_or_reader
 
@@ -113,6 +109,25 @@ class ReaderMaker:
 
     def get(self, name: str) -> type[Reader]:
         here = os.path.dirname(__file__)
+
+        # n = len(directory)
+        # for path, _, files in os.walk(here):
+        #     path = path[n:]
+        #     for f in files:
+        #         if path.endswith(".py"):
+        #             base, _ = os.path.splitext(f)
+        #             p = base.replace("_", "-")
+
+        #             if p == name:
+        #                 try:
+        #                     module = import_module(f".{name}", package=__name__)
+        #                     if hasattr(module, "reader"):
+        #                         w = getattr(module, "reader")
+        #                         return w
+        #                 except Exception:
+        #                     LOG.exception("Error loading reader %s", name)
+        #                     raise
+
         for path in sorted(os.listdir(here)):
             if path[0] in ("_", "."):
                 continue

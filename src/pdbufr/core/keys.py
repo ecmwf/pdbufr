@@ -51,47 +51,10 @@ class BufrKey:
         return prefix + self.name
 
 
-@attr.attrs(auto_attribs=True)
-class UncompressedBufrKey:
-    current_rank: int
-    ref_rank: int
-    name: str
-
-    @classmethod
-    def from_key(cls, key: str) -> "UncompressedBufrKey":
-        rank_text, sep, name = key.rpartition("#")
-        try:
-            if sep == "#":
-                rank = int(rank_text[1:])
-            else:
-                rank = 0
-        except Exception:
-            rank = 0
-
-        return cls(rank, 0, name)
-
-    def update_rank(self, key: str) -> None:
-        self.current_rank = rank_from_key(key)
-
-    def adjust_ref_rank(self) -> None:
-        self.ref_rank = self.current_rank
-
-    @property
-    def relative_key(self) -> str:
-        if self.current_rank > 0:
-            rel_rank = self.current_rank - self.ref_rank
-            prefix = f"#{rel_rank}#"
-        else:
-            prefix = ""
-        return prefix + self.name
-
-
 IS_KEY_COORD = {"subsetNumber": True, "operator": False}
 
 
-def datetime_from_bufr(
-    observation: Dict[str, Any], prefix: str, datetime_keys: List[str]
-) -> datetime.datetime:
+def datetime_from_bufr(observation: Dict[str, Any], prefix: str, datetime_keys: List[str]) -> datetime.datetime:
     hours = observation.get(prefix + datetime_keys[3], 0)
     minutes = observation.get(prefix + datetime_keys[4], 0)
     seconds = observation.get(prefix + datetime_keys[5], 0.0)
@@ -172,11 +135,25 @@ def CRS_from_bufr(observation: Dict[str, Any], prefix: str, keys: List[str]) -> 
     return CRS_choices[bufr_CRS]
 
 
-COMPUTED_KEYS = [
+# Each entry is a list of:
+#   1. list of bufr keys used to compute the value
+#   2. computed column name
+#   3. method to compute the column
+#   4. list of optional bufr keys
+#   5. header section keys only (True/False)
+
+# (list of bufr keys, computed column name, method to compute the column,
+_COMPUTED_KEYS = [
     (
         ["year", "month", "day", "hour", "minute", "second"],
         "data_datetime",
         datetime_from_bufr,
+        [
+            "hour",
+            "minute",
+            "second",
+        ],
+        False,
     ),
     (
         [
@@ -189,8 +166,14 @@ COMPUTED_KEYS = [
         ],
         "typical_datetime",
         datetime_from_bufr,
+        [
+            "typicalHour",
+            "typicalMinute",
+            "typicalSecond",
+        ],
+        True,
     ),
-    (["blockNumber", "stationNumber"], "WMO_station_id", wmo_station_id_from_bufr),
+    (["blockNumber", "stationNumber"], "WMO_station_id", wmo_station_id_from_bufr, [], False),
     (
         [
             "longitude",
@@ -199,6 +182,10 @@ COMPUTED_KEYS = [
         ],
         "geometry",  # WMO_station_position (predefined to geometry for geopandas)
         wmo_station_position_from_bufr,
+        [
+            "heightOfStationGroundAboveMeanSeaLevel",
+        ],
+        False,
     ),
     (
         [
@@ -209,6 +196,13 @@ COMPUTED_KEYS = [
         ],
         "WIGOS_station_id",
         wigos_id_from_bufr,
+        [
+            "wigosIdentifierSeries",
+            "wigosIssuerOfIdentifier",
+            "wigosIssueNumber",
+            "wigosLocalIdentifierCharacter",
+        ],
+        False,
     ),
     (
         [
@@ -216,5 +210,31 @@ COMPUTED_KEYS = [
         ],
         "CRS",
         CRS_from_bufr,
+        ["coordinateReferenceSystem"],
+        False,
     ),
 ]
+
+
+class ComputedKey:
+    def __init__(
+        self,
+        bufr_keys: List[str],
+        column_name: str,
+        compute_method,
+        optional_bufr_keys: List[str],
+        header_only: bool,
+    ):
+        self.bufr_keys = bufr_keys
+        self.column_name = column_name
+        self.compute_method = compute_method
+        self.optional_bufr_keys = optional_bufr_keys
+        self.header_only = header_only
+
+
+COMPUTED_KEYS = dict()
+for k in _COMPUTED_KEYS:
+    COMPUTED_KEYS[k[1]] = ComputedKey(*k)
+
+HEADER_COMPUTED_KEYS = {k: v for k, v in COMPUTED_KEYS.items() if v.header_only}
+DATA_COMPUTED_KEYS = {k: v for k, v in COMPUTED_KEYS.items() if not v.header_only}

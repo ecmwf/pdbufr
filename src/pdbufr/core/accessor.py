@@ -30,9 +30,7 @@ class Accessor(metaclass=ABCMeta):
     mandatory: Optional[List[str]] = None
     dtype = None
 
-    def __init__(
-        self, keys: Optional[Union[Dict[str, Any], str, List[str]]] = None, dtype: Optional[Any] = None
-    ):
+    def __init__(self, keys: Optional[Union[Dict[str, Any], str, List[str]]] = None, dtype: Optional[Any] = None):
         """
         Accessor class to extract values from a BUFR message.
 
@@ -139,9 +137,7 @@ class SimpleAccessor(Accessor):
                     # handle period
                     if param.is_period():
                         v = param.concat_units(v, units)
-                    elif (
-                        v is not None and self.dtype is not None and self.param and self.param.label == label
-                    ):
+                    elif v is not None and self.dtype is not None and self.param and self.param.label == label:
                         try:
                             v = self.dtype(v)
                         except Exception:
@@ -203,10 +199,10 @@ class ComputedKeyAccessor(Accessor):
 
         key = list(self.keys.keys())[0]
         assert isinstance(key, str)
-        for k in COMPUTED_KEYS:
-            if k[1] == key:
-                self._meth = k[2]
-                self._keys = k[0]
+        for ck in COMPUTED_KEYS.values():
+            if ck.column_name == key:
+                self._meth = ck.compute_method
+                self._keys = ck.bufr_keys
                 break
 
         if not hasattr(self, "_meth"):
@@ -619,9 +615,7 @@ class AccessorManager:
                 elif param in self.accessors:
                     accessors[param] = self.accessors[param]
                 else:
-                    raise ValueError(
-                        f"Unsupported parameter '{param}'. Available parameters: {self.accessors.keys()}"
-                    )
+                    raise ValueError(f"Unsupported parameter '{param}'. Available parameters: {self.accessors.keys()}")
 
             self.cache[cache_key] = accessors
 
