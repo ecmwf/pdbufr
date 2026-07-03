@@ -8,13 +8,7 @@
 
 
 import collections
-from typing import Any
-from typing import Dict
-from typing import Generator
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Tuple
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple
 
 import eccodes  # type: ignore
 import numpy as np
@@ -106,11 +100,9 @@ class BufrSubsetCollector:
             # TODO: make into a function
             if current_observation and (
                 # if all(name in current_observation for name in keys) and (
-                level < current_levels[-1]
-                or (level == current_levels[-1] and name in current_observation)
+                level < current_levels[-1] or (level == current_levels[-1] and name in current_observation)
             ):
                 if not mandatory_keys or all(name in current_observation for name in mandatory_keys):
-
                     # copy the content of current_items
                     yield dict(current_observation)
 

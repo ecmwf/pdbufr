@@ -7,14 +7,8 @@
 # nor does it submit to any jurisdiction.
 
 import logging
-from abc import ABCMeta
-from abc import abstractmethod
-from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import Iterable
-from typing import Mapping
-from typing import Union
+from abc import ABCMeta, abstractmethod
+from typing import Any, Callable, Dict, Iterable, Mapping, Union
 
 LOG = logging.getLogger(__name__)
 
@@ -242,7 +236,10 @@ class WIGOSId:
         def _convert_str(v):
             return str(v) if v is not None else "*"
 
-        return f"{_convert_str(self.series)}-{_convert_str(self.issuer)}-{_convert_str(self.number)}-{_convert_str(self.local)}"
+        return (
+            f"{_convert_str(self.series)}-{_convert_str(self.issuer)}-"
+            f"{_convert_str(self.number)}-{_convert_str(self.local)}"
+        )
 
     def is_valid(self) -> bool:
         return (

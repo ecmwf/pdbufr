@@ -13,8 +13,7 @@ import numpy as np
 import pytest
 
 import pdbufr
-from pdbufr.utils.testing import reference_test_data_path
-from pdbufr.utils.testing import sample_test_data_path
+from pdbufr.utils.testing import reference_test_data_path, sample_test_data_path
 
 pd = pytest.importorskip("pandas")
 assert_frame_equal = pd.testing.assert_frame_equal
@@ -599,7 +598,7 @@ def test_read_flat_bufr_key_compressed_filters(prefilter_headers, _kwargs, num_r
     ],
 )
 def test_read_flat_bufr_key_uncompressed_core_header(prefilter_headers, _kwargs, num_rows, ref_rows, ref) -> None:
-    """Use only header section keys"""
+    """Use only header section keys."""
     df = pdbufr.read_bufr(TEST_DATA_2, flat=True, **_kwargs, prefilter_headers=prefilter_headers)
     _compare_df(df, num_rows, ref_rows, ref)
 
@@ -708,7 +707,7 @@ def test_read_flat_bufr_key_uncompressed_core_header(prefilter_headers, _kwargs,
     ],
 )
 def test_read_flat_bufr_key_uncompressed_core_data(prefilter_headers, _kwargs, num_rows, ref_rows, ref) -> None:
-    """Use only data section keys"""
+    """Use only data section keys."""
     df = pdbufr.read_bufr(TEST_DATA_2, flat=True, **_kwargs, prefilter_headers=prefilter_headers)
     _compare_df(df, num_rows, ref_rows, ref)
 
@@ -750,7 +749,7 @@ def test_read_flat_bufr_key_uncompressed_core_data(prefilter_headers, _kwargs, n
     ],
 )
 def test_read_flat_bufr_key_uncompressed_core_mixed(prefilter_headers, _kwargs, num_rows, ref_rows, ref) -> None:
-    """Use both header and data section keys"""
+    """Use both header and data section keys."""
     df = pdbufr.read_bufr(TEST_DATA_2, flat=True, **_kwargs, prefilter_headers=prefilter_headers)
     _compare_df(df, num_rows, ref_rows, ref)
 

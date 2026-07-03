@@ -6,11 +6,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-from typing import Any
-from typing import Dict
-from typing import Iterator
-from typing import Mapping
-from typing import Set
+from typing import Any, Dict, Iterator, Mapping, Set
 
 import eccodes  # type: ignore
 
@@ -25,7 +21,7 @@ SKIP_KEYS = {
     "delayedDescriptorReplicationFactor",
     "extendedDelayedDescriptorReplicationFactor",
     "delayedDescriptorAndDataRepetitionFactor",
-    "extendedDelayedDescriptorAndDataRepetitionFactor" "associatedFieldSignificance",
+    "extendedDelayedDescriptorAndDataRepetitionFactorassociatedFieldSignificance",
     "dataPresentIndicator",
     "operator",
 }

@@ -16,7 +16,7 @@ SKIP_KEYS = {
     "delayedDescriptorReplicationFactor",
     "extendedDelayedDescriptorReplicationFactor",
     "delayedDescriptorAndDataRepetitionFactor",
-    "extendedDelayedDescriptorAndDataRepetitionFactor" "associatedFieldSignificance",
+    "extendedDelayedDescriptorAndDataRepetitionFactorassociatedFieldSignificance",
     "dataPresentIndicator",
     "operator",
 }

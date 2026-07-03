@@ -7,11 +7,7 @@
 # nor does it submit to any jurisdiction.
 
 import datetime
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import Any, Dict, List, Optional, Union
 
 import attr  # type: ignore
 import eccodes  # type: ignore

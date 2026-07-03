@@ -14,8 +14,7 @@ import numpy as np
 import pytest
 
 import pdbufr
-from pdbufr.utils.testing import reference_test_data_path
-from pdbufr.utils.testing import sample_test_data_path
+from pdbufr.utils.testing import reference_test_data_path, sample_test_data_path
 
 pd = pytest.importorskip("pandas")
 assert_frame_equal = pd.testing.assert_frame_equal

@@ -6,28 +6,17 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-import logging
-from typing import Any
-from typing import Dict
-from typing import Iterable
-from typing import Iterator
-from typing import Mapping
-from typing import MutableMapping
-from typing import Sequence
-from typing import Set
-from typing import Union
+from typing import Any, Dict, Iterable, Iterator, Mapping, MutableMapping, Sequence, Union
 
 import pandas as pd  # type: ignore
 
 from pdbufr.core.filters import BufrFilter
-from pdbufr.core.keys import rank_from_key
-from pdbufr.core.structure import BufrHeader
-from pdbufr.core.structure import MessageWrapper
+from pdbufr.core.keys import rank_from_key as rank_from_key
+from pdbufr.core.structure import BufrHeader, MessageWrapper
 
 from .. import Reader
 from .block import extract_blocks
-from .column import create_column
-from .column import create_filter
+from .column import create_column, create_filter
 from .key import extract_keys
 
 
@@ -69,7 +58,7 @@ class FlatReader(Reader):
                 (
                     "not all BUFR messages/subsets have the same structure in the input file. "
                     "Non-overlapping columns (starting with column[{column_info.first_count-1}] ="
-                    f"{df.columns[self.column_info.first_count-1]}) were added to end of the resulting dataframe"
+                    f"{df.columns[self.column_info.first_count - 1]}) were added to end of the resulting dataframe"
                     "altering the original column order for these messages."
                 )
             )
@@ -98,12 +87,13 @@ class FlatReader(Reader):
             The columns to read from the BUFR messages. Can be a list of column names or a single
             string (e.g. "all", "header", "data").
         filters: Mapping[str, Any]
-            A mapping of column names to filter values. The filters will be applied to the corresponding columns in the
-            BUFR messages. The filter values can be of any type supported by BufrFilter.from_user.
+            A mapping of column names to filter values. The filters will be applied to the corresponding
+            columns in the BUFR messages. The filter values can be of any type supported by ``BufrFilter.from_user``.
         filter_columns: bool
             Whether to add the columns used in the filters to the output records (default: True).
         required_columns: Union[bool, Iterable[str]]
-            The columns that are required to be present in the output records. Can be a boolean (True means all columns, False means no columns) or a list of column names (default: True).
+            The columns that are required to be present in the output records. Can be a boolean (True means
+            all columns, False means no columns) or a list of column names (default: True).
         prefilter_headers: bool
             Whether to apply the filters to the header keys before unpacking the data (default: False).
         column_info: Any
@@ -204,8 +194,7 @@ class FlatReader(Reader):
         for k in required_columns:
             if k in ("all", "header", "data"):
                 raise ValueError(
-                    f"invalid required column: {k} "
-                    f"(cannot be one of 'all', 'header' or 'data' when using block mode)"
+                    f"invalid required column: {k} (cannot be one of 'all', 'header' or 'data' when using block mode)"
                 )
 
         required_columns, required_columns_keys, required_columns_names = self.prepare_required_columns(
