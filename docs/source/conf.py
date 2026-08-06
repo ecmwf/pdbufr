@@ -151,15 +151,3 @@ xref_links = {
 rst_prolog = """
 .. role:: mval
 """
-
-# nbsphinx_prolog = """
-# {% set docname = env.doc2path(env.docname, base=None) %}
-
-# Try this notebook in |Binder|.
-
-# .. |Binder| image:: https://mybinder.org/badge.svg
-#    :target: https://mybinder.org/v2/gh/ecmwf/pdbufr/master?filepath=docs/{{ docname }}
-#    :alt: Binder
-#    :class: badge
-
-# """

@@ -31,12 +31,13 @@ optional-dependencies.dev = [
   "pdbufr[docs,tests]"
 ]
 optional-dependencies.docs = [
+  "furo",
   "nbsphinx",
   "pygments>=2.6.1",
   "sphinx>=7.3.7",
   "sphinx-copybutton",
-  "sphinx-issues",
-  "sphinx-rtd-theme"
+  "sphinx-design",
+  "sphinx-issues"
 ]
 optional-dependencies.tests = ["nbconvert", "nbformat", "pytest", "pytest-cov", "requests"]
 urls.Documentation = "https://pdbufr.readthedocs.io/en/latest/"
