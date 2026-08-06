@@ -1,5 +1,6 @@
-import pdbufr
 import pytest
+
+import pdbufr
 
 
 @pytest.mark.skip(reason="dynamic version not available during ci")
