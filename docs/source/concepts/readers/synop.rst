@@ -131,7 +131,7 @@ When periods are available "_level" and/or "_units" suffixes are added after the
 Parameters
 +++++++++++++++++++++
 
-A parameter is a high-level concept in ``pdbufr``. It was introduced to overcome the problem that the same quantity can be encoded in BUFR in multiple ways. E.g. 2m temperature can be represented in at least 2 different ways:
+A parameter is a high-level concept in ``pdbufr``. It was introduced to overcome the problem that the same quantity can be encoded in BUFR in multiple ways. E.g. 2m temperature can be represented at least in 2 different ways:
 
   - as "airTemperatureAt2M"
   - as "airTemperature" instnide a group "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform=2".
@@ -153,7 +153,7 @@ Station/platform params
 .. list-table::
    :header-rows: 1
    :widths: 10 10 80
-   :align: center
+   :align: left
 
    * - **Name**
      - **Units/Object**
@@ -207,7 +207,7 @@ These parameters are all added when using the default settings in ``columns``.
 .. list-table:: P: means has a period, L: means has a level
    :header-rows: 1
    :widths: 10 10 60 10 10
-   :align: center
+   :align: left
 
 
    * - Name
@@ -350,7 +350,7 @@ These parameters are not added by default but can be specified in ``columns``.
 .. list-table:: P: means has a period, L: means has a level
    :header-rows: 1
    :widths: 10 10 60 10 10
-   :align: center
+   :align: left
 
    * - Name
      - Units
@@ -472,4 +472,4 @@ Filtering parameter values
 Examples
 ++++++++++++++++++++++++++++
 
- - :ref:`/how-tos/r_synop_overview.ipynb`
+ - :ref:`/how-tos/synop/r_synop_overview.ipynb`

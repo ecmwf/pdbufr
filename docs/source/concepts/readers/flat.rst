@@ -68,7 +68,7 @@ In the results the original :ref:`ecCodes keys <eccodes-bufr-keys>` containing t
 .. admonition:: Non-aligned columns in the output DataFrame
    :class: warning
 
-    Messages/subsets in a BUFR file can have a different set of BUFR keys. When a new message/subset is processed the :ref:`flat reader <flat-reader>` adds it to the resulting DataFrame as a new record and columns that are not yet present in the output are automatically appended by Pandas to the end changing the original order of keys for that message. When this happens pdbufr prints a warning message to the stdout (see the example below or the :ref:`/how-tos/r_flat.ipynb` notebook for details).
+    Messages/subsets in a BUFR file can have a different set of BUFR keys. When a new message/subset is processed the :ref:`flat reader <flat-reader>` adds it to the resulting DataFrame as a new record and columns that are not yet present in the output are automatically appended by Pandas to the end changing the original order of keys for that message. When this happens pdbufr prints a warning message to the stdout (see the example below or the :ref:`/how-tos/flat/r_flat.ipynb` notebook for details).
 
 
 .. _flat-individual-key-extraction:
@@ -91,9 +91,10 @@ The keys can contain a :ref:`rank <eccodes-key-rank>`, e.g. "#3#cloudType". Keys
         columns=columns,
     )
 
-.. warning::
+.. admonition:: Keys without a rank are treated as rank=1
+   :class: warning
 
-    Please note that treating keys without a rank as rank=1 is different from how the ``eccodes.codes_get()`` function in the ecCodes API interprets keys without a rank, where ecCodes uses the last occurrence of the key in the message/subset.
+    This behaviour differs from the ``eccodes.codes_get()`` function in the ecCodes API, which returns the last occurrence of a key in the message/subset when no rank is specified.
 
 
 For uncompressed subsets the rank is treated in a special way as described below.
@@ -109,7 +110,7 @@ For uncompressed subsets the rank is treated in a special way as described below
 Filters
 -------------------
 
-With ``filters`` we can control which messages/subsets should be selected. The conditions are combined together with the logical AND operator to form the filter. See the available :ref:`filter types  <filters>` for details. The following special rules apply to the :ref:`flat reader <flat-reader>` ``filters`` for standard (i.e. non-computed) keys and for :ref:`computed keys <computed-bufr-keys>`.
+With ``filters`` we can control which messages/subsets should be selected. The conditions are combined together with the logical AND operator to form the filter. See the available :ref:`filter types  <filters>` for details. The following special rules apply to the :ref:`flat reader <flat-reader>` ``filters`` both for standard (i.e. non-computed) and for :ref:`computed keys <computed-bufr-keys>`.
 
 Filters for standard keys
 //////////////////////////////
@@ -194,4 +195,4 @@ This warning can be disabled by using the **warnings** module. The code below pr
 Further examples
 -------------------
 
-- :ref:`/how-tos/r_flat.ipynb`
+- :ref:`/how-tos/flat/r_flat.ipynb`

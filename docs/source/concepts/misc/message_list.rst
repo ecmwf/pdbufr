@@ -12,4 +12,4 @@ A message list object is sequence of messages, where a message must be a mutable
 - the ``get(key, default=None)`` method, which retrieves the value of a given key with an optional default value if the key is missing.
 - the ``is_coord()`` method, which determines if a key is a BUFR coordinate descriptor.
 
-If any of these methods are not available :func:`read_bufr` will automatically create a wrapper object to provide default implementations. For details see :class:`MessageWrapper` in ``pdbufr/bufr_structure.py``.
+If any of these methods are not available :func:`read_bufr` will automatically create a wrapper object to provide default implementations. For details see :class:`MessageWrapper` in ``pdbufr/core/structure.py``.

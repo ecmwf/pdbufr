@@ -2,39 +2,11 @@
 Concepts
 ====================================
 
-
 .. toctree::
-   :maxdepth: 1
-   :titlesonly:
+   :maxdepth: 2
+
 
    read_bufr
-
-Readers
-+++++++++
-
-.. toctree::
-   :maxdepth: 1
-
-   readers/generic
-   readers/flat
-   readers/synop
-   readers/temp
-
-Miscellaneous
-+++++++++++++++
-
-.. toctree::
-   :maxdepth: 1
-   :titlesonly:
-
-   misc/index
-
-
-The BUFR format
-+++++++++++++++++
-
-.. toctree::
-   :maxdepth: 1
-   :titlesonly:
-
+   readers/index.rst
+   misc/index.rst
    bufr_primer

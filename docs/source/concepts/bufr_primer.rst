@@ -13,7 +13,7 @@ BUFR (Binary Universal Form for the Representation of meteorological data) is a 
 The BUFR structure
 ---------------------
 
-BUFR is a messages based format, meaning that data is organized into messages, each of which can contain multiple subsets. Messages are individual units and can be arbitrarily concatenated together without having any relation between them.
+BUFR is a message based format, meaning that data is organized into messages, each of which can contain multiple subsets. Messages are individual units and can be arbitrarily concatenated together without having any relation between them.
 
 Each message can be divided into 2 basic parts:
 

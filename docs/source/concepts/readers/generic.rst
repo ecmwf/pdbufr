@@ -10,7 +10,7 @@ Generic
 
     :param path: path to the BUFR file or a :ref:`message list object <message-list-object>`
     :type path: str, bytes, os.PathLike or a :ref:`message list object <message-list-object>`
-    :param columns: a list of :ref:`BUFR keys <eccodes-bufr-keys>` and :ref:`computed keys <computed-bufr-keys>` to extract from each BUFR message/subset. Please note that :ref:`computed keys <computed-bufr-keys>` do not preserve their position in ``columns`` but are placed to the end of the resulting DataFrame.
+    :param columns: a list of :ref:`BUFR keys <eccodes-bufr-keys>` and :ref:`computed keys <computed-bufr-keys>` to extract from each BUFR message/subset. Ranks cannot be used in the key names. Please note that :ref:`computed keys <computed-bufr-keys>` do not preserve their position in ``columns`` but are placed to the end of the resulting DataFrame.
     :type columns: str, sequence[str]
     :param filters: defines the conditions when to extract the specified ``columns``. The individual conditions are combined together with the logical AND operator to form the filter. See :ref:`filters` for details.
     :type filters: dict
@@ -21,8 +21,8 @@ Generic
 
         Bool values are interpreted as follows:
 
-          * True means all the keys in ``columns`` are required. It means that if any of the keys in ``columns`` missing in the message/subset the whole message/subset is skipped.
-          * False means no columns are required
+        * True means all the keys in ``columns`` are required, and if any of the keys in ``columns`` missing in the message/subset the whole message/subset is skipped.
+        * False means no columns are required
 
     :type required_columns: bool, iterable[str]
     :param prefilter_headers: if True, the headers are filtered before unpacking the data section. This can significantly speed up the extraction when the ``filters`` contain header keys (and only a small fraction of messages/subsets matches). *New in version 0.15.0.*
@@ -31,8 +31,8 @@ Generic
 
 .. _tree-structure:
 
-How the generic reader works
------------------------------
+How does the generic reader work?
+-------------------------------------
 
     The :ref:`generic reader <generic-reader>` reader interprets each BUFR message/subset as a hierarchical structure (see :ref:`bufr-tree-structure` for details). During data extraction pdbufr traverses this hierarchy and when all the ``columns`` are collected and the all the ``filters`` match a new record is added to the output. With this several records can be extracted from the same message/subset.
 
@@ -62,9 +62,9 @@ Example
 Examples
 -----------
 
-    - :ref:`/how-tos/r_generic_aircraft.ipynb`
-    - :ref:`/how-tos/r_generic_ens.ipynb`
-    - :ref:`/how-tos/r_generic_radiosonde.ipynb`
-    - :ref:`/how-tos/r_generic_synop.ipynb`
-    - :ref:`/how-tos/r_generic_tropical_cyclone.ipynb`
-    - :ref:`/how-tos/r_generic_sat.ipynb`
+    - :ref:`/how-tos/generic/r_generic_aircraft.ipynb`
+    - :ref:`/how-tos/generic/r_generic_ens.ipynb`
+    - :ref:`/how-tos/generic/r_generic_radiosonde.ipynb`
+    - :ref:`/how-tos/generic/r_generic_synop.ipynb`
+    - :ref:`/how-tos/generic/r_generic_tropical_cyclone.ipynb`
+    - :ref:`/how-tos/generic/r_generic_sat.ipynb`

@@ -117,7 +117,7 @@ Station/platform params
 .. list-table::
    :header-rows: 1
    :widths: 10 10 80
-   :align: center
+   :align: left
 
    * - **Name**
      - **Units/Object**
@@ -169,7 +169,7 @@ Upper level parameters
 .. list-table::
    :header-rows: 1
    :widths: 10 10 80
-   :align: center
+   :align: left
 
    * - **Name**
      - **Units**
@@ -229,5 +229,5 @@ Filtering parameter values
 Examples
 ++++++++++++++++++++++++++++
 
- - :ref:`/how-tos/r_temp_overview.ipynb`
- - :ref:`/how-tos/r_temp_geopotential.ipynb`
+ - :ref:`/how-tos/temp/r_temp_overview.ipynb`
+ - :ref:`/how-tos/temp/r_temp_geopotential.ipynb`
