@@ -1,5 +1,5 @@
 version: 2
-formats: []
+
 build:
   os: "ubuntu-24.04"
   tools:
@@ -7,8 +7,16 @@ build:
   jobs:
     post_checkout:
     - git fetch --unshallow || true
+    pre_build:
+    - rm -rf _build
+    - rm -rf docs/_build
+    - cd docs
 python:
   install:
-  - requirements: docs/source/requirements.txt
+  - method: pip
+    path: .
+    extra_requirements:
+    - docs
+
 sphinx:
   configuration: docs/source/conf.py
