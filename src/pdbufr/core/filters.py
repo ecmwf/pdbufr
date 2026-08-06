@@ -92,7 +92,6 @@ class SliceBufrFilter(BufrFilter):
         if hasattr(value, "__iter__") and not isinstance(value, str):
             return any(self.match(x) for x in value)
         else:
-            print(f"    -> matching slice filter: {self.slice.start} <= {value} <= {self.slice.stop}")
             if self.slice.start is not None and value < self.slice.start:
                 return False
             elif self.slice.stop is not None and value > self.slice.stop:

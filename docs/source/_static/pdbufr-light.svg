@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 40" width="180" height="40">
+    <!-- DataFrame / table icon -->
+    <g fill="none" stroke="#2E6DB4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="30" height="30" rx="3" />
+        <line x1="3" y1="14" x2="33" y2="14" />
+        <line x1="3" y1="23" x2="33" y2="23" />
+        <line x1="13" y1="5" x2="13" y2="35" />
+        <line x1="23" y1="5" x2="23" y2="35" />
+    </g>
+    <!-- "pdbufr" logotype -->
+    <text x="42" y="28" font-family="'Varela Round', 'Nunito', Arial, sans-serif" font-size="22" font-weight="700"
+        letter-spacing="0.5" fill="#1a3a5c">pdbufr</text>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" width="36" height="36">
+    <!-- DataFrame / table icon (standalone favicon) -->
+    <g fill="none" stroke="#4A90D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="30" height="30" rx="4" />
+        <line x1="3" y1="12" x2="33" y2="12" />
+        <line x1="3" y1="21" x2="33" y2="21" />
+        <line x1="12" y1="3" x2="12" y2="33" />
+        <line x1="21" y1="3" x2="21" y2="33" />
+    </g>
+</svg>

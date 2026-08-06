@@ -92,7 +92,6 @@ def extract_keys_standard(message, header, data_filters, add_filters, data_colum
 
         def _get_value(key):
             value = message.get(key)
-            print(f" -> get_value key: {key}, value: {value}")
             if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
                 value = None
             elif isinstance(value, int) and value == eccodes.CODES_MISSING_LONG:

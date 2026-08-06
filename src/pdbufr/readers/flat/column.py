@@ -184,9 +184,6 @@ class ComputedColumn(BaseColumn):
         else:
             values = {k: v for k in self.keys if (v := accessor(k)) is not None}
 
-        print(" -> computed column values:", values)
-        print("    keys:", self.keys)
-
         computed_value = None
         try:
             computed_value = self.method(values, ComputedColumn.prefix, self.keys)

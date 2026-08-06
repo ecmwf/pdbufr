@@ -314,7 +314,6 @@ class BufrHeader:
     def _filter(self) -> None:
         for f in self.filters.values():
             value = f.column.get_value(self._get, ranked=False)
-            print(" -> header filter:", f, "name:", f.name, "value:", value)
             if value is not None and f.match(value):
                 self._filters_values[f.column.name] = value
             else:
