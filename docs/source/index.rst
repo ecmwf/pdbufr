@@ -22,9 +22,9 @@ Pdbufr's documentation
 .. grid:: 1 1 2 2
    :gutter: 2
 
-   .. grid-item-card:: Installation
+   .. grid-item-card:: Installation and Getting Started
       :img-top: _static/rocket.svg
-      :link: install
+      :link: getting-started
       :link-type: doc
       :class-card: sd-shadow-sm
 
@@ -88,9 +88,9 @@ Have a feature request or found a bug? Feel free to open an
    :caption: User guide
    :hidden:
 
-   install
-   tutorials/index
+   getting-started
    faq
+   tutorials/index
    how-tos/index
    concepts/index
 
