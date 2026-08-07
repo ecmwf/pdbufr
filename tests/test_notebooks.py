@@ -18,9 +18,8 @@ import pytest
 
 # See https://www.blog.pythonlibrary.org/2018/10/16/testing-jupyter-notebooks/
 
-IN_GITHUB = os.environ.get("GITHUB_WORKFLOW") is not None
-
 EXAMPLES = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "source", "how-tos")
+TUTORIALS = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "source", "tutorials")
 LEGACY_EXAMPLES = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "source", "legacy")
 
 SKIP = ("prefilter_headers.ipynb",)  # data file too large to be downloaded in CI
@@ -28,10 +27,12 @@ SKIP = ("prefilter_headers.ipynb",)  # data file too large to be downloaded in C
 
 def notebooks_list() -> T.Iterable[str]:
     notebooks = []
-    for path in os.listdir(EXAMPLES) + os.listdir(LEGACY_EXAMPLES):
-        if re.match(r".+\.ipynb$", path):
-            notebooks.append(path)
-
+    for root in (EXAMPLES, LEGACY_EXAMPLES, TUTORIALS):
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [d for d in dirnames if d != ".ipynb_checkpoints"]
+            for filename in filenames:
+                if re.match(r".+\.ipynb$", filename):
+                    notebooks.append(os.path.join(dirpath, filename))
     return sorted(notebooks)
 
 
@@ -53,18 +54,17 @@ def MISSING(*modules: str) -> bool:
     MISSING("nbformat", "nbconvert", "ipykernel"),
     reason="python package nbformat not installed",
 )
-@pytest.mark.skipif(not IN_GITHUB, reason="Not on GITHUB")
 @pytest.mark.skipif(sys.platform == "win32", reason="Cannot execute notebooks on Windows")
 @pytest.mark.parametrize("path", notebooks_list())
 def test_notebook(path: str) -> None:
     import nbformat
     from nbconvert.preprocessors import ExecutePreprocessor
 
-    if path in SKIP:
+    if os.path.basename(path) in SKIP:
         pytest.skip("Notebook marked as 'skip'")
 
-    with open(os.path.join(EXAMPLES, path)) as f:
+    with open(path) as f:
         nb = nbformat.read(f, as_version=4)
 
     proc = ExecutePreprocessor(timeout=60 * 2, kernel_name="python3")
-    proc.preprocess(nb, {"metadata": {"path": EXAMPLES}})
+    proc.preprocess(nb, {"metadata": {"path": os.path.dirname(path)}})

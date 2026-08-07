@@ -23,12 +23,16 @@ Flat
     :type columns: str, sequence[str]
     :param filters: Define the conditions when to extract the specified ``columns``. The individual conditions are combined together with the logical AND operator to form the filter. See :ref:`flat-filters` for details. Keys appearing in the ``filters`` are automatically added to the list of columns to extract if they are not already present in ``columns``.
     :type filters: dict
-    :param required_columns: The list of :ref:`eccodes-bufr-keys` that are required to be present in a BUFR message/subset. It has a twofold meaning:
+    :param required_columns: The list of :ref:`eccodes-bufr-keys` that are required to be present in a BUFR message/subset. The keys in ``required_columns`` are automatically added to the list of columns to extract if they are not already present in ``columns``. The required keys are matched with any rank in the message/subset.  It has a twofold meaning:
 
         * if any of the keys in ``required_columns`` is missing in the message/subset the whole message/subset is skipped
         * if all the keys in ``required_columns`` are present, the message/subset is processed even if some key from ``columns`` are missing (supposing the filter conditions are met)
 
-        If it is a bool (either True or False), messages/subsets are always processed (supposing the filter conditions are met). The keys in ``required_columns`` are automatically added to the list of columns to extract if they are not already present in ``columns``. The required keys are matched with any rank in the message/subset.
+        If it is a ``bool`` the value is interpreted as follows:
+
+        * in :ref:`block extraction mode <flat-block-extraction>` (True or False), messages/subsets are always processed (supposing the filter conditions are met).
+        * in :ref:`individual key extraction mode <flat-individual-key-extraction>` ``True`` means all the keys in ``columns`` are required, and if any of the keys in ``columns`` missing in the message/subset the whole message/subset is skipped. ``False`` means no columns are required.
+
     :type required_columns: bool, iterable[str]
     :param prefilter_headers: If True, the headers are filtered before unpacking the data section. This can significantly speed up the extraction when the ``filters`` contain header keys (and only a small fraction of messages/subsets matches). *New in version 0.15.0.*
     :type prefilter_headers: bool
@@ -68,7 +72,7 @@ In the results the original :ref:`ecCodes keys <eccodes-bufr-keys>` containing t
 .. admonition:: Non-aligned columns in the output DataFrame
    :class: warning
 
-    Messages/subsets in a BUFR file can have a different set of BUFR keys. When a new message/subset is processed the :ref:`flat reader <flat-reader>` adds it to the resulting DataFrame as a new record and columns that are not yet present in the output are automatically appended by Pandas to the end changing the original order of keys for that message. When this happens pdbufr prints a warning message to the stdout (see the example below or the :ref:`/how-tos/flat/r_flat.ipynb` notebook for details).
+    Messages/subsets in a BUFR file can have a different set of BUFR keys. When a new message/subset is processed the :ref:`flat reader <flat-reader>` adds it to the resulting DataFrame as a new record and columns that are not yet present in the output are automatically appended by Pandas to the end changing the original order of keys for that message. When this happens pdbufr prints a warning message to the stdout (see the :ref:`/tutorials/flat/r_flat_column_alignment.ipynb` notebook for details).
 
 
 .. _flat-individual-key-extraction:
@@ -145,54 +149,12 @@ Filters for computed keys
   matches if "#1#blockNumber" = 12 and "#1#stationNumber" = 925 in the message/subset (remember WMO_station_id=blockNumber*1000+stationNumber)
 
 
-Example
-----------------
-
-The input is one of the tests data files with classic radiosonde observations, where each message contains a single location ("latitude", "longitude") with several pressure levels of temperature, dewpoint etc. The message hierarchy is shown in the following snapshot:
-
-  .. image:: /_static/temp_structure.png
-      :width: 450px
-
-
-To extract all the data values for the first two stations we can use this code:
-
-  .. code-block:: python
-
-      df = pdbufr.read_bufr(
-          "tests/sample_data/temp.bufr",
-          reader="flat",
-          columns="data",
-          filters={"count": [1, 2]},
-      )
-
-which results in the following DataFrame:
-
-  .. literalinclude:: /_static/flat_dump_output.txt
-
-and generates the following warning::
-
-  Warning: not all BUFR messages/subsets have the same structure in the input file.
-  Non-overlapping columns (starting with column[189] = #1#generatingApplication)
-  were added to end of the resulting dataframe altering the original column order
-  for these messages.
-
-This warning can be disabled by using the **warnings** module. The code below produces the same DataFrame as the one above but does not print the warning message:
-
-  .. code-block:: python
-
-      import warnings
-
-      warnings.filterwarnings("ignore", module="pdbufr")
-
-      df = pdbufr.read_bufr(
-          "tests/sample_data/temp.bufr",
-          reader="flat",
-          columns="data",
-          filters={"count": [1, 2]},
-      )
-
-
-Further examples
+Examples
 -------------------
 
-- :ref:`/how-tos/flat/r_flat.ipynb`
+- :ref:`/tutorials/flat/r_flat_overview.ipynb`
+- :ref:`/tutorials/flat/r_flat_filters.ipynb`
+- :ref:`/tutorials/flat/r_flat_required_columns_block.ipynb`
+- :ref:`/tutorials/flat/r_flat_required_columns_individual.ipynb`
+- :ref:`/tutorials/flat/r_flat_column_alignment.ipynb`
+- :ref:`/tutorials/flat/r_flat_aircraft.ipynb`

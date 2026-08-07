@@ -3,7 +3,8 @@
 Tutorials
 =========
 
-Step-by-step tutorials for learning pdbufr are coming soon.
+.. toctree::
+    :maxdepth: 1
 
-In the meantime, please see the :ref:`how-tos` section for practical notebook examples,
-and the :ref:`concepts/index <concepts>` section for reference documentation.
+    generic_vs_flat.ipynb
+    flat/index.rst

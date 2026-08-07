@@ -472,4 +472,4 @@ Filtering parameter values
 Examples
 ++++++++++++++++++++++++++++
 
- - :ref:`/how-tos/synop/r_synop_overview.ipynb`
+- :ref:`/how-tos/synop/r_synop_overview.ipynb`
