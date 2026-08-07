@@ -36,35 +36,13 @@ How does the generic reader work?
 
     The :ref:`generic reader <generic-reader>` reader interprets each BUFR message/subset as a hierarchical structure (see :ref:`bufr-tree-structure` for details). During data extraction pdbufr traverses this hierarchy and when all the ``columns`` are collected and the all the ``filters`` match a new record is added to the output. With this several records can be extracted from the same message/subset.
 
-Example
-----------------
-
-    The input is one of the tests data files with classic radiosonde observations, where each message contains a single location ("latitude", "longitude") with several pressure levels of temperature, dewpoint etc. The message hierarchy is shown in the following snapshot:
-
-      .. image:: /_static/temp_structure.png
-          :width: 450px
-
-      To extract the temperature profile for the first two stations we can use this code:
-
-      .. code-block:: python
-
-          df = pdbufr.read_bufr(
-              "tests/sample_data/temp.bufr",
-              columns=("latitude", "longitude", "pressure", "airTemperature"),
-              filters={"count": [1, 2]},
-          )
-
-      which results in the following DataFrame:
-
-      .. literalinclude:: /_static/h_dump_output.txt
-
 
 Examples
 -----------
 
-    - :ref:`/how-tos/generic/r_generic_aircraft.ipynb`
-    - :ref:`/how-tos/generic/r_generic_ens.ipynb`
-    - :ref:`/how-tos/generic/r_generic_radiosonde.ipynb`
-    - :ref:`/how-tos/generic/r_generic_synop.ipynb`
-    - :ref:`/how-tos/generic/r_generic_tropical_cyclone.ipynb`
-    - :ref:`/how-tos/generic/r_generic_sat.ipynb`
+- :ref:`/how-tos/generic/r_generic_aircraft.ipynb`
+- :ref:`/how-tos/generic/r_generic_ens.ipynb`
+- :ref:`/how-tos/generic/r_generic_radiosonde.ipynb`
+- :ref:`/how-tos/generic/r_generic_synop.ipynb`
+- :ref:`/how-tos/generic/r_generic_tropical_cyclone.ipynb`
+- :ref:`/how-tos/generic/r_generic_sat.ipynb`

@@ -58,7 +58,7 @@ class FlatReader(Reader):
                 (
                     "not all BUFR messages/subsets have the same structure in the input file. "
                     "Non-overlapping columns (starting with column[{column_info.first_count-1}] ="
-                    f"{df.columns[self.column_info.first_count - 1]}) were added to end of the resulting dataframe"
+                    f"{df.columns[self.column_info.first_count - 1]}) were added to the end of the resulting dataframe "
                     "altering the original column order for these messages."
                 )
             )

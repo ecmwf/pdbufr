@@ -3,6 +3,6 @@
 Frequently Asked Questions
 ============================
 
-.. rubric:: Where can I report bugs or request features?
+.. rubric:: What is the difference between the generic and flat readers?
 
-Please open an issue on the `GitHub repository <https://github.com/ecmwf/pdbufr/issues>`_.
+See the :ref:`generic vs flat reader </tutorials/generic_vs_flat.ipynb>` notebook for a comparison of the two readers.

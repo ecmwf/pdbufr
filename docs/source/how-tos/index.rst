@@ -7,7 +7,6 @@ How-to Guides
     :maxdepth: 1
 
     generic/index
-    flat/index
     synop/index
     temp/index
     options/index
