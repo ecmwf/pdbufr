@@ -9,12 +9,11 @@
 
 from typing import Any, Dict, Iterator, Mapping, Set
 
-import eccodes  # type: ignore
-
 from pdbufr.core.filters import BufrFilter
 from pdbufr.core.structure import BufrHeader
 
 from .compressed import CompressedValueCache
+from .missing import convert_missing
 from .uncompressed import UncompressedExtractor
 
 
@@ -92,10 +91,7 @@ def extract_keys_standard(message, header, data_filters, add_filters, data_colum
 
         def _get_value(key):
             value = message.get(key)
-            if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
-                value = None
-            elif isinstance(value, int) and value == eccodes.CODES_MISSING_LONG:
-                value = None
+            value = convert_missing(value)
             return value
 
         for f in data_filters.values():
@@ -112,9 +108,13 @@ def extract_keys_standard(message, header, data_filters, add_filters, data_colum
 
         for key, c in data_columns.items():
             # LOG.debug(f"getting data column key: {key}")
-            if key not in result:
-                v = c.get_value(_get_value)
-                result[key] = v
+            if not c.multi:
+                if key not in result:
+                    v = c.get_value(_get_value)
+                    result[key] = v
+            else:
+                for k, v in c.get_ranked_items(_get_value):
+                    result[k] = v
 
         # LOG.debug(f"result after data columns: {result}")
 
@@ -173,9 +173,13 @@ def extract_keys_compressed(
 
             for key, c in data_columns.items():
                 # LOG.debug(f"getting data column key: {key}")
-                if key not in current_result:
-                    v = c.get_value(_get_value)
-                    current_result[key] = v
+                if not c.multi:
+                    if key not in current_result:
+                        v = c.get_value(_get_value)
+                        current_result[key] = v
+                else:
+                    for k, v in c.get_ranked_items(_get_value):
+                        current_result[k] = v
 
             if current_result:
                 yield dict(current_result)

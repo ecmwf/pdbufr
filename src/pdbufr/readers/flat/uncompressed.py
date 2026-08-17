@@ -8,7 +8,7 @@
 
 from itertools import chain
 
-import eccodes
+from .missing import convert_missing_scalar
 
 SKIP_KEYS = {
     "unexpandedDescriptors",
@@ -22,7 +22,7 @@ SKIP_KEYS = {
 }
 
 
-class UncompressedBufrKey1:
+class UncompressedBufrKey:
     def __init__(self, key, name: str, rank):
         self.key = key
         self.name = name
@@ -30,7 +30,7 @@ class UncompressedBufrKey1:
         self.ranked_name = f"#{rank}#{name}" if rank > 0 else name
 
     @classmethod
-    def from_key(cls, key: str) -> "UncompressedBufrKey1":
+    def from_key(cls, key: str) -> "UncompressedBufrKey":
         rank_text, sep, name = key.rpartition("#")
         try:
             if sep == "#":
@@ -76,12 +76,16 @@ class UncompressedExtractor:
         subset_keys = set()
         ref_rank = {}
         simple_filters = {f.key: f for f in data_filters.values() if not f.column.multi}
+        simple_columns = {c.name: c for c in data_columns.values() if not c.multi}
 
         # setup rank tracker for the keys that need to be collected
-        for col in chain([f.column for f in simple_filters.values()], data_columns.values()):
+        # subset keys contain the ranked keys to collect and also contain the
+        # name of the multi-rank keys to collect
+
+        for col in chain([f.column for f in simple_filters.values()], simple_columns.values()):
             for key in col.keys:
                 if key not in subset_keys:
-                    b = UncompressedBufrKey1.from_key(key)
+                    b = UncompressedBufrKey.from_key(key)
                     subset_keys.add(b.ranked_name)
                     if b.name not in ref_rank:
                         ref_rank[b.name] = RefRank()
@@ -91,11 +95,13 @@ class UncompressedExtractor:
 
         # the multi-rank keys are treated separately. They can only appear in the data filters and
         # are not added to the result since they are not associated with a single value (rank)
-        self.multi_rank_keys = [f.name for f in self.data_filters.values() if f.column.multi]
+        self.multi_rank_filter_keys = [f.name for f in self.data_filters.values() if f.column.multi]
+        self.multi_rank_data_keys = [c.name for c in self.data_columns.values() if c.multi]
 
     def extract(self):
         subset_values = dict()
-        multi_rank_values = {x: [] for x in self.multi_rank_keys}
+        multi_rank_data_values = {x: [] for x in self.multi_rank_data_keys}
+        multi_rank_filter_values = {x: [] for x in self.multi_rank_filter_keys}
 
         subset = 0
         for key in self.message:
@@ -104,43 +110,52 @@ class UncompressedExtractor:
             # start new subset
             if key == "subsetNumber":
                 if subset >= 1:
-                    current_result = self.generate_subset_result(subset_values, multi_rank_values)
+                    current_result = self.generate_subset_result(
+                        subset_values, multi_rank_filter_values, multi_rank_data_values
+                    )
 
                     if current_result:
                         yield current_result
 
                 subset += 1
                 subset_values.clear()
-                multi_rank_values = {x: [] for x in self.multi_rank_keys}
+                multi_rank_filter_values = {x: [] for x in self.multi_rank_filter_keys}
+                multi_rank_data_values = {x: [] for x in self.multi_rank_data_keys}
 
                 for x in self.ref_rank.values():
                     x.reset()
 
             elif subset >= 1:
-                self.process_key(key, subset_values, multi_rank_values)
+                self.process_key(key, subset_values, multi_rank_filter_values, multi_rank_data_values)
 
         # last subset
-        current_result = self.generate_subset_result(subset_values, multi_rank_values)
+        current_result = self.generate_subset_result(subset_values, multi_rank_filter_values, multi_rank_data_values)
         if current_result:
             yield current_result
 
-    def process_key(self, key, subset_values, multi_rank_values):
-        b = UncompressedBufrKey1.from_key(key)
+    def process_key(self, key, subset_values, multi_rank_filter_values, multi_rank_data_values):
+        def _get_value(key):
+            return convert_missing_scalar(self.message.get(key))
+
+        b = UncompressedBufrKey.from_key(key)
         if b.name in self.ref_rank:
             self.ref_rank[b.name].set(b.rank)
             reranked_key = b.rerank(self.ref_rank[b.name].value)
             if reranked_key in self.subset_keys:
-                subset_values[reranked_key] = self.message.get(key)
-                # self.subset_keys_count += 1
-        elif b.name in self.multi_rank_keys:
-            # print(f" -> multi-rank key: {key}, name: {b.name}, rank: {b.rank}")
-            multi_rank_values[b.name].append(self.message.get(key))
+                subset_values[reranked_key] = _get_value(key)
+        else:
+            if b.name in self.multi_rank_data_keys:
+                multi_rank_data_values[b.name].append(_get_value(key))
+            if b.name in self.multi_rank_filter_keys:
+                multi_rank_filter_values[b.name].append(_get_value(key))
 
-    def generate_subset_result(self, subset_values, multi_rank_values):
+    def generate_subset_result(self, subset_values, multi_rank_filter_values, multi_rank_data_values):
 
         def _get_value_subset(key):
-            if key in multi_rank_values:
-                return multi_rank_values.get(key)
+            if key in multi_rank_filter_values:
+                return multi_rank_filter_values.get(key)
+            elif key in multi_rank_data_values:
+                return multi_rank_data_values.get(key)
             else:
                 return subset_values.get(key)
 
@@ -161,9 +176,13 @@ class UncompressedExtractor:
         if matched:
             for key, c in self.data_columns.items():
                 # LOG.debug(f"getting data column key: {key}")
-                if key not in current_result:
-                    v = c.get_value(_get_value_subset)
-                    current_result[key] = v
+                if not c.multi:
+                    if key not in current_result:
+                        v = c.get_value(_get_value_subset)
+                        current_result[key] = v
+                else:
+                    for k, v in c.get_ranked_items(_get_value_subset):
+                        current_result[k] = v
 
             if matched_keys:
                 current_result.update(matched_keys)
@@ -240,15 +259,10 @@ class UncompressedExtractorAll:
 
     def process_key(self, key, subset_values, multi_rank_values):
         # print(f" -> processing key: {key}")
-        b = UncompressedBufrKey1.from_key(key)
+        b = UncompressedBufrKey.from_key(key)
 
         def _get_value(key):
-            value = self.message.get(key)
-            if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
-                value = None
-            elif isinstance(value, int) and value == eccodes.CODES_MISSING_LONG:
-                value = None
-            return value
+            return convert_missing_scalar(self.message.get(key))
 
         if b.name in SKIP_KEYS:
             return

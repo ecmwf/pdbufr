@@ -80,26 +80,31 @@ In the results the original :ref:`ecCodes keys <eccodes-bufr-keys>` containing t
 Individual key extraction mode
 ////////////////////////////////
 
-When ``columns`` is set to a list of BUFR keys (or a single BUFR key) the :ref:`flat reader <flat-reader>` extracts only the specified keys. Each extracted message/subset will be a separate record in the resulting DataFrame.
+When ``columns`` is set to a list of BUFR keys (or a single BUFR key) the :ref:`flat reader <flat-reader>` extracts only the specified keys in the given order. Each extracted message/subset will be a separate record in the resulting DataFrame.
 
-The keys can contain a :ref:`rank <eccodes-key-rank>`, e.g. "#3#cloudType". Keys without a rank from the data section are interpreted as rank=1 keys, e.g. "cloudType" is treated as "#1#cloudType" (i.e. the first occurrence of "cloudType" in the message/subset is extracted). E.g.:
+The keys can contain a :ref:`rank <eccodes-key-rank>` and the following rules apply to the ``columns`` parameter in this mode:
 
+* keys containing a rank are interpreted as rank-specific keys, e.g. ::
 
-.. code-block:: python
+   columns = ["#1#cloudType", "#3#cloudType"]
 
-    # extract the first and third occurrence of "cloudType" from the data section
-    columns = ["cloudType", "#3#cloudType"]
-    df = pdbufr.read_bufr(
-        "tests/sample_data/obs_3day.bufr",
-        reader="flat",
-        columns=columns,
-    )
+* keys without a rank from the data section are interpreted as rank=1 keys, e.g. in ::
+
+    columns = ["cloudType"]
+
+  "cloudType" is treated as "#1#cloudType" (i.e. the first occurrence of "cloudType" in the message/subset is extracted).
+
+* the special leading "~" notation can be used to extract all occurrences of a key in the message/subset, e.g. ::
+
+    columns = ["~cloudType"]
+
+  will extract all occurrences of "cloudType" in the message/subset. Each rank will form a separate column.
+
 
 .. admonition:: Keys without a rank are treated as rank=1
    :class: warning
 
     This behaviour differs from the ``eccodes.codes_get()`` function in the ecCodes API, which returns the last occurrence of a key in the message/subset when no rank is specified.
-
 
 For uncompressed subsets the rank is treated in a special way as described below.
 
