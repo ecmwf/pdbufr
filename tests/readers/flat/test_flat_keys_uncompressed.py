@@ -9,8 +9,8 @@
 
 import datetime
 
-import numpy as np
 import pytest
+from flat_fixtures import compare_df
 
 import pdbufr
 from pdbufr.utils.testing import sample_test_data_path
@@ -18,34 +18,6 @@ from pdbufr.utils.testing import sample_test_data_path
 pd = pytest.importorskip("pandas")
 
 TEST_DATA_2 = sample_test_data_path("synop_multi_subset_uncompressed.bufr")
-
-
-def _compare_df(df, num_rows, ref_rows, ref):
-    assert len(df) == num_rows
-
-    if num_rows > 0:
-        assert list(df.columns) == list(ref[0].keys())
-        # assert len(df) == num_rows
-
-        # assert .iloc[0].to_dict() == names[0], res.iloc[0].to_dict()
-        # assert res.iloc[2].to_dict() == names[1], res.iloc[2].to_dict()
-        df_ref = pd.DataFrame.from_dict(ref)
-        df_ref.reset_index(drop=True, inplace=True)
-
-        df = df.replace(np.nan, None)
-        # df = df.reset_index(drop=True)
-        df = df.iloc[ref_rows].reset_index(drop=True)
-
-        print("df=", df)
-        print("df_ref=", df_ref)
-
-        try:
-            pd.testing.assert_frame_equal(
-                df, df_ref, check_dtype=False, check_index_type=False, check_datetimelike_compat=True
-            )
-        except Exception as e:
-            print("e=", e)
-            raise
 
 
 @pytest.mark.parametrize("prefilter_headers", [False])
@@ -68,7 +40,7 @@ def _compare_df(df, num_rows, ref_rows, ref):
 def test_read_flat_bufr_key_uncompressed_core_header(prefilter_headers, _kwargs, num_rows, ref_rows, ref) -> None:
     """Use only header section keys."""
     df = pdbufr.read_bufr(TEST_DATA_2, flat=True, **_kwargs, prefilter_headers=prefilter_headers)
-    _compare_df(df, num_rows, ref_rows, ref)
+    compare_df(df, num_rows, ref_rows, ref)
 
 
 @pytest.mark.parametrize("prefilter_headers", [True, False])
@@ -244,7 +216,7 @@ def test_read_flat_bufr_key_uncompressed_core_header(prefilter_headers, _kwargs,
 def test_read_flat_bufr_key_uncompressed_core_data(prefilter_headers, _kwargs, num_rows, ref_rows, ref) -> None:
     """Use only data section keys."""
     df = pdbufr.read_bufr(TEST_DATA_2, flat=True, **_kwargs, prefilter_headers=prefilter_headers)
-    _compare_df(df, num_rows, ref_rows, ref)
+    compare_df(df, num_rows, ref_rows, ref)
 
 
 @pytest.mark.parametrize("prefilter_headers", [False])
@@ -286,7 +258,7 @@ def test_read_flat_bufr_key_uncompressed_core_data(prefilter_headers, _kwargs, n
 def test_read_flat_bufr_key_uncompressed_core_mixed(prefilter_headers, _kwargs, num_rows, ref_rows, ref) -> None:
     """Use both header and data section keys."""
     df = pdbufr.read_bufr(TEST_DATA_2, flat=True, **_kwargs, prefilter_headers=prefilter_headers)
-    _compare_df(df, num_rows, ref_rows, ref)
+    compare_df(df, num_rows, ref_rows, ref)
 
 
 @pytest.mark.parametrize("prefilter_headers", [True, False])
@@ -340,4 +312,4 @@ def test_read_flat_bufr_key_uncompressed_filters(prefilter_headers, _kwargs, num
 
     # default args
     df = pdbufr.read_bufr(TEST_DATA_2, flat=True, **_kwargs, prefilter_headers=prefilter_headers)
-    _compare_df(df, num_rows, ref_rows, ref)
+    compare_df(df, num_rows, ref_rows, ref)
