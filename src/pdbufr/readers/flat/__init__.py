@@ -263,7 +263,7 @@ class FlatReader(Reader):
         columns_input = list(columns)
         columns = dict()
         for k in columns_input:
-            columns[k] = create_column(k, allow_multi_rank=False)
+            columns[k] = create_column(k, allow_multi_rank=True)
 
         # filters
         filters = dict(filters)
@@ -284,7 +284,13 @@ class FlatReader(Reader):
         # define required columns and convert to column objects
         if isinstance(required_columns, bool):
             if required_columns:
-                required_columns = columns
+                required_columns = []
+                for c in columns.values():
+                    # multi rank columns are not allowed in the required columns
+                    if c.multi:
+                        required_columns.append(create_column(c.raw_key, allow_multi_rank=False))
+                    else:
+                        required_columns.append(c)
             else:
                 required_columns = []
         elif isinstance(required_columns, str):

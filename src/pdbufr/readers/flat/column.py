@@ -9,6 +9,8 @@
 from abc import ABCMeta, abstractmethod
 from typing import Any, Tuple
 
+import numpy as np  # type: ignore
+
 from pdbufr.core.filters import BufrFilter
 from pdbufr.core.keys import COMPUTED_KEYS
 
@@ -152,13 +154,14 @@ class MultiRankColumn(BaseColumn):
         key = self.ranked_key if ranked else self.raw_key
         return accessor(key)
 
-    # @staticmethod
-    # def _parse(key) -> None:
-    #     if key.startswith("#"):
-    #         _, _, name = key.rpartition("#")
-    #         return name, key
-    #     else:
-    #         return key, f"#1#{key}"
+    def get_ranked_items(self, accessor) -> Any:
+        vals = accessor(self.raw_key)
+        if not isinstance(vals, np.ndarray) and not isinstance(vals, list):
+            vals = [vals]
+
+        # Assume vals is an iterable and each element is a scalar/str
+        for i, v in enumerate(vals):
+            yield f"#{i + 1}#{self.raw_key}", v
 
 
 class ComputedColumn(BaseColumn):
