@@ -158,6 +158,8 @@ class MultiRankColumn(BaseColumn):
         vals = accessor(self.raw_key)
         if not isinstance(vals, np.ndarray) and not isinstance(vals, list):
             vals = [vals]
+
+        # Assume vals is an iterable and each element is a scalar/str
         for i, v in enumerate(vals):
             yield f"#{i + 1}#{self.raw_key}", v
 

@@ -6,62 +6,63 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-import eccodes
 import numpy as np
+
+from .missing import convert_missing
 
 
 class CompressedValueCache:
     def __init__(self, message, subset_count):
         self.cache = {}
+        self.multi_cache = {}
         self.message = message
         self.subset_count = subset_count
 
-    def get_multi_rank_value_mixed(self, key, value):
-        # multi-rank key accessed without a rank
-        if isinstance(value, np.ndarray):
-            r = []
-            for i_rank in range(1, 10000):
-                rk = f"#{i_rank}#{key}"
-                if rk in self.message:
-                    v = self.message.get(rk)
-                    if isinstance(v, (np.ndarray, list)):
-                        r.append(v)
-                    else:
-                        r.append(np.asarray([v] * self.subset_count))
-                else:
-                    break
-            return np.asarray(r).T
-
-    def get_multi_rank_value_array(self, key, value):
-        # multi-rank key accessed without a rank
-        if isinstance(value, np.ndarray):
-            value = value.reshape((-1, self.subset_count), order="F")
-            value = value.T
-            return value
-
     def get(self, key, subset):
-        if key not in self.cache:
-            value = self.message.get(key)
-            if key != "unexpandedDescriptors" and isinstance(value, (np.ndarray, list)) and "#" not in key:
-                # multi-rank key
-                if len(value) != self.subset_count:
-                    # not all ranks are full arrays (some are scalars) so we need to get all ranks
-                    if len(value) % self.subset_count != 0:
-                        value = self.get_multi_rank_value_mixed(key, value)
-                    # all the ranks are full arrays
+        non_header = key != "unexpandedDescriptors"
+
+        if non_header:
+            if key not in self.cache:
+                if non_header:
+                    # concrete rank key
+                    if key.startswith("#"):
+                        value = convert_missing(self.message.get(key))
+                        self.cache[key] = value
+                    # multirank key. The name does not contain the rank, e.g. "timePeriod". The values
+                    # are stored as a 2D list/numpy array ach element containing the value for a given subset.
+                    # So the values for a given element are the values for each rank with increasing rank
+                    # order.
                     else:
-                        value = self.get_multi_rank_value_array(key, value)
+                        value = self.get_multi_rank_value(key)
+                        self.cache[key] = value
+            else:
+                value = self.cache[key]
+
+            if isinstance(value, (list, np.ndarray)) and len(value) == self.subset_count:
+                return value[subset]
+            else:
+                return value
+
         else:
-            value = self.value_cache[key]
+            return self.message.get(key)
 
-        # extract compressed BUFR values. They are either numpy arrays (for numeric types)
-        # or lists of strings
-        if key != "unexpandedDescriptors" and isinstance(value, (np.ndarray, list)) and len(value) == self.subset_count:
-            value = value[subset]
+    def get_multi_rank_value(self, key):
+        # multi-rank key accessed without a rank
+        r = []
+        for i_rank in range(1, 1000000):
+            rk = f"#{i_rank}#{key}"
+            if rk in self.message:
+                v = self.message.get(rk)
+                if isinstance(v, (np.ndarray, list)):
+                    r.append(convert_missing(v))
+                elif not isinstance(v, str):
+                    r.append(np.asarray([convert_missing(v)] * self.subset_count))
+                else:
+                    r.append([convert_missing(v)] * self.subset_count)
+            else:
+                break
 
-        if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
-            value = None
-        elif isinstance(value, int) and value == eccodes.CODES_MISSING_LONG:
-            value = None
-
-        return value
+        try:
+            return np.asarray(r).T
+        except Exception:
+            return [list(row) for row in zip(*r)]

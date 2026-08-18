@@ -479,5 +479,4 @@ def test_read_flat_bufr_key_compressed_filters(prefilter_headers, _kwargs, num_r
     df = pdbufr.read_bufr(TEST_DATA_9, flat=True, **_kwargs, prefilter_headers=prefilter_headers)
 
     # print("df=", df)
-    # assert False
     _compare_df(df, num_rows, ref_rows, ref)

@@ -71,107 +71,107 @@ def test_read_flat_bufr_key_uncompressed_core_header(prefilter_headers, _kwargs,
     _compare_df(df, num_rows, ref_rows, ref)
 
 
-@pytest.mark.parametrize("prefilter_headers", [False])
+@pytest.mark.parametrize("prefilter_headers", [True, False])
 @pytest.mark.parametrize(
     "_kwargs,num_rows,ref_rows,ref",
     [
-        # (
-        #     {
-        #         "columns": ["latitude", "longitude", "stationNumber", "#1#airTemperature"],
-        #     },
-        #     12,
-        #     [0, 2],
-        #     [
-        #         {
-        #             "latitude": 69.6523,
-        #             "longitude": 18.9057,
-        #             "stationNumber": 27,
-        #             "#1#airTemperature": 276.45,
-        #         },
-        #         {
-        #             "latitude": 63.4882,
-        #             "longitude": 10.8795,
-        #             "stationNumber": 270,
-        #             "#1#airTemperature": 275.25,
-        #         },
-        #     ],
-        # ),
-        # (
-        #     {
-        #         "columns": ["longitude", "latitude", "stationNumber", "#1#airTemperature"],
-        #     },
-        #     12,
-        #     [0, 2],
-        #     [
-        #         {
-        #             "longitude": 18.9057,
-        #             "latitude": 69.6523,
-        #             "stationNumber": 27,
-        #             "#1#airTemperature": 276.45,
-        #         },
-        #         {
-        #             "longitude": 10.8795,
-        #             "latitude": 63.4882,
-        #             "stationNumber": 270,
-        #             "#1#airTemperature": 275.25,
-        #         },
-        #     ],
-        # ),
-        # (
-        #     {
-        #         "columns": [
-        #             "#1#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
-        #             "#6#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
-        #             "#6#timePeriod",
-        #             "#7#timePeriod",
-        #             "#1#maximumTemperatureAtHeightAndOverPeriodSpecified",
-        #             "#7#timePeriod",
-        #         ],
-        #     },
-        #     12,
-        #     [0, 2],
-        #     [
-        #         {
-        #             "#1#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 2,
-        #             "#6#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 2,
-        #             "#6#timePeriod": -1,
-        #             "#7#timePeriod": 0,
-        #             "#1#maximumTemperatureAtHeightAndOverPeriodSpecified": 276.55,
-        #         },
-        #         {
-        #             "#1#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 2,
-        #             "#6#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 2,
-        #             "#6#timePeriod": -1,
-        #             "#7#timePeriod": 0,
-        #             "#1#maximumTemperatureAtHeightAndOverPeriodSpecified": 275.65,
-        #         },
-        #     ],
-        # ),
-        # (
-        #     {"columns": ["latitude", "longitude", "data_datetime", "WMO_station_id"]},
-        #     12,
-        #     [0, 2, 11],
-        #     [
-        #         {
-        #             "latitude": 69.6523,
-        #             "longitude": 18.9057,
-        #             "data_datetime": datetime.datetime.fromisoformat("2015-01-26T10:00:00.000"),
-        #             "WMO_station_id": 1027,
-        #         },
-        #         {
-        #             "latitude": 63.4882,
-        #             "longitude": 10.8795,
-        #             "data_datetime": datetime.datetime.fromisoformat("2015-01-26T10:00:00.000"),
-        #             "WMO_station_id": 1270,
-        #         },
-        #         {
-        #             "latitude": 59.6193,
-        #             "longitude": 10.215,
-        #             "data_datetime": datetime.datetime.fromisoformat("2015-01-26T10:00:00.000"),
-        #             "WMO_station_id": 1485,
-        #         },
-        #     ],
-        # ),
+        (
+            {
+                "columns": ["latitude", "longitude", "stationNumber", "#1#airTemperature"],
+            },
+            12,
+            [0, 2],
+            [
+                {
+                    "latitude": 69.6523,
+                    "longitude": 18.9057,
+                    "stationNumber": 27,
+                    "#1#airTemperature": 276.45,
+                },
+                {
+                    "latitude": 63.4882,
+                    "longitude": 10.8795,
+                    "stationNumber": 270,
+                    "#1#airTemperature": 275.25,
+                },
+            ],
+        ),
+        (
+            {
+                "columns": ["longitude", "latitude", "stationNumber", "#1#airTemperature"],
+            },
+            12,
+            [0, 2],
+            [
+                {
+                    "longitude": 18.9057,
+                    "latitude": 69.6523,
+                    "stationNumber": 27,
+                    "#1#airTemperature": 276.45,
+                },
+                {
+                    "longitude": 10.8795,
+                    "latitude": 63.4882,
+                    "stationNumber": 270,
+                    "#1#airTemperature": 275.25,
+                },
+            ],
+        ),
+        (
+            {
+                "columns": [
+                    "#1#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
+                    "#6#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform",
+                    "#6#timePeriod",
+                    "#7#timePeriod",
+                    "#1#maximumTemperatureAtHeightAndOverPeriodSpecified",
+                    "#7#timePeriod",
+                ],
+            },
+            12,
+            [0, 2],
+            [
+                {
+                    "#1#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 2,
+                    "#6#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 2,
+                    "#6#timePeriod": -1,
+                    "#7#timePeriod": 0,
+                    "#1#maximumTemperatureAtHeightAndOverPeriodSpecified": 276.55,
+                },
+                {
+                    "#1#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 2,
+                    "#6#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 2,
+                    "#6#timePeriod": -1,
+                    "#7#timePeriod": 0,
+                    "#1#maximumTemperatureAtHeightAndOverPeriodSpecified": 275.65,
+                },
+            ],
+        ),
+        (
+            {"columns": ["latitude", "longitude", "data_datetime", "WMO_station_id"]},
+            12,
+            [0, 2, 11],
+            [
+                {
+                    "latitude": 69.6523,
+                    "longitude": 18.9057,
+                    "data_datetime": datetime.datetime.fromisoformat("2015-01-26T10:00:00.000"),
+                    "WMO_station_id": 1027,
+                },
+                {
+                    "latitude": 63.4882,
+                    "longitude": 10.8795,
+                    "data_datetime": datetime.datetime.fromisoformat("2015-01-26T10:00:00.000"),
+                    "WMO_station_id": 1270,
+                },
+                {
+                    "latitude": 59.6193,
+                    "longitude": 10.215,
+                    "data_datetime": datetime.datetime.fromisoformat("2015-01-26T10:00:00.000"),
+                    "WMO_station_id": 1485,
+                },
+            ],
+        ),
         (
             {
                 "columns": [
