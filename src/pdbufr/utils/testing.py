@@ -10,7 +10,8 @@ import os
 from typing import List, Optional, Union
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-if not os.path.exists(os.path.join(ROOT_DIR, "tests", "data")):
+
+if not os.path.exists(os.path.join(ROOT_DIR, "tests", "sample_data")):
     ROOT_DIR = "./"
 
 LOCAL_SAMPLE_DIR = os.path.join(ROOT_DIR, "tests", "sample_data")

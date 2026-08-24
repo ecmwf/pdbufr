@@ -12,11 +12,12 @@ import pandas as pd  # type: ignore
 
 from pdbufr.core.filters import BufrFilter
 from pdbufr.core.keys import rank_from_key as rank_from_key
-from pdbufr.core.structure import BufrHeader, MessageWrapper
+from pdbufr.core.structure import MessageWrapper
 
 from .. import Reader
 from .block import extract_blocks
 from .column import create_column, create_filter
+from .header import BufrHeader
 from .key import extract_keys
 
 
@@ -212,20 +213,26 @@ class FlatReader(Reader):
                 if count_filter is not None and not count_filter.match(count):
                     continue
 
-                header = BufrHeader(message, None, filters)
+                header = BufrHeader(message, None, filters, lazy_keys=True)
                 data_filters = {k: v for k, v in filters.items() if k not in header.filters}
 
-                # test filters on header keys before unpacking
+                # test filters on header keys before unpacking. A message rejected here
+                # never needs its header keys, and enumerating them is expensive.
                 if prefilter_headers and not header.match_filters():
                     continue
+
+                # the header keys can only be enumerated while the message is still
+                # packed. When the data section is extracted they can be determined
+                # from the keys of the unpacked message instead, which saves a full
+                # key enumeration per message.
+                if not add_data:
+                    header.build_keys()
 
                 data_required_columns_keys = required_columns_keys
                 header_required_columns_keys = set()
                 if data_required_columns_keys:
-                    data_required_columns_keys = data_required_columns_keys - header.keys
-                    data_required_columns_keys = {k for k in data_required_columns_keys}
-                    if len(data_required_columns_keys) != required_columns_keys:
-                        header_required_columns_keys = required_columns_keys - data_required_columns_keys
+                    data_required_columns_keys = {k for k in required_columns_keys if k not in header}
+                    header_required_columns_keys = required_columns_keys - data_required_columns_keys
 
                 # get full header or data sections
                 for record in extract_blocks(
@@ -302,11 +309,9 @@ class FlatReader(Reader):
             required_columns, filters
         )
 
-        def ensure_rank(key):
-            if key.startswith("#"):
-                return key
-            else:
-                return f"#1#{key}"
+        # the ranked form of the required column keys only depends on the keys
+        # themselves, so it is built once here
+        ranked_required_columns_keys = {k: (k if k.startswith("#") else f"#1#{k}") for k in required_columns_keys}
 
         for count, msg in enumerate(bufr_obj, 1):
             # We use a context manager to automatically delete the handle of the BufrMessage.
@@ -316,18 +321,26 @@ class FlatReader(Reader):
                 if count_filter is not None and not count_filter.match(count):
                     continue
 
-                header = BufrHeader(message, columns, filters)
+                # the header keys are only enumerated on demand here: testing the few
+                # column/filter keys against the message is much cheaper
+                header = BufrHeader(message, columns, filters, lazy_keys=True)
                 data_filters = {k: v for k, v in filters.items() if k not in header.filters}
-                data_columns = {k: v for k, v in columns.items() if v not in header.columns}
 
-                # test filters on header keys before unpacking
+                # test filters on header keys before unpacking. This is done before the
+                # columns are used so that a rejected message does not pay for their
+                # classification into header and data columns.
                 if prefilter_headers and not header.match_filters():
                     continue
 
+                # the header columns are only classified once per message
+                header_columns = header.columns
+                data_columns = {k: v for k, v in columns.items() if v not in header_columns}
+
                 data_required_columns_keys = required_columns_keys
                 if data_required_columns_keys:
-                    data_required_columns_keys = data_required_columns_keys - header.keys
-                    data_required_columns_keys = {ensure_rank(k) for k in data_required_columns_keys}
+                    data_required_columns_keys = {
+                        rk for k, rk in ranked_required_columns_keys.items() if k not in header
+                    }
 
                 for record in extract_keys(
                     message,

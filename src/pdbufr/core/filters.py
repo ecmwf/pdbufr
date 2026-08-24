@@ -10,6 +10,8 @@ import logging
 from abc import ABCMeta, abstractmethod
 from typing import Any, Callable, Dict, Iterable, Mapping, Union
 
+import numpy as np  # type: ignore
+
 LOG = logging.getLogger(__name__)
 
 WIGOS_ID_KEY = "WIGOS_station_id"
@@ -36,6 +38,42 @@ class BufrFilter(metaclass=ABCMeta):
     @abstractmethod
     def match(self, value: Any) -> bool:
         pass
+
+    def match_array(self, values: Any) -> Any:
+        """Match all the values of a numeric numpy array at once.
+
+        Parameters
+        ----------
+        values: numpy.ndarray
+            The values to match. Must be a numeric (non-object) array, so it cannot
+            contain missing values.
+
+        Returns
+        -------
+        numpy.ndarray or None
+            A boolean mask with the result of :meth:`match` for each value, or None
+            when the filter cannot be evaluated this way. The caller then has to fall
+            back to calling :meth:`match` for each value.
+        """
+        return None
+
+    def match_array_multi(self, values: Any) -> Any:
+        """Match the ranks of several items at once.
+
+        Parameters
+        ----------
+        values: numpy.ndarray
+            A 2D numeric (non-object) array. Each row holds the values of all the
+            ranks of a single item (e.g. of a subset).
+
+        Returns
+        -------
+        numpy.ndarray or None
+            A boolean mask with the result of :meth:`match` for each row, or None when
+            the filter cannot be evaluated this way. The caller then has to fall back
+            to calling :meth:`match` for each row.
+        """
+        return None
 
     @abstractmethod
     def max(self) -> Any:
@@ -98,6 +136,21 @@ class SliceBufrFilter(BufrFilter):
                 return False
         return True
 
+    def match_array(self, values: Any) -> Any:
+        # a value only fails when it lies outside the slice. The conditions are
+        # negated so that values not comparable to the limits (e.g. NaN) match,
+        # exactly like in match()
+        mask = np.ones(values.shape, dtype=bool)
+        if self.slice.start is not None:
+            mask &= ~(values < self.slice.start)
+        if self.slice.stop is not None:
+            mask &= ~(values > self.slice.stop)
+        return mask
+
+    def match_array_multi(self, values: Any) -> Any:
+        # match() accepts an item when any of its ranks matches
+        return self.match_array(values).any(axis=-1)
+
     def max(self) -> Any:
         return self.slice.stop
 
@@ -111,7 +164,6 @@ class CallableBufrFilter(BufrFilter):
         self.callable = v
 
     def match(self, value: Any) -> bool:
-        print(f"    -> matching callable filter: {value}")
         if value is None:
             return False
         if self._multi_rank and hasattr(value, "__iter__") and not isinstance(value, str):
@@ -137,6 +189,15 @@ class ValueBufrFilter(BufrFilter):
             return any(x in self.set for x in value)
         return value in self.set
 
+    def match_array(self, values: Any) -> Any:
+        if self._multi_rank:
+            return None
+        return np.isin(values, list(self.set))
+
+    def match_array_multi(self, values: Any) -> Any:
+        # match() accepts an item when any of its ranks is in the set
+        return np.isin(values, list(self.set)).any(axis=-1)
+
     def max(self) -> Any:
         return max(self.set)
 
@@ -152,6 +213,15 @@ class NotValueBufrFilter(ValueBufrFilter):
             return all(x not in self.set for x in value)
         return value not in self.set
 
+    def match_array(self, values: Any) -> Any:
+        if self._multi_rank:
+            return None
+        return ~np.isin(values, list(self.set))
+
+    def match_array_multi(self, values: Any) -> Any:
+        # match() accepts an item only when none of its ranks is in the set
+        return ~np.isin(values, list(self.set)).any(axis=-1)
+
     def max(self) -> Any:
         return None
 
@@ -166,6 +236,12 @@ class WigosValueBufrFilter(ValueBufrFilter):
         if isinstance(value, (str, WIGOSId)):
             return value in self.set
         return False
+
+    def match_array(self, values: Any) -> Any:
+        return None
+
+    def match_array_multi(self, values: Any) -> Any:
+        return None
 
 
 class WIGOSId:

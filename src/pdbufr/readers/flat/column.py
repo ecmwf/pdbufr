@@ -150,18 +150,30 @@ class MultiRankColumn(BaseColumn):
         self.header_only = False
         self.multi = True
 
+        # the ranked names are the same for each message, so they are built only once
+        self._ranked_names: list = []
+
     def get_value(self, accessor, ranked=True) -> Any:
         key = self.ranked_key if ranked else self.raw_key
         return accessor(key)
 
+    def ranked_names(self, count: int) -> list:
+        """Return the ranked column names for the first ``count`` ranks."""
+        if len(self._ranked_names) < count:
+            self._ranked_names.extend(f"#{i + 1}#{self.raw_key}" for i in range(len(self._ranked_names), count))
+        return self._ranked_names
+
     def get_ranked_items(self, accessor) -> Any:
         vals = accessor(self.raw_key)
-        if not isinstance(vals, np.ndarray) and not isinstance(vals, list):
+        if isinstance(vals, np.ndarray):
+            # a list of Python scalars is cheaper to iterate over and to build a
+            # dataframe from than a numpy array
+            vals = vals.tolist()
+        elif not isinstance(vals, list):
             vals = [vals]
 
         # Assume vals is an iterable and each element is a scalar/str
-        for i, v in enumerate(vals):
-            yield f"#{i + 1}#{self.raw_key}", v
+        return zip(self.ranked_names(len(vals)), vals)
 
 
 class ComputedColumn(BaseColumn):
@@ -173,10 +185,39 @@ class ComputedColumn(BaseColumn):
         assert len(self.keys) > 0
         self.ranked_keys = [_parse_key(k)[1] for k in self.keys]
         self.method = conf.compute_method
+        self.array_method = conf.compute_array_method
         self.optional_keys = conf.optional_bufr_keys
         self.mandatory_keys = [k for k in self.keys if k not in self.optional_keys]
         self.header_only = conf.header_only
         self.multi = False
+
+    def get_value_array(self, accessor) -> Any:
+        """Compute the value of several observations at once.
+
+        Parameters
+        ----------
+        accessor: Callable
+            Called with a ranked key, it must return the values of all the
+            observations for that key (or a single shared value).
+
+        Returns
+        -------
+        Any or None
+            The computed values, or None when they cannot be computed this way. The
+            caller then has to use :meth:`get_value` for each observation.
+        """
+        if self.array_method is None:
+            return None
+
+        values = {}
+        for k, rk in zip(self.keys, self.ranked_keys):
+            if (v := accessor(rk)) is not None:
+                values[k] = v
+
+        try:
+            return self.array_method(values, ComputedColumn.prefix, self.keys)
+        except Exception:
+            return None
 
     def get_value(self, accessor, ranked=True) -> Any:
         values = dict()
@@ -240,13 +281,10 @@ class ComputedKeyFilter(HighLevelFilter):
         self.keys = self.column.keys
 
     def match_accessor(self, accessor) -> bool:
-        values = {k: v for k in self.keys if (v := accessor(k)) is not None}
-        computed_value = None
-        try:
-            computed_value = self.column.method(values, "", self.keys)
-        except Exception:
-            return False, None
-
+        # the value is computed by the column so that the filter reads the very same
+        # (ranked) keys as the column does. In the data section an unranked key does
+        # not identify a single value: it stands for all the ranks of that key.
+        computed_value = self.column.get_value(accessor)
         if computed_value is not None:
             return self.filter.match(computed_value), computed_value
         return False, None
