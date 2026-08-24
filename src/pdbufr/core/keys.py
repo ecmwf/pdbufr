@@ -60,6 +60,70 @@ def datetime_from_bufr(observation: Dict[str, Any], prefix: str, datetime_keys: 
     return datetime.datetime(*datetime_list)
 
 
+def datetime_array_from_bufr(observation: Dict[str, Any], prefix: str, datetime_keys: List[str]) -> Any:
+    """Compute the datetime of several observations at once.
+
+    Parameters
+    ----------
+    observation: Dict[str, Any]
+        The date and time components. Each value is either a numpy array with one item
+        per observation or a single value shared by all the observations.
+    prefix: str
+        The prefix of the keys in :obj:`observation`.
+    datetime_keys: List[str]
+        The date and time component keys in the year, month, day, hour, minute, second
+        order.
+
+    Returns
+    -------
+    numpy.ndarray or None
+        The datetimes as a "datetime64[us]" array, or None when they cannot be computed
+        this way (e.g. a component is missing). The caller then has to fall back to
+        computing the datetimes one by one with :func:`datetime_from_bufr`.
+
+    The values are computed exactly as :func:`datetime_from_bufr` does, so both can be
+    used interchangeably.
+    """
+    import numpy as np
+
+    def _component(key, default=None):
+        value = observation.get(prefix + key, default)
+        if value is None:
+            return None
+        value = np.asarray(value)
+        # an object array can contain missing values, which cannot be handled here
+        if value.dtype.kind not in "biuf":
+            return None
+        return value
+
+    parts = [_component(k) for k in datetime_keys[:3]]
+    parts.append(_component(datetime_keys[3], 0))
+    parts.append(_component(datetime_keys[4], 0))
+    seconds = _component(datetime_keys[5], 0.0)
+    if seconds is None or any(p is None for p in parts):
+        return None
+
+    year, month, day, hours, minutes = (p.astype("int64") for p in parts)
+    # the same arithmetic as in datetime_from_bufr()
+    microseconds = (seconds * 1_000_000).astype("int64") % 1_000_000
+    whole_seconds = seconds.astype("int64")
+
+    try:
+        value = (year - 1970).astype("datetime64[Y]") + (month - 1).astype("timedelta64[M]")
+        value = value.astype("datetime64[D]") + (day - 1).astype("timedelta64[D]")
+        value = (
+            value.astype("datetime64[us]")
+            + hours.astype("timedelta64[h]")
+            + minutes.astype("timedelta64[m]")
+            + whole_seconds.astype("timedelta64[s]")
+            + microseconds.astype("timedelta64[us]")
+        )
+    except Exception:
+        return None
+
+    return value
+
+
 def wmo_station_id_from_bufr(observation: Dict[str, Any], prefix: str, keys: List[str]) -> int:
     block_number = int(observation[prefix + keys[0]])
     station_number = int(observation[prefix + keys[1]])
@@ -137,9 +201,10 @@ def CRS_from_bufr(observation: Dict[str, Any], prefix: str, keys: List[str]) -> 
 #   3. method to compute the column
 #   4. list of optional bufr keys
 #   5. header section keys only (True/False)
+#   6. optional method to compute the column for several observations at once
 
 # (list of bufr keys, computed column name, method to compute the column,
-_COMPUTED_KEYS = [
+_COMPUTED_KEYS: List[Any] = [
     (
         ["year", "month", "day", "hour", "minute", "second"],
         "data_datetime",
@@ -150,6 +215,7 @@ _COMPUTED_KEYS = [
             "second",
         ],
         False,
+        datetime_array_from_bufr,
     ),
     (
         [
@@ -168,6 +234,7 @@ _COMPUTED_KEYS = [
             "typicalSecond",
         ],
         True,
+        datetime_array_from_bufr,
     ),
     (["blockNumber", "stationNumber"], "WMO_station_id", wmo_station_id_from_bufr, [], False),
     (
@@ -220,12 +287,17 @@ class ComputedKey:
         compute_method,
         optional_bufr_keys: List[str],
         header_only: bool,
+        compute_array_method=None,
     ):
         self.bufr_keys = bufr_keys
         self.column_name = column_name
         self.compute_method = compute_method
         self.optional_bufr_keys = optional_bufr_keys
         self.header_only = header_only
+        # optional method computing the values of several observations at once. It
+        # must return the same values as compute_method, or None when it cannot be
+        # used for the given input
+        self.compute_array_method = compute_array_method
 
 
 COMPUTED_KEYS = dict()

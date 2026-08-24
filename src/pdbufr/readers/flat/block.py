@@ -11,9 +11,9 @@ from typing import Any, Dict, Iterator, Mapping, Set
 import eccodes  # type: ignore
 
 from pdbufr.core.filters import BufrFilter
-from pdbufr.core.structure import BufrHeader
 
 from .compressed import CompressedValueCache
+from .header import BufrHeader
 
 SKIP_KEYS = {
     "unexpandedDescriptors",
@@ -27,6 +27,26 @@ SKIP_KEYS = {
 }
 
 SKIP_HEADER_KEYS = {"unexpandedDescriptors"}
+
+
+def _data_keys_start(header, keys):
+    """Return the index of the first data key in the keys of an unpacked message.
+
+    When the header keys are not enumerated yet they are determined here from
+    ``keys``, which saves a full key enumeration per message.
+    """
+    if not header.keys_built:
+        data_start = header.build_keys_from_message_keys(keys)
+        if data_start is None:
+            raise ValueError("could not locate the end of the header in the message keys")
+        return data_start
+
+    # the data keys are the ones following the last header key
+    last_header_key = header.last_key()
+    for i, key in enumerate(keys):
+        if key == last_header_key:
+            return i + 1
+    return len(keys)
 
 
 def extract_blocks(
@@ -104,8 +124,13 @@ def extract_blocks_standard(
     if not header.match_filters():
         return
 
+    # when the header keys are not enumerated yet they are determined from the keys of
+    # the unpacked message, so the header values can only be collected after that
+    header_values_pending = add_header and not header.keys_built
+
     if add_header:
-        result = header.values()
+        if not header_values_pending:
+            result = header.values()
     elif add_filters:
         result = header.filters_values()
 
@@ -125,6 +150,14 @@ def extract_blocks_standard(
                 value = None
             return value
 
+        keys = None
+        data_start = 0
+        if add_data:
+            keys = list(iter(message))
+            data_start = _data_keys_start(header, keys)
+            if header_values_pending:
+                result = header.values()
+
         for f in data_filters.values():
             match, value = f.match_accessor(_get_value)
             if not match:
@@ -135,19 +168,12 @@ def extract_blocks_standard(
 
         # extract all the data keys
         if add_data:
-            in_data = False
-            for key in message:
-                if not in_data and key == header.last_key():
-                    in_data = True
+            for key in keys[data_start:]:
+                name = key.rpartition("#")[2]
+                if name in SKIP_KEYS or "->" in key:
                     continue
 
-                if in_data:
-                    name = key.rpartition("#")[2]
-                    if name in SKIP_KEYS or "->" in key:
-                        continue
-
-                    value = _get_value(key)
-                    result[key] = value
+                result[key] = _get_value(key)
 
     # yield the result
     if result:
@@ -172,8 +198,13 @@ def extract_blocks_compressed(
 
     result = dict()
 
+    # when the header keys are not enumerated yet they are determined from the keys of
+    # the unpacked message, so the header values can only be collected after that
+    header_values_pending = add_header and not header.keys_built
+
     if add_header:
-        result = header.values()
+        if not header_values_pending:
+            result = header.values()
     else:
         if add_filters:
             result = header.filters_values()
@@ -190,6 +221,17 @@ def extract_blocks_compressed(
 
         def _get_value(key):
             return value_cache.get(key, subset)
+
+        # the keys are the same for each subset, so they are only collected once
+        data_keys = None
+        if add_data:
+            keys = list(iter(message))
+            data_start = _data_keys_start(header, keys)
+            if header_values_pending:
+                result = header.values()
+            data_keys = [
+                key for key in keys[data_start:] if key.rpartition("#")[2] not in SKIP_KEYS and "->" not in key
+            ]
 
         for subset in range(subset_count):
             current_result = dict(result)
@@ -210,19 +252,8 @@ def extract_blocks_compressed(
 
             # extract all the data keys
             if add_data:
-                in_data = False
-                for key in message:
-                    if not in_data and key == header.last_key():
-                        in_data = True
-                        continue
-
-                    if in_data:
-                        name = key.rpartition("#")[2]
-                        if name in SKIP_KEYS or "->" in key:
-                            continue
-
-                        value = _get_value(key)
-                        current_result[key] = value
+                for key in data_keys:
+                    current_result[key] = _get_value(key)
             elif data_required_columns_keys:
                 for key in data_required_columns_keys:
                     value = _get_value(key)
@@ -251,6 +282,11 @@ def extract_blocks_uncompressed(
         return
 
     result = dict()
+
+    # this extractor does not use the header keys to locate the data section, so they
+    # have to be enumerated here, while the message is still packed
+    if not header.keys_built:
+        header.build_keys()
 
     if add_header:
         result = header.values()

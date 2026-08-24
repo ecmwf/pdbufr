@@ -158,13 +158,17 @@ class CodesMessage(object):
 
     def get(self, key, default=None, ktype=None, raise_on_missing=False):
         """Get value of a given key as its native or specified type."""
+        # the exceptions are handled here instead of using the raise_keyerror()
+        # context manager: this method is called for each key of each message, and
+        # a with block costs more than the try itself
         try:
-            with raise_keyerror(key):
-                if eccodes.codes_get_size(self.codes_id, key) > 1:
-                    ret = eccodes.codes_get_array(self.codes_id, key, ktype)
-                else:
-                    ret = eccodes.codes_get(self.codes_id, key, ktype)
-                return ret
+            if eccodes.codes_get_size(self.codes_id, key) > 1:
+                return eccodes.codes_get_array(self.codes_id, key, ktype)
+            return eccodes.codes_get(self.codes_id, key, ktype)
+        except eccodes.KeyValueNotFoundError:
+            if raise_on_missing:
+                raise KeyError(f"key={key} key/value not found")
+            return default
         except KeyError:
             if raise_on_missing:
                 raise

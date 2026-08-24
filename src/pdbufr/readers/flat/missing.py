@@ -26,10 +26,22 @@ def convert_missing(value):
     elif isinstance(value, int) and value == eccodes.CODES_MISSING_LONG:
         return None
     elif isinstance(value, list):
-        return [convert_missing(v) for v in value]
+        # only numbers can be missing. ecCodes returns a list for string arrays, so
+        # in practice there is nothing to convert and the list can be used as it is
+        for v in value:
+            if not isinstance(v, str):
+                return [convert_missing(v) for v in value]
+        return value
     elif isinstance(value, np.ndarray):
+        # np.where() with None always builds an object array, which is both slow to
+        # create and slow to use. Only pay for it when there are missing values.
         if issubclass(value.dtype.type, np.integer):
-            value = np.where(value == eccodes.CODES_MISSING_LONG, None, value)
+            mask = value == eccodes.CODES_MISSING_LONG
         elif issubclass(value.dtype.type, np.floating):
-            value = np.where(value == eccodes.CODES_MISSING_DOUBLE, None, value)
+            mask = value == eccodes.CODES_MISSING_DOUBLE
+        else:
+            return value
+
+        if mask.any():
+            value = np.where(mask, None, value)
     return value
