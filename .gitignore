@@ -99,7 +99,7 @@ docs/source/tutorials/*.bufr
 docs/source/tutorials/*/*.bufr
 
 # generated version
-src/pdbufr/version.py
+src/pdbufr/_version.py
 
 
 # claude
