@@ -6,8 +6,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
-from typing import Any
-from typing import Dict
+from typing import Any, Dict
 
 Z = "z"
 ZH = "zh"

@@ -8,29 +8,25 @@
 
 
 import logging
-from typing import Any
-from typing import Dict
-from typing import Generator
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Union
 
 import pandas as pd
 
 import pdbufr.core.param as PARAMS
-from pdbufr.core.accessor import Accessor
-from pdbufr.core.accessor import AccessorManager
-from pdbufr.core.accessor import AccessorManagerCache
-from pdbufr.core.accessor import CoordAccessor
-from pdbufr.core.accessor import DatetimeAccessor
-from pdbufr.core.accessor import ElevationAccessor
-from pdbufr.core.accessor import LatLonAccessor
-from pdbufr.core.accessor import MultiAllAccessor
-from pdbufr.core.accessor import MultiFirstAccessor
-from pdbufr.core.accessor import SidAccessor
-from pdbufr.core.accessor import SimpleAccessor
-from pdbufr.core.accessor import StationNameAccessor
+from pdbufr.core.accessor import (
+    Accessor,
+    AccessorManager,
+    AccessorManagerCache,
+    CoordAccessor,
+    DatetimeAccessor,
+    ElevationAccessor,
+    LatLonAccessor,
+    MultiAllAccessor,
+    MultiFirstAccessor,
+    SidAccessor,
+    SimpleAccessor,
+    StationNameAccessor,
+)
 from pdbufr.core.filters import ParamFilter
 from pdbufr.core.subset import BufrSubsetReader
 
@@ -593,9 +589,7 @@ class SynopReader(StationReader):
                 key = name + suffix
                 if key in self.bufr_filters:
                     if name not in self.accessors:
-                        raise ValueError(
-                            f"Parameter={name} cannot be used in filters unless it is in columns"
-                        )
+                        raise ValueError(f"Parameter={name} cannot be used in filters unless it is in columns")
                     self.param_filters[key] = self.bufr_filters.pop(key)
         self.param_filters = ParamFilter(self.param_filters, period=True)
 
@@ -606,19 +600,21 @@ class SynopReader(StationReader):
     def read_message(
         self,
         message: Mapping[str, Any],
+        bufr_filters: Optional[Dict[str, Any]] = None,
     ) -> Generator[Dict[str, Any], None, None]:
 
-        filtered_keys = self.get_filtered_keys(message, self.accessors, self.bufr_filters)
+        bufr_filters = bufr_filters or {}
+        filtered_keys = self.get_filtered_keys(message, self.accessors, bufr_filters)
         reader = BufrSubsetReader(message, filtered_keys)
 
         for subset in reader.subsets():
             d = {}
 
             # check generic filters first, this should be BUFR key filters
-            if self.bufr_filters:
+            if bufr_filters:
                 r = subset.collect(
-                    keys=list(self.bufr_filters.keys()),
-                    filters=self.bufr_filters,
+                    keys=list(bufr_filters.keys()),
+                    filters=bufr_filters,
                 )
                 if not list(r):
                     continue

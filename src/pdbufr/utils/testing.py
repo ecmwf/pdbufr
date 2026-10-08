@@ -7,18 +7,17 @@
 # nor does it submit to any jurisdiction.
 
 import os
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import List, Optional, Union
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-if not os.path.exists(os.path.join(ROOT_DIR, "tests", "data")):
+
+if not os.path.exists(os.path.join(ROOT_DIR, "tests", "sample_data")):
     ROOT_DIR = "./"
 
 LOCAL_SAMPLE_DIR = os.path.join(ROOT_DIR, "tests", "sample_data")
 LOCAL_REF_DIR = os.path.join(ROOT_DIR, "tests", "ref_data")
-URL_DATA_DIR = os.path.join(ROOT_DIR, "url_data")
-URL_ROOT = "https://get.ecmwf.int/repository/test-data/pdbufr/test-data"
+URL_DATA_DIR = os.path.join(ROOT_DIR, "tests", "url_data")
+URL_ROOT = "https://sites.ecmwf.int/repository/pdbufr/test-data"
 
 
 def sample_test_data_path(filename: str) -> str:
@@ -41,9 +40,7 @@ def get_remote_test_data_path(filename: str, subfolder: str) -> str:
     return os.path.join(URL_ROOT, subfolder, filename)
 
 
-def get_remote_test_data(
-    filename: Union[str, List[str]], subfolder: Optional[str] = None
-) -> Union[str, List[str]]:
+def get_remote_test_data(filename: Union[str, List[str]], subfolder: Optional[str] = None) -> Union[str, List[str]]:
     if not isinstance(filename, list):
         filename = [filename]
 

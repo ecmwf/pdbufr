@@ -7,29 +7,28 @@
 # nor does it submit to any jurisdiction.
 
 import collections
-from typing import Any
-from typing import Container
-from typing import Dict
-from typing import Hashable
-from typing import Iterable
-from typing import Iterator
-from typing import List
-from typing import Mapping
-from typing import MutableMapping
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from typing import (
+    Any,
+    Container,
+    Dict,
+    Hashable,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import eccodes  # type: ignore
 import numpy as np
 
-from pdbufr.core.filters import BufrFilter
-from pdbufr.core.filters import filters_match
-from pdbufr.core.keys import COMPUTED_KEYS
-from pdbufr.core.keys import BufrKey
-from pdbufr.core.structure import MessageWrapper
-from pdbufr.core.structure import filter_keys_cached
+from pdbufr.core.filters import BufrFilter, filters_match_header
+from pdbufr.core.keys import COMPUTED_KEYS, BufrKey
+from pdbufr.core.structure import MessageWrapper, filter_keys_cached
 
 from . import Reader
 
@@ -78,10 +77,7 @@ def extract_observations(
                 current_levels.pop()
 
             if bufr_key.key not in value_cache:
-                try:
-                    value_cache[bufr_key.key] = message[bufr_key.key]
-                except KeyError:
-                    value_cache[bufr_key.key] = None
+                value_cache[bufr_key.key] = message.get(bufr_key.key)
             value = value_cache[bufr_key.key]
 
             # extract compressed BUFR values. They are either numpy arrays (for numeric types)
@@ -120,7 +116,12 @@ def add_computed_keys(
     filters: Dict[str, BufrFilter] = {},
 ) -> Dict[str, Any]:
     augmented_observation = observation.copy()
-    for keys, computed_key, getter in COMPUTED_KEYS:
+    # for keys, computed_key, getter in COMPUTED_KEYS:
+    for ck in COMPUTED_KEYS.values():
+        computed_key = ck.column_name
+        keys = ck.bufr_keys
+        getter = ck.compute_method
+
         if computed_key not in filters:
             if computed_key not in included_keys:
                 continue
@@ -217,13 +218,16 @@ class GenericReader(Reader):
         included_keys = set(value_filters)
         included_keys |= set(columns)
         computed_keys = []
-        for keys, computed_key, _ in COMPUTED_KEYS:
-            if computed_key in included_keys:
-                included_keys |= set(keys)
-                computed_keys.append(computed_key)
+        for ck in COMPUTED_KEYS.values():
+            if ck.column_name in included_keys:
+                included_keys |= set(ck.bufr_keys)
+                computed_keys.append(ck.column_name)
 
-        if "count" in value_filters:
-            max_count = value_filters["count"].max()
+        value_filters_without_computed = {k: v for k, v in value_filters.items() if k not in computed_keys}
+
+        count_filter = value_filters.pop("count", None)
+        if count_filter:
+            max_count = count_filter.max()
         else:
             max_count = None
 
@@ -231,14 +235,26 @@ class GenericReader(Reader):
         for count, msg in enumerate(bufr_obj, 1):
             # we use a context manager to automatically delete the handle of the BufrMessage.
             # We have to use a wrapper object here because a message can also be a dict
-            with MessageWrapper.wrap(msg) as message:
-                if "count" in value_filters and not value_filters["count"].match(count):
+            with MessageWrapper.wrap_context(msg) as message:
+                if count_filter and not count_filter.match(count):
                     continue
 
-                if prefilter_headers:
-                    # test header keys for failed matches before unpacking
-                    if not filters_match(message, value_filters, required=False):
+                message_value_filters = value_filters_without_computed
+
+                # test filters on header keys before unpacking
+                if prefilter_headers and message_value_filters:
+                    header_keys = set(message)
+
+                    # we assume that computed keys are not in headers
+                    match, matched_keys = filters_match_header(message, header_keys, message_value_filters)
+
+                    if not match:
                         continue
+                    elif matched_keys:
+                        # remove header keys from filters
+                        message_value_filters = {
+                            k: v for k, v in message_value_filters.items() if k not in matched_keys
+                        }
 
                 message["skipExtraKeyAttributes"] = 1
                 message["unpack"] = 1
@@ -249,14 +265,10 @@ class GenericReader(Reader):
                 else:
                     observation = {}
 
-                value_filters_without_computed = {
-                    k: v for k, v in value_filters.items() if k not in computed_keys
-                }
-
                 for observation in extract_observations(
                     message,
                     filtered_keys,
-                    value_filters_without_computed,
+                    message_value_filters,
                     observation,
                 ):
                     augmented_observation = add_computed_keys(observation, included_keys, value_filters)

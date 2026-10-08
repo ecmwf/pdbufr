@@ -7,12 +7,8 @@
 # nor does it submit to any jurisdiction.
 #
 
-from abc import ABCMeta
-from abc import abstractmethod
-from typing import Dict
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from abc import ABCMeta, abstractmethod
+from typing import Dict, Optional, Tuple, Union
 
 # Mapping from BUFR units str to Pint units str.
 # The rest of the units are handled by Pint.
@@ -64,9 +60,7 @@ class UnitsConverter(metaclass=ABCMeta):
         pass
 
     @staticmethod
-    def make(
-        unit_system: Optional[str], units: Optional[Union[str, Dict[str, str]]] = None
-    ) -> "UnitsConverter":
+    def make(unit_system: Optional[str], units: Optional[Union[str, Dict[str, str]]] = None) -> "UnitsConverter":
         base = None
         if unit_system is not None:
             if unit_system == "pdbufr":

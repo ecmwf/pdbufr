@@ -7,11 +7,7 @@
 # nor does it submit to any jurisdiction.
 
 import datetime
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import Any, Dict, List, Optional, Union
 
 import attr  # type: ignore
 import eccodes  # type: ignore
@@ -51,47 +47,10 @@ class BufrKey:
         return prefix + self.name
 
 
-@attr.attrs(auto_attribs=True)
-class UncompressedBufrKey:
-    current_rank: int
-    ref_rank: int
-    name: str
-
-    @classmethod
-    def from_key(cls, key: str) -> "UncompressedBufrKey":
-        rank_text, sep, name = key.rpartition("#")
-        try:
-            if sep == "#":
-                rank = int(rank_text[1:])
-            else:
-                rank = 0
-        except Exception:
-            rank = 0
-
-        return cls(rank, 0, name)
-
-    def update_rank(self, key: str) -> None:
-        self.current_rank = rank_from_key(key)
-
-    def adjust_ref_rank(self) -> None:
-        self.ref_rank = self.current_rank
-
-    @property
-    def relative_key(self) -> str:
-        if self.current_rank > 0:
-            rel_rank = self.current_rank - self.ref_rank
-            prefix = f"#{rel_rank}#"
-        else:
-            prefix = ""
-        return prefix + self.name
-
-
 IS_KEY_COORD = {"subsetNumber": True, "operator": False}
 
 
-def datetime_from_bufr(
-    observation: Dict[str, Any], prefix: str, datetime_keys: List[str]
-) -> datetime.datetime:
+def datetime_from_bufr(observation: Dict[str, Any], prefix: str, datetime_keys: List[str]) -> datetime.datetime:
     hours = observation.get(prefix + datetime_keys[3], 0)
     minutes = observation.get(prefix + datetime_keys[4], 0)
     seconds = observation.get(prefix + datetime_keys[5], 0.0)
@@ -99,6 +58,70 @@ def datetime_from_bufr(
     datetime_list = [observation[prefix + k] for k in datetime_keys[:3]]
     datetime_list += [hours, minutes, int(seconds), microseconds]
     return datetime.datetime(*datetime_list)
+
+
+def datetime_array_from_bufr(observation: Dict[str, Any], prefix: str, datetime_keys: List[str]) -> Any:
+    """Compute the datetime of several observations at once.
+
+    Parameters
+    ----------
+    observation: Dict[str, Any]
+        The date and time components. Each value is either a numpy array with one item
+        per observation or a single value shared by all the observations.
+    prefix: str
+        The prefix of the keys in :obj:`observation`.
+    datetime_keys: List[str]
+        The date and time component keys in the year, month, day, hour, minute, second
+        order.
+
+    Returns
+    -------
+    numpy.ndarray or None
+        The datetimes as a "datetime64[us]" array, or None when they cannot be computed
+        this way (e.g. a component is missing). The caller then has to fall back to
+        computing the datetimes one by one with :func:`datetime_from_bufr`.
+
+    The values are computed exactly as :func:`datetime_from_bufr` does, so both can be
+    used interchangeably.
+    """
+    import numpy as np
+
+    def _component(key, default=None):
+        value = observation.get(prefix + key, default)
+        if value is None:
+            return None
+        value = np.asarray(value)
+        # an object array can contain missing values, which cannot be handled here
+        if value.dtype.kind not in "biuf":
+            return None
+        return value
+
+    parts = [_component(k) for k in datetime_keys[:3]]
+    parts.append(_component(datetime_keys[3], 0))
+    parts.append(_component(datetime_keys[4], 0))
+    seconds = _component(datetime_keys[5], 0.0)
+    if seconds is None or any(p is None for p in parts):
+        return None
+
+    year, month, day, hours, minutes = (p.astype("int64") for p in parts)
+    # the same arithmetic as in datetime_from_bufr()
+    microseconds = (seconds * 1_000_000).astype("int64") % 1_000_000
+    whole_seconds = seconds.astype("int64")
+
+    try:
+        value = (year - 1970).astype("datetime64[Y]") + (month - 1).astype("timedelta64[M]")
+        value = value.astype("datetime64[D]") + (day - 1).astype("timedelta64[D]")
+        value = (
+            value.astype("datetime64[us]")
+            + hours.astype("timedelta64[h]")
+            + minutes.astype("timedelta64[m]")
+            + whole_seconds.astype("timedelta64[s]")
+            + microseconds.astype("timedelta64[us]")
+        )
+    except Exception:
+        return None
+
+    return value
 
 
 def wmo_station_id_from_bufr(observation: Dict[str, Any], prefix: str, keys: List[str]) -> int:
@@ -172,11 +195,27 @@ def CRS_from_bufr(observation: Dict[str, Any], prefix: str, keys: List[str]) -> 
     return CRS_choices[bufr_CRS]
 
 
-COMPUTED_KEYS = [
+# Each entry is a list of:
+#   1. list of bufr keys used to compute the value
+#   2. computed column name
+#   3. method to compute the column
+#   4. list of optional bufr keys
+#   5. header section keys only (True/False)
+#   6. optional method to compute the column for several observations at once
+
+# (list of bufr keys, computed column name, method to compute the column,
+_COMPUTED_KEYS: List[Any] = [
     (
         ["year", "month", "day", "hour", "minute", "second"],
         "data_datetime",
         datetime_from_bufr,
+        [
+            "hour",
+            "minute",
+            "second",
+        ],
+        False,
+        datetime_array_from_bufr,
     ),
     (
         [
@@ -189,8 +228,15 @@ COMPUTED_KEYS = [
         ],
         "typical_datetime",
         datetime_from_bufr,
+        [
+            "typicalHour",
+            "typicalMinute",
+            "typicalSecond",
+        ],
+        True,
+        datetime_array_from_bufr,
     ),
-    (["blockNumber", "stationNumber"], "WMO_station_id", wmo_station_id_from_bufr),
+    (["blockNumber", "stationNumber"], "WMO_station_id", wmo_station_id_from_bufr, [], False),
     (
         [
             "longitude",
@@ -199,6 +245,10 @@ COMPUTED_KEYS = [
         ],
         "geometry",  # WMO_station_position (predefined to geometry for geopandas)
         wmo_station_position_from_bufr,
+        [
+            "heightOfStationGroundAboveMeanSeaLevel",
+        ],
+        False,
     ),
     (
         [
@@ -209,6 +259,13 @@ COMPUTED_KEYS = [
         ],
         "WIGOS_station_id",
         wigos_id_from_bufr,
+        [
+            "wigosIdentifierSeries",
+            "wigosIssuerOfIdentifier",
+            "wigosIssueNumber",
+            "wigosLocalIdentifierCharacter",
+        ],
+        False,
     ),
     (
         [
@@ -216,5 +273,36 @@ COMPUTED_KEYS = [
         ],
         "CRS",
         CRS_from_bufr,
+        ["coordinateReferenceSystem"],
+        False,
     ),
 ]
+
+
+class ComputedKey:
+    def __init__(
+        self,
+        bufr_keys: List[str],
+        column_name: str,
+        compute_method,
+        optional_bufr_keys: List[str],
+        header_only: bool,
+        compute_array_method=None,
+    ):
+        self.bufr_keys = bufr_keys
+        self.column_name = column_name
+        self.compute_method = compute_method
+        self.optional_bufr_keys = optional_bufr_keys
+        self.header_only = header_only
+        # optional method computing the values of several observations at once. It
+        # must return the same values as compute_method, or None when it cannot be
+        # used for the given input
+        self.compute_array_method = compute_array_method
+
+
+COMPUTED_KEYS = dict()
+for k in _COMPUTED_KEYS:
+    COMPUTED_KEYS[k[1]] = ComputedKey(*k)
+
+HEADER_COMPUTED_KEYS = {k: v for k, v in COMPUTED_KEYS.items() if v.header_only}
+DATA_COMPUTED_KEYS = {k: v for k, v in COMPUTED_KEYS.items() if not v.header_only}

@@ -8,8 +8,7 @@
 
 import pytest
 
-from pdbufr.core.accessor import parse_period_key
-from pdbufr.core.accessor import resolve_period_key
+from pdbufr.core.accessor import parse_period_key, resolve_period_key
 
 
 @pytest.mark.parametrize(

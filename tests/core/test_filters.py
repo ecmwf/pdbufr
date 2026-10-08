@@ -10,8 +10,7 @@ import typing as T
 
 import numpy as np
 
-from pdbufr.core.filters import BufrFilter
-from pdbufr.core.filters import filters_match
+from pdbufr.core.filters import BufrFilter, filters_match
 
 
 def test_BufrFilter_value() -> None:

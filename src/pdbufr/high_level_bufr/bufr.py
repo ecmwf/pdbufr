@@ -59,11 +59,11 @@ class BufrMessage(CodesMessage):
     #    return not bool(eccodes.codes_is_defined(self.codes_id, key))
 
     def unpack(self):
-        """Decode data section"""
+        """Decode data section."""
         eccodes.codes_set(self.codes_id, "unpack", 1)
 
     def pack(self):
-        """Encode data section"""
+        """Encode data section."""
         eccodes.codes_set(self.codes_id, "pack", 1)
 
     def keys(self, namespace=None):
@@ -94,20 +94,19 @@ class BufrMessage(CodesMessage):
     #    eccodes.codes_set(self.codes_id, "pack", True)
 
     def copy_data(self, destMsg):
-        """Copy data values from this message to another message"""
+        """Copy data values from this message to another message."""
         return eccodes.codes_bufr_copy_data(self.codes_id, destMsg.codes_id)
 
     def is_coord(self, key):
         try:
-            c = self._get(key + "->code", int)
+            c = eccodes.codes_get(self.codes_id, key + "->code", int)
+            # c = self._get(key + "->code", int)
             return bufr_code_is_coord(c)
         except Exception:
             return False
 
 
 class BufrFile(CodesFile):
-    __doc__ = "\n".join(CodesFile.__doc__.splitlines()[4:]).format(
-        prod_type="BUFR", classname="BufrFile", alias="bufr"
-    )
+    __doc__ = "\n".join(CodesFile.__doc__.splitlines()[4:]).format(prod_type="BUFR", classname="BufrFile", alias="bufr")
 
     MessageClass = BufrMessage

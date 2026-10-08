@@ -7,14 +7,10 @@
 # nor does it submit to any jurisdiction.
 
 import logging
-from abc import ABCMeta
-from abc import abstractmethod
-from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import Iterable
-from typing import Mapping
-from typing import Union
+from abc import ABCMeta, abstractmethod
+from typing import Any, Callable, Dict, Iterable, Mapping, Union
+
+import numpy as np  # type: ignore
 
 LOG = logging.getLogger(__name__)
 
@@ -36,9 +32,48 @@ def normalise_wigos(value):
 
 
 class BufrFilter(metaclass=ABCMeta):
+    def __init__(self, multi_rank: bool = False) -> None:
+        self._multi_rank = multi_rank
+
     @abstractmethod
     def match(self, value: Any) -> bool:
         pass
+
+    def match_array(self, values: Any) -> Any:
+        """Match all the values of a numeric numpy array at once.
+
+        Parameters
+        ----------
+        values: numpy.ndarray
+            The values to match. Must be a numeric (non-object) array, so it cannot
+            contain missing values.
+
+        Returns
+        -------
+        numpy.ndarray or None
+            A boolean mask with the result of :meth:`match` for each value, or None
+            when the filter cannot be evaluated this way. The caller then has to fall
+            back to calling :meth:`match` for each value.
+        """
+        return None
+
+    def match_array_multi(self, values: Any) -> Any:
+        """Match the ranks of several items at once.
+
+        Parameters
+        ----------
+        values: numpy.ndarray
+            A 2D numeric (non-object) array. Each row holds the values of all the
+            ranks of a single item (e.g. of a subset).
+
+        Returns
+        -------
+        numpy.ndarray or None
+            A boolean mask with the result of :meth:`match` for each row, or None when
+            the filter cannot be evaluated this way. The caller then has to fall back
+            to calling :meth:`match` for each row.
+        """
+        return None
 
     @abstractmethod
     def max(self) -> Any:
@@ -46,16 +81,28 @@ class BufrFilter(metaclass=ABCMeta):
 
     @staticmethod
     def from_user(value: Any, key: Union[str, None] = None) -> "BufrFilter":
+        multi_rank = key and key.startswith("~")
+
+        if multi_rank:
+            from pdbufr.core.keys import COMPUTED_KEYS
+
+            if len(key) == 1:
+                raise ValueError(f"Invalid multi-rank key: {key}")
+            if key[1:] in COMPUTED_KEYS:
+                raise ValueError(f"Multi-rank filters are not supported for computed keys: {key}")
+
         if isinstance(value, slice):
-            return SliceBufrFilter(value)
+            return SliceBufrFilter(value, multi_rank=multi_rank)
         elif callable(value):
-            return CallableBufrFilter(value)
+            return CallableBufrFilter(value, multi_rank=multi_rank)
         else:
             if key == WIGOS_ID_KEY:
+                if multi_rank:
+                    raise ValueError(f"Multi-rank WIGOS ID filters are not supported: {value}")
                 value = normalise_wigos(value)
                 return WigosValueBufrFilter(value)
             else:
-                return ValueBufrFilter(value)
+                return ValueBufrFilter(value, multi_rank=multi_rank)
 
 
 # class EmptyBufrFilter(BufrFilter):
@@ -70,7 +117,8 @@ class BufrFilter(metaclass=ABCMeta):
 
 
 class SliceBufrFilter(BufrFilter):
-    def __init__(self, v: slice) -> None:
+    def __init__(self, v: slice, multi_rank: bool = False) -> None:
+        BufrFilter.__init__(self, multi_rank=multi_rank)
         self.slice = v
         if self.slice.step is not None:
             LOG.warning(f"slice filters ignore the step={self.slice.step} in slice={self.slice}")
@@ -78,11 +126,30 @@ class SliceBufrFilter(BufrFilter):
     def match(self, value: Any) -> bool:
         if value is None:
             return False
-        if self.slice.start is not None and value < self.slice.start:
-            return False
-        elif self.slice.stop is not None and value > self.slice.stop:
-            return False
+
+        if hasattr(value, "__iter__") and not isinstance(value, str):
+            return any(self.match(x) for x in value)
+        else:
+            if self.slice.start is not None and value < self.slice.start:
+                return False
+            elif self.slice.stop is not None and value > self.slice.stop:
+                return False
         return True
+
+    def match_array(self, values: Any) -> Any:
+        # a value only fails when it lies outside the slice. The conditions are
+        # negated so that values not comparable to the limits (e.g. NaN) match,
+        # exactly like in match()
+        mask = np.ones(values.shape, dtype=bool)
+        if self.slice.start is not None:
+            mask &= ~(values < self.slice.start)
+        if self.slice.stop is not None:
+            mask &= ~(values > self.slice.stop)
+        return mask
+
+    def match_array_multi(self, values: Any) -> Any:
+        # match() accepts an item when any of its ranks matches
+        return self.match_array(values).any(axis=-1)
 
     def max(self) -> Any:
         return self.slice.stop
@@ -92,12 +159,15 @@ class SliceBufrFilter(BufrFilter):
 
 
 class CallableBufrFilter(BufrFilter):
-    def __init__(self, v: Callable[[Any], bool]) -> None:
+    def __init__(self, v: Callable[[Any], bool], multi_rank: bool = False) -> None:
+        BufrFilter.__init__(self, multi_rank=multi_rank)
         self.callable = v
 
     def match(self, value: Any) -> bool:
         if value is None:
             return False
+        if self._multi_rank and hasattr(value, "__iter__") and not isinstance(value, str):
+            return any(self.callable(x) for x in value)
         return bool(self.callable(value))
 
     def max(self) -> Any:
@@ -105,7 +175,8 @@ class CallableBufrFilter(BufrFilter):
 
 
 class ValueBufrFilter(BufrFilter):
-    def __init__(self, v: Any) -> None:
+    def __init__(self, v: Any, multi_rank: bool = False) -> None:
+        BufrFilter.__init__(self, multi_rank=multi_rank)
         if isinstance(v, Iterable) and not isinstance(v, str):
             self.set = set(v)
         else:
@@ -114,29 +185,63 @@ class ValueBufrFilter(BufrFilter):
     def match(self, value: Any) -> bool:
         if value is None:
             return False
+        if self._multi_rank and hasattr(value, "__iter__") and not isinstance(value, str):
+            return any(x in self.set for x in value)
         return value in self.set
+
+    def match_array(self, values: Any) -> Any:
+        if self._multi_rank:
+            return None
+        return np.isin(values, list(self.set))
+
+    def match_array_multi(self, values: Any) -> Any:
+        # match() accepts an item when any of its ranks is in the set
+        return np.isin(values, list(self.set)).any(axis=-1)
 
     def max(self) -> Any:
         return max(self.set)
 
 
 class NotValueBufrFilter(ValueBufrFilter):
+    def __init__(self, v: Any, multi_rank: bool = False) -> None:
+        super().__init__(v, multi_rank=multi_rank)
+
     def match(self, value: Any) -> bool:
         if value is None:
             return False
+        if self._multi_rank and hasattr(value, "__iter__") and not isinstance(value, str):
+            return all(x not in self.set for x in value)
         return value not in self.set
+
+    def match_array(self, values: Any) -> Any:
+        if self._multi_rank:
+            return None
+        return ~np.isin(values, list(self.set))
+
+    def match_array_multi(self, values: Any) -> Any:
+        # match() accepts an item only when none of its ranks is in the set
+        return ~np.isin(values, list(self.set)).any(axis=-1)
 
     def max(self) -> Any:
         return None
 
 
 class WigosValueBufrFilter(ValueBufrFilter):
+    def __init__(self, v: Any) -> None:
+        super().__init__(v, multi_rank=False)
+
     def match(self, value: Any) -> bool:
         if value is None:
             return False
         if isinstance(value, (str, WIGOSId)):
             return value in self.set
         return False
+
+    def match_array(self, values: Any) -> Any:
+        return None
+
+    def match_array_multi(self, values: Any) -> Any:
+        return None
 
 
 class WIGOSId:
@@ -206,7 +311,10 @@ class WIGOSId:
         def _convert_str(v):
             return str(v) if v is not None else "*"
 
-        return f"{_convert_str(self.series)}-{_convert_str(self.issuer)}-{_convert_str(self.number)}-{_convert_str(self.local)}"
+        return (
+            f"{_convert_str(self.series)}-{_convert_str(self.issuer)}-"
+            f"{_convert_str(self.number)}-{_convert_str(self.local)}"
+        )
 
     def is_valid(self) -> bool:
         return (
@@ -230,9 +338,28 @@ def filters_match(
             matches += 1
         else:
             return False
+
     if required and matches < len(compiled_filters):
         return False
     return True
+
+
+def filters_match_header(
+    message: Mapping[str, Any],
+    header_keys: Iterable[str],
+    compiled_filters: Dict[str, BufrFilter],
+) -> bool:
+    matches = []
+    for k, f in compiled_filters.items():
+        if k not in header_keys:
+            continue
+        if f.match(message[k]):
+            # LOG.debug(f"Header filter match key={k}, value={message[k]} against filter={f}")
+            matches.append(k)
+        else:
+            return False, None
+
+    return True, matches
 
 
 class ParamFilter(dict):

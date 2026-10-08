@@ -7,15 +7,12 @@
 # nor does it submit to any jurisdiction.
 
 import datetime
-from typing import Optional
-from typing import Union
+from typing import Optional, Union
 
 PERIOD_UNITS = {"s": 1, "m": 60, "h": 24 * 60, "d": 86400}
 
 
-def period_to_timedelta(
-    period: Optional[Union[int, float]], units: Optional[str]
-) -> Optional[datetime.timedelta]:
+def period_to_timedelta(period: Optional[Union[int, float]], units: Optional[str]) -> Optional[datetime.timedelta]:
     if period is None or units is None:
         return None
 

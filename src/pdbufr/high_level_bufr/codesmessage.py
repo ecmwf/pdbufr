@@ -17,7 +17,7 @@ import eccodes
 
 @contextmanager
 def raise_keyerror(key):
-    """Make operations on a key raise a KeyError if not found"""
+    """Make operations on a key raise a KeyError if not found."""
     try:
         yield
     except eccodes.KeyValueNotFoundError:
@@ -26,8 +26,7 @@ def raise_keyerror(key):
 
 class CodesMessage(object):
     """
-    An abstract class to specify and/or implement common behaviour that
-    messages read by ecCodes should implement.
+    Abstract class to specify and/or implement common behaviour that messages read by ecCodes should implement.
 
     A {prod_type} message.
 
@@ -96,15 +95,13 @@ class CodesMessage(object):
         :param sample: A valid sample path to create ``CodesMessage`` from
         """
         if not other_args_found and codes_file is None and clone is None and sample is None:
-            raise RuntimeError("CodesMessage initialization parameters not " "present.")
+            raise RuntimeError("CodesMessage initialization parameters not present.")
         #: Unique ID, for ecCodes interface
         self.codes_id = None
         #: File containing message
         self.codes_file = None
         if codes_file is not None:
-            self.codes_id = eccodes.codes_new_from_file(
-                codes_file.file_handle, self.product_kind, headers_only
-            )
+            self.codes_id = eccodes.codes_new_from_file(codes_file.file_handle, self.product_kind, headers_only)
             if self.codes_id is None:
                 raise IOError("CodesFile %s is exhausted" % codes_file.name)
             self.codes_file = codes_file
@@ -159,23 +156,26 @@ class CodesMessage(object):
         """Dump message's binary content."""
         return eccodes.codes_get_message(self.codes_id)
 
-    def get(self, key, ktype=None):
+    def get(self, key, default=None, ktype=None, raise_on_missing=False):
         """Get value of a given key as its native or specified type."""
-        # if key.endswith("->code"):
-        #     key = key.rpartition("->")[0]
-        #     name = key.rpartition("#")[2]
-        #     # print(name)
-        #     return self.code(key, name)
-
-        with raise_keyerror(key):
+        # the exceptions are handled here instead of using the raise_keyerror()
+        # context manager: this method is called for each key of each message, and
+        # a with block costs more than the try itself
+        try:
             if eccodes.codes_get_size(self.codes_id, key) > 1:
-                ret = eccodes.codes_get_array(self.codes_id, key, ktype)
-            else:
-                ret = eccodes.codes_get(self.codes_id, key, ktype)
-            return ret
+                return eccodes.codes_get_array(self.codes_id, key, ktype)
+            return eccodes.codes_get(self.codes_id, key, ktype)
+        except eccodes.KeyValueNotFoundError:
+            if raise_on_missing:
+                raise KeyError(f"key={key} key/value not found")
+            return default
+        except KeyError:
+            if raise_on_missing:
+                raise
+            return default
 
-    def _get(self, key, ktype=None):
-        return eccodes.codes_get(self.codes_id, key, ktype)
+    # def _get(self, key, ktype=None):
+    #     return eccodes.codes_get(self.codes_id, key, ktype)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Release message handle and inform host file of release."""
@@ -192,7 +192,8 @@ class CodesMessage(object):
 
     def __contains__(self, key):
         """Check whether a key is present in message."""
-        return key in self.keys()
+        # return key in self.keys()
+        return eccodes.codes_is_defined(self.codes_id, key)
 
     def __len__(self):
         """Return key count."""
@@ -200,7 +201,7 @@ class CodesMessage(object):
 
     def __getitem__(self, key):
         """Return value associated with key as its native type."""
-        return self.get(key)
+        return self.get(key, raise_on_missing=True)
 
     def __iter__(self):
         return iter(self.keys())

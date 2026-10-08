@@ -8,13 +8,7 @@
 
 
 import collections
-from typing import Any
-from typing import Dict
-from typing import Generator
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Tuple
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple
 
 import eccodes  # type: ignore
 import numpy as np
@@ -44,8 +38,12 @@ def subset_info(message: Mapping[str, Any]) -> Tuple[int, bool, bool]:
 def uncompressed_subset_ranges(filtered_keys: List[Any], subset_count: int) -> Tuple[List[int], List[int]]:
     subset_start = []
     subset_end = []
+    header_end = None
     for i, bufr_key in enumerate(filtered_keys):
         if bufr_key.name == "subsetNumber":
+            if header_end is None:
+                header_end = i - 1
+
             subset_start.append(i)
             if len(subset_start) > 1:
                 subset_end.append(i)
@@ -54,7 +52,10 @@ def uncompressed_subset_ranges(filtered_keys: List[Any], subset_count: int) -> T
             subset_end.append(len(filtered_keys))
             break
 
-    return subset_start, subset_end
+    if subset_start:
+        assert subset_start[0] == header_end + 1
+
+    return subset_start, subset_end, header_end
 
 
 class BufrSubsetCollector:
@@ -99,11 +100,9 @@ class BufrSubsetCollector:
             # TODO: make into a function
             if current_observation and (
                 # if all(name in current_observation for name in keys) and (
-                level < current_levels[-1]
-                or (level == current_levels[-1] and name in current_observation)
+                level < current_levels[-1] or (level == current_levels[-1] and name in current_observation)
             ):
                 if not mandatory_keys or all(name in current_observation for name in mandatory_keys):
-
                     # copy the content of current_items
                     yield dict(current_observation)
 
@@ -114,10 +113,11 @@ class BufrSubsetCollector:
                 current_levels.pop()
 
             if bufr_key.key not in value_cache:
-                try:
-                    value_cache[bufr_key.key] = self.owner.message[bufr_key.key]
-                except KeyError:
-                    value_cache[bufr_key.key] = None
+                value_cache[bufr_key.key] = self.owner.message.get(bufr_key.key)
+                # try:
+                #     value_cache[bufr_key.key] = self.owner.message[bufr_key.key]
+                # except KeyError:
+                #     value_cache[bufr_key.key] = None
             value = value_cache[bufr_key.key]
 
             # extract compressed BUFR values. They are either numpy arrays (for numeric types)
@@ -145,11 +145,7 @@ class BufrSubsetCollector:
             if name in keys:
                 units = None
                 if units_keys and name in units_keys:
-                    try:
-                        units = self.owner.message[bufr_key.key + "->units"]
-                    except KeyError:
-                        units = None
-
+                    units = self.owner.message.get(bufr_key.key + "->units")
                 if value_and_units:
                     current_observation[name] = (value, units)
                 else:
@@ -179,6 +175,10 @@ class BufrSubsetReader:
                 yield BufrSubsetCollector(self, self.filtered_keys, subset)
 
         elif self.is_uncompressed:
-            subset_start, subset_end = uncompressed_subset_ranges(self.filtered_keys, self.subset_count)
+            subset_start, subset_end, header_end = uncompressed_subset_ranges(self.filtered_keys, self.subset_count)
+            header_keys = []
+            if header_end is not None and header_end >= 0:
+                header_keys = self.filtered_keys[0 : header_end + 1]
+
             for i in range(self.subset_count):
-                yield BufrSubsetCollector(self, self.filtered_keys[subset_start[i] : subset_end[i]], i)
+                yield BufrSubsetCollector(self, header_keys + self.filtered_keys[subset_start[i] : subset_end[i]], i)

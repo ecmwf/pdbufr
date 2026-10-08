@@ -93,7 +93,14 @@ _dev
 .DS_Store
 
 # docs
-docs/examples/*.bufr
+docs/source/how-tos/*.bufr
+docs/source/how-tos/*/*.bufr
+docs/source/tutorials/*.bufr
+docs/source/tutorials/*/*.bufr
 
 # generated version
 src/pdbufr/version.py
+
+
+# claude
+.claude
