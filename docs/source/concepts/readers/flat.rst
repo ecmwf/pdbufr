@@ -18,7 +18,7 @@ Flat
 
         Any other string value is treated as a single BUFR key to extract and any sequence of strings is treated
         as a list of BUFR keys to extract. See the :ref:`individual key extraction mode <flat-individual-key-extraction>` for details. The special keys ("all", "header", "data") cannot be combined with BUFR keys, but "header" and "data" can be
-        combined together to get all the keys from both sections.
+        combined together to get all the keys from both sections. *The usage of arbitrary keys is new in version 0.15.0.*
 
     :type columns: str, sequence[str]
     :param filters: Define the conditions when to extract the specified ``columns``. The individual conditions are combined together with the logical AND operator to form the filter. See :ref:`flat-filters` for details. Keys appearing in the ``filters`` are automatically added to the list of columns to extract if they are not already present in ``columns``.

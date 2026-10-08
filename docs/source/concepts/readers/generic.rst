@@ -40,6 +40,7 @@ How does the generic reader work?
 Examples
 -----------
 
+- :ref:`/tutorials/generic/r_generic_overview.ipynb`
 - :ref:`/how-tos/generic/r_generic_aircraft.ipynb`
 - :ref:`/how-tos/generic/r_generic_ens.ipynb`
 - :ref:`/how-tos/generic/r_generic_radiosonde.ipynb`

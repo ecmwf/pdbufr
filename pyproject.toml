@@ -4,7 +4,7 @@ requires = ["setuptools>=61", "setuptools-scm[toml]>=8"]
 
 [project]
 authors = [
-  {name = "European Centre for Medium-Range Weather Forecasts (ECMWF)", email = "software.support@ecmwf.int"}
+  { name = "European Centre for Medium-Range Weather Forecasts (ECMWF)", email = "software.support@ecmwf.int" }
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -23,10 +23,8 @@ dependencies = ["attrs", "eccodes", "pandas", "pint"]
 description = "Pandas reader for the BUFR format using ecCodes."
 dynamic = ["version"]
 keywords = ["bufr", "eccodes", "pandas"]
-license = {text = "Apache License Version 2.0"}
+license = { text = "Apache License Version 2.0" }
 name = "pdbufr"
-readme = "README.md"
-requires-python = ">=3.9"
 optional-dependencies.dev = [
   "pdbufr[docs,tests]"
 ]
@@ -40,6 +38,8 @@ optional-dependencies.docs = [
   "sphinx-issues"
 ]
 optional-dependencies.tests = ["nbconvert", "nbformat", "pytest", "pytest-cov", "requests"]
+readme = "README.md"
+requires-python = ">=3.9"
 urls.Documentation = "https://pdbufr.readthedocs.io/en/latest/"
 urls.Homepage = "https://github.com/ecmwf/pdbufr"
 
