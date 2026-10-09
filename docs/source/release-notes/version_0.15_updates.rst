@@ -2,7 +2,7 @@ Version 0.15 Updates
 /////////////////////////
 
 
-Version 0.15.0
+Version 0.15.1
 ===============
 
 Improved flat reader
