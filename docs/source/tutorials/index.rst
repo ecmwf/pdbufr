@@ -11,3 +11,4 @@ Tutorials
     generic_vs_flat.ipynb
     synop/index.rst
     temp/index.rst
+    tropical_cyclone/index.rst

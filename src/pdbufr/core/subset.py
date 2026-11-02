@@ -69,6 +69,51 @@ class BufrSubsetCollector:
         self.filtered_keys = filtered_keys
         self.subset_number = subset_number
 
+    def iter_values(self) -> Generator[Tuple[str, Any], None, None]:
+        """Iterate over all the keys of the subset in message order.
+
+        The values are extracted the same way as in :meth:`collect`: for compressed messages an
+        array with one value per subset is indexed with the subset number, a single value is used
+        as is, and missing values are returned as None. Numpy scalars are converted to Python
+        scalars. The values are read lazily and cached in the owner, so stopping the iteration early
+        avoids reading the rest of the keys.
+
+        Yields
+        ------
+        tuple
+            The key name (without the rank) and its value for the subset.
+        """
+        cache = self.owner.cache
+        for bufr_key in self.filtered_keys:
+            name = bufr_key.name
+
+            # stop processing if we reach the firstOrderStatistics key
+            if name.startswith("firstOrderStatistics"):
+                break
+
+            key = bufr_key.key
+            if key not in cache:
+                cache[key] = self.owner.message.get(key)
+            value = cache[key]
+
+            if (
+                self.owner.is_compressed
+                and name != "unexpandedDescriptors"
+                and isinstance(value, (np.ndarray, list))
+                and len(value) == self.owner.subset_count
+            ):
+                value = value[self.subset_number]
+
+            if isinstance(value, np.generic):
+                value = value.item()
+
+            if isinstance(value, float) and value == eccodes.CODES_MISSING_DOUBLE:
+                value = None
+            elif isinstance(value, int) and value == eccodes.CODES_MISSING_LONG:
+                value = None
+
+            yield name, value
+
     def collect(
         self,
         keys: List[str],

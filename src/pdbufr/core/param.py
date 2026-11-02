@@ -152,6 +152,24 @@ WIND = Parameter("wind", desc="wind", units=["m/s", "deg"])
 WIND_SPEED = Parameter("wind_speed", desc="wind speed", units="m/s")
 WIND_DIR = Parameter("wind_dir", desc="wind direction", units="deg")
 
+# tropical cyclone track parameters. The storm centre uses LAT, LON and MSLP.
+OBSERVED_LAT = Parameter("observed_lat", desc="latitude of the observed storm centre", units="deg")
+OBSERVED_LON = Parameter("observed_lon", desc="longitude of the observed storm centre", units="deg")
+MAX_WIND_LAT = Parameter("max_wind_lat", desc="latitude of the maximum wind", units="deg")
+MAX_WIND_LON = Parameter("max_wind_lon", desc="longitude of the maximum wind", units="deg")
+MAX_WIND_SPEED = Parameter("max_wind_speed", desc="maximum 10m wind speed", units="m/s")
+
+# wind radii: the effective radius with respect to a wind speed threshold in the four quadrants
+WIND_RADII = {
+    f"radius_{threshold}ms_{quadrant}": Parameter(
+        f"radius_{threshold}ms_{quadrant}",
+        desc=f"{quadrant.upper()} quadrant radius of the {threshold} m/s wind",
+        units="m",
+    )
+    for threshold in (18, 26, 33)
+    for quadrant in ("ne", "se", "sw", "nw")
+}
+
 
 UNITS = {}
 for item in PARAMETERS.values():

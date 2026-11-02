@@ -12,3 +12,4 @@ Readers
    flat
    synop
    temp
+   tropical_cyclone

@@ -73,7 +73,7 @@ class ReaderMaker:
         if isinstance(name_or_reader, Reader):
             return name_or_reader
 
-        name = name_or_reader
+        name = name_or_reader.replace("_", "-")
 
         # provide backwards compatibility
         if name == "generic" and "flat":
@@ -120,6 +120,8 @@ class ReaderMaker:
         #                     LOG.exception("Error loading reader %s", name)
         #                     raise
 
+        name = name.replace("_", "-")
+
         for path in sorted(os.listdir(here)):
             if path[0] in ("_", "."):
                 continue
@@ -129,7 +131,7 @@ class ReaderMaker:
                 p = base.replace("_", "-")
                 if p == name:
                     try:
-                        module = import_module(f".{name}", package=__name__)
+                        module = import_module(f".{base}", package=__name__)
                         if hasattr(module, "reader"):
                             w = getattr(module, "reader")
                             return w
