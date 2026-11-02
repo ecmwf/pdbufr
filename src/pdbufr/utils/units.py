@@ -112,7 +112,6 @@ class DefaultUnitsConverter(UnitsConverter):
             else:
                 p_src_units = self.pint_units(units)
                 p_target_units = self.pint_units(default_units)
-                print(f"DefaultUnitsConverter: {label=} {units=}{p_src_units=} {p_target_units=}")
                 if value is None or p_target_units == p_src_units:
                     return value, default_units
                 return self._Q(value, p_src_units).to(p_target_units).magnitude, default_units
@@ -135,7 +134,6 @@ class UserUnitsConverter(DefaultUnitsConverter):
         p_target_units = self.pint_target_units.get(label, None)
         if p_target_units is not None:
             b_target_units = self.bufr_target_units[label]
-            print(f"UserUnitsConverter: {label=} {units=} {p_target_units=} {b_target_units=}")
             if b_target_units == units:
                 return value, units
             else:

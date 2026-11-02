@@ -33,3 +33,5 @@ read_bufr
           -  extract :ref:`synop-like data <synop-like-data>` from BUFR using pre-defined :ref:`parameters <synop-params>`
         * - :ref:`temp <temp-reader>`
           -  extract :ref:`temp-like data <temp-like-data>` from BUFR using pre-defined :ref:`parameters <temp-params>`
+        * - :ref:`tropical-cyclone <tropical-cyclone-reader>`
+          -  extract :ref:`tropical cyclone track data <tropical-cyclone-data>` from BUFR using pre-defined :ref:`parameters <tropical-cyclone-params>`
