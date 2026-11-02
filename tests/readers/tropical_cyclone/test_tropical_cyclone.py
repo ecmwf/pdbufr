@@ -20,6 +20,11 @@ Test data:
   (compressed, members 3, 23 and 28), message 2 is storm 71W (uncompressed, member 51) and
   message 3 is storm 22E VANCE (uncompressed, member 51, no forecast steps).
 
+All the messages of both files are ECMWF tropical cyclone tracks, i.e. ``dataCategory`` 7,
+``dataSubCategory`` 32 and ``bufrHeaderCentre`` 98, which is the input the reader supports (see
+``test_tropical_cyclone_supported_header``). ``_messages()`` keeps them apart from the other
+messages of a file by checking ``dataCategory`` on its own.
+
 The reference values are not taken from the reader. They were extracted with ecCodes using the ranks
 of the BUFR keys (``#<rank>#<key>``), see ``_ranked_rows()``, which only relies on the order of the
 keys in the template:
@@ -48,6 +53,8 @@ import pandas as pd
 import pytest
 
 import pdbufr
+from pdbufr.high_level_bufr.bufr import BufrFile
+from pdbufr.readers.tropical_cyclone import BUFR_HEADER_CENTRE, DATA_CATEGORY, DATA_SUB_CATEGORY, TropicalCycloneReader
 from pdbufr.utils.testing import sample_test_data_path
 
 OLD_LAYOUT = sample_test_data_path("tropical_cyclone.bufr")
@@ -703,6 +710,116 @@ def test_tropical_cyclone_not_a_cyclone_file(keep_missing):
     df = read(NOT_CYCLONE, columns="all", filters={"storm_id": "70E"})
     assert df.empty
     assert list(df.columns) == ALL_COLUMNS
+
+
+# ---------------------------------------------------------------------------------------------
+# the header filter: only the ECMWF tropical cyclone messages are read
+# ---------------------------------------------------------------------------------------------
+
+# the header of the messages the reader supports
+CYCLONE_HEADER = {"dataCategory": 7, "dataSubCategory": 32, "bufrHeaderCentre": 98}
+SUPPORTED_HEADER_KEYS = tuple(CYCLONE_HEADER)
+
+
+def test_tropical_cyclone_supported_header():
+    # the constants of the reader are the header of the sample files and of the docstrings
+    assert (DATA_CATEGORY, DATA_SUB_CATEGORY, BUFR_HEADER_CENTRE) == (7, 32, 98)
+
+    for path in (OLD_LAYOUT, NEW_LAYOUT):
+        n_messages = 0
+        with open(path, "rb") as f:
+            while True:
+                handle = eccodes.codes_bufr_new_from_file(f)
+                if handle is None:
+                    break
+                n_messages += 1
+                try:
+                    values = tuple(eccodes.codes_get(handle, key) for key in SUPPORTED_HEADER_KEYS)
+                finally:
+                    eccodes.codes_release(handle)
+                assert values == (7, 32, 98), (path, n_messages, values)
+        assert n_messages > 0
+
+
+def test_tropical_cyclone_filter_header():
+    reader = TropicalCycloneReader(OLD_LAYOUT)
+
+    assert reader.filter_header(dict(CYCLONE_HEADER))
+
+    # all three values are needed, whatever the other ones are
+    for key in SUPPORTED_HEADER_KEYS:
+        for value in (0, 1, 6, 31, 33, 97, 99, 170, 254):
+            assert value != CYCLONE_HEADER[key], (key, value)
+            assert not reader.filter_header({**CYCLONE_HEADER, key: value}), (key, value)
+
+
+class _HeaderMessage(dict):
+    """A message with only the header keys, that records whether the reader has unpacked it."""
+
+    def __init__(self, header):
+        super().__init__(header)
+        self.unpacked = False
+
+    def __setitem__(self, key, value):
+        self.unpacked = self.unpacked or key == "unpack"
+        super().__setitem__(key, value)
+
+
+def test_tropical_cyclone_header_is_filtered_before_unpacking(monkeypatch):
+    # the messages below have no data section, so the ones that are not cyclones must be skipped
+    # before they are unpacked. read_message is replaced to see which messages are accepted
+    accepted = []
+
+    def spy(self, message, bufr_filters=None):
+        accepted.append(message)
+        return iter(())
+
+    monkeypatch.setattr(TropicalCycloneReader, "read_message", spy)
+
+    cyclone = _HeaderMessage(CYCLONE_HEADER)
+    other_sub_category = _HeaderMessage({**CYCLONE_HEADER, "dataSubCategory": 3})
+    other_centre = _HeaderMessage({**CYCLONE_HEADER, "bufrHeaderCentre": 170})
+
+    df = pdbufr.read_bufr([other_sub_category, cyclone, other_centre], reader=READER)
+
+    assert len(accepted) == 1
+    assert cyclone.unpacked
+    assert not other_sub_category.unpacked
+    assert not other_centre.unpacked
+
+    # the messages that are skipped give no row and no error
+    assert df.empty
+    assert list(df.columns) == DEFAULT_COLUMNS
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {},  # the messages of the file, as they are
+        {"dataCategory": 1},
+        {"dataSubCategory": 3},
+        {"bufrHeaderCentre": 170},
+        {"dataCategory": 0, "dataSubCategory": 172},  # like a synoptic message
+    ],
+)
+def test_tropical_cyclone_real_message_headers(overrides):
+    """Only the messages whose header is (7, 32, 98) are read."""
+    n_all = len(read(NEW_LAYOUT))
+    assert n_all > 0
+
+    # the header of the real messages is changed with ecCodes before reading them
+    with BufrFile(NEW_LAYOUT) as bufr_file:
+        messages = list(bufr_file)
+        for message in messages:
+            for key, value in overrides.items():
+                message[key] = value
+        df = pdbufr.read_bufr(messages, reader=READER)
+
+    if overrides:
+        # they are skipped silently, they give no row
+        assert df.empty
+        assert list(df.columns) == DEFAULT_COLUMNS
+    assert len(df) == (n_all if not overrides else 0)
 
 
 # ---------------------------------------------------------------------------------------------

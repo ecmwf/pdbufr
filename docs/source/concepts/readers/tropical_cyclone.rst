@@ -45,7 +45,7 @@ Tropical cyclone
     :type units: dict, None
     :param units_columns: if True, a :ref:`units column <tropical-cyclone-units>` is added to the resulting DataFrame for each :ref:`parameter <tropical-cyclone-params>` having a units. The column name is formed by adding the "_units" suffix to the parameter name. The default is False.
     :type units_columns: bool
-    :param prefilter_headers: accepted for consistency with the other readers, but for this reader it gives no speed-up. The ``filters`` of this reader use :ref:`parameter names <tropical-cyclone-params>`, which are not BUFR header keys, so there is nothing to match before unpacking. Messages that do not contain :ref:`tropical cyclone track data <tropical-cyclone-data>` (``dataCategory`` other than 7) are always skipped before unpacking, whatever the value of this option.
+    :param prefilter_headers: accepted for consistency with the other readers, but for this reader it gives no speed-up. The ``filters`` of this reader use :ref:`parameter names <tropical-cyclone-params>`, which are not BUFR header keys, so there is nothing to match before unpacking. Only :ref:`tropical cyclone track data <tropical-cyclone-data>` is supported, i.e. messages with ``dataCategory=7``, ``dataSubCategory=32`` and ``bufrHeaderCentre=98``; all other messages are ignored. Whatever the value of this option, the three header keys are checked before unpacking and a message that does not match is skipped without raising an error.
     :type prefilter_headers: bool
 
 
@@ -54,7 +54,7 @@ Tropical cyclone
 Tropical cyclone track data
 +++++++++++++++++++++++++++++++
 
-For this reader the term "tropical cyclone track data" means the tropical cyclone tracks produced by ECMWF, and it contains all messages with ``dataCategory=7``. Messages with other data categories are ignored. See details on the data category :ref:`here <bufr-data-category>`.
+For this reader the term "tropical cyclone track data" means the tropical cyclone tracks produced by ECMWF. The only input supported is messages with ``dataCategory=7``, ``dataSubCategory=32`` and ``bufrHeaderCentre=98``; all the other messages are silently ignored. See details on these header keys :ref:`here <bufr-data-category>`.
 
 The data is structured as follows:
 

@@ -8,9 +8,14 @@
 
 """Reader for the ECMWF tropical cyclone track BUFR data.
 
-Each BUFR message describes one storm and each subset of the message one ensemble member. The
-subset contains the analysis followed by a number of forecast steps, which are turned into
-one row per storm, member and step.
+The supported input is the ECMWF tropical cyclone track BUFR data, i.e. the messages with
+``dataCategory`` 7, ``dataSubCategory`` 32 and ``bufrHeaderCentre`` 98 (see ``DATA_CATEGORY``,
+``DATA_SUB_CATEGORY`` and ``BUFR_HEADER_CENTRE``). The other messages of a file are silently
+skipped, without unpacking their data section, so a file with other data can be passed too.
+
+Each supported BUFR message describes one storm and each subset of the message one ensemble
+member. The subset contains the analysis followed by a number of forecast steps, which are turned
+into one row per storm, member and step.
 """
 
 import datetime
@@ -28,6 +33,11 @@ from pdbufr.core.subset import BufrSubsetCollector, BufrSubsetReader
 from .custom import CustomReader
 
 LOG = logging.getLogger(__name__)
+
+# the header values of the supported messages: the ECMWF tropical cyclone track data
+DATA_CATEGORY = 7
+DATA_SUB_CATEGORY = 32
+BUFR_HEADER_CENTRE = 98  # ECMWF
 
 DEFAULT_COLUMNS: List[str] = [
     "storm_id",
@@ -140,6 +150,10 @@ def _to_int(value: Any) -> Optional[int]:
 class TropicalCycloneReader(CustomReader):
     """Read ECMWF tropical cyclone track BUFR data.
 
+    Only the messages with ``dataCategory`` 7, ``dataSubCategory`` 32 and ``bufrHeaderCentre`` 98
+    are read, the other messages of the input are silently skipped before their data section is
+    unpacked.
+
     The result has one row per storm, ensemble member and forecast step. Step 0 is the analysis.
 
     Parameters
@@ -224,7 +238,16 @@ class TropicalCycloneReader(CustomReader):
                 )
 
     def filter_header(self, message: MessageWrapper) -> bool:
-        return message["dataCategory"] == 7
+        """Check that the message is ECMWF tropical cyclone track data.
+
+        It only reads header keys, so it can be called before the data section is unpacked. A
+        message that does not match is silently skipped.
+        """
+        return (
+            message["dataCategory"] == DATA_CATEGORY
+            and message["dataSubCategory"] == DATA_SUB_CATEGORY
+            and message["bufrHeaderCentre"] == BUFR_HEADER_CENTRE
+        )
 
     def read_message(
         self,
