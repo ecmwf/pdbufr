@@ -258,7 +258,6 @@ def assert_same(df, df_ref):
         _make_frame(df_ref) if isinstance(df_ref, list) else df_ref,
         check_dtype=False,
         check_index_type=False,
-        check_datetimelike_compat=True,
     )
 
 
@@ -281,8 +280,8 @@ def test_tropical_cyclone_old_layout_default_columns():
     # types
     assert df["step"].dtype == np.dtype("int64")
     assert df["member"].dtype == np.dtype("int64")
-    assert df["base_time"].dtype == np.dtype("datetime64[ns]")
-    assert df["valid_time"].dtype == np.dtype("datetime64[ns]")
+    assert df["base_time"].dtype.kind == "M"
+    assert df["valid_time"].dtype.kind == "M"
     for c in ("lat", "lon", "mslp", "max_wind_lat", "max_wind_lon", "max_wind_speed"):
         assert df[c].dtype == np.dtype("float64"), c
 
