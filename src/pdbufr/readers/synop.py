@@ -8,7 +8,7 @@
 
 
 import logging
-from typing import Any, Dict, Generator, List, Mapping, Optional, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -28,7 +28,8 @@ from pdbufr.core.accessor import (
     StationNameAccessor,
 )
 from pdbufr.core.filters import ParamFilter
-from pdbufr.core.subset import BufrSubsetReader
+from pdbufr.core.subset import BufrSubsetCollector, BufrSubsetReader
+from pdbufr.utils.exception import AllValueMissingException
 
 from .custom import StationReader
 
@@ -391,8 +392,265 @@ class MslpAccessor(SimpleAccessor):
 
 
 class CloudCoverAccessor(SimpleAccessor):
+    """Total cloud cover from ``cloudCoverTotal``.
+
+    Unlike the other :class:`SimpleAccessor` columns, which disappear from the frame when the
+    BUFR key is not in the file at all, this column is always emitted: a file without the key
+    yields a column of None, just like the cloud summary columns
+    (:class:`CloudSummaryAccessor.collect`) and like a file where the key is present but all
+    its values are missing.
+    """
+
     param: PARAMS.Parameter = PARAMS.CLOUD_COVER
     keys: Dict[str, PARAMS.Parameter] = {"cloudCoverTotal": PARAMS.CLOUD_COVER}
+
+    def collect(self, collector: Any, add_units: bool = False, **kwargs: Any) -> Dict[str, Any]:
+        res = super().collect(collector, add_units=add_units, **kwargs)
+        if not res:
+            # the message has no cloudCoverTotal key: keep the column, filled with None
+            res = self.empty_result()
+            if add_units and self.param.units:
+                res[self.param.label + "_units"] = None
+        return res
+
+
+# BUFR keys of the cloud summary group (verticalSignificanceSurfaceObservations = 7,
+# "low cloud" in WMO Code Table 0 08 002).
+CLOUD_SUMMARY_KEYS = [
+    "verticalSignificanceSurfaceObservations",
+    "cloudAmount",
+    "heightOfBaseOfCloud",
+    "cloudType",
+]
+
+
+def _as_code(value: Any) -> Optional[int]:
+    """Convert a cloud type value to an int code, keeping missing values as None."""
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return value
+
+
+# The cloud summary group values extracted by :func:`_scan_cloud_summary`: the Nh cloud amount,
+# the lowest cloud base, the list of up to 3 cloud type codes and the BUFR units of the cloud base.
+CloudSummary = Tuple[Optional[Any], Optional[Any], List[Optional[int]], Optional[str]]
+
+
+def _cloud_base_units(subset: BufrSubsetCollector, index: int) -> Optional[str]:
+    """Return the BUFR units of the ``index``-th heightOfBaseOfCloud key of the subset.
+
+    The units are looked up the same way as :meth:`BufrSubsetCollector.collect` does, from the
+    ``<ranked key>->units`` attribute of the message. Returns None when the key or its units
+    cannot be found.
+    """
+    for bufr_key in subset.filtered_keys:
+        if bufr_key.name != "heightOfBaseOfCloud":
+            continue
+        if index == 0:
+            units = subset.owner.message.get(bufr_key.key + "->units")
+            return None if units is None else str(units)
+        index -= 1
+    return None
+
+
+def _scan_cloud_summary(subset: BufrSubsetCollector) -> CloudSummary:
+    """Extract the cloud summary group from a subset.
+
+    The summary group is the cloud group with ``verticalSignificanceSurfaceObservations`` = 7
+    ("low cloud" in WMO Code Table 0 08 002). Its ``cloudAmount`` is the cloud amount of the low
+    cloud (Nh, or of the middle cloud when no low cloud is reported) as a raw code table 0 20 011
+    value, its ``heightOfBaseOfCloud`` is the height of the base of the lowest cloud and its
+    first three ``cloudType`` values are the cloud types of the low, middle and high clouds
+    (CL, CM, CH) in that order. The group ends at the next ``verticalSignificanceSurfaceObservations``
+    key, which starts the individual cloud layers.
+
+    When the subset has no vertical significance = 7 group, the fallback uses the first cloud
+    group, but only when its vertical significance is missing (e.g. template 307092) or 0 (WMO
+    Code Table 0 08 002: in SYNOP reports 0 means that the group follows the SYNOP rules and
+    describes the lowest cloud base and the cloud types). Groups with vertical significance 1-6
+    are individual cloud layers and never fill the summary values.
+
+    Missing values are returned as None. The units of the cloud base (the BUFR units of its
+    ``heightOfBaseOfCloud`` key, normally "m") are captured together with it and are None when
+    the cloud summary group has no heightOfBaseOfCloud key.
+
+    The result is cached on the collector because all the cloud summary accessors need it.
+
+    Returns
+    -------
+    tuple
+        The (Nh cloud amount, lowest cloud base, list of up to 3 cloud type codes, cloud base
+        units).
+    """
+    res = getattr(subset, "_cloud_summary", None)
+    if res is not None:
+        return res
+
+    amount: Optional[Any] = None
+    base: Optional[Any] = None
+    types: List[Optional[int]] = []
+    amount_seen = False
+    base_seen = False
+    base_index = 0
+    base_idx: Optional[int] = None
+    in_summary = False
+    vs_seen = False
+    first_vs: Optional[Any] = None
+
+    for name, value in subset.iter_values():
+        if name == "verticalSignificanceSurfaceObservations":
+            if in_summary:
+                break  # the individual cloud layers start here
+            if not vs_seen:
+                vs_seen = True
+                first_vs = value
+            in_summary = value == 7
+            continue
+
+        if name == "heightOfBaseOfCloud" and not in_summary:
+            base_index += 1  # count the occurrence for the cloud base units lookup
+            continue
+
+        if not in_summary:
+            continue
+
+        if name == "cloudAmount" and not amount_seen:
+            amount, amount_seen = value, True
+        elif name == "heightOfBaseOfCloud" and not base_seen:
+            base, base_seen, base_idx = value, True, base_index
+        elif name == "cloudType" and len(types) < 3:
+            types.append(value)
+        else:
+            break
+
+    if not in_summary and (not vs_seen or first_vs is None or first_vs == 0):
+        # no vertical significance = 7 group: the first cloud group is the summary when its
+        # vertical significance is missing or 0, collect its keys up to the next group boundary
+        past_marker = not vs_seen  # without significance keys the group starts at its first key
+        base_index = 0  # the pass restarts at the beginning of the subset
+        for name, value in subset.iter_values():
+            if name == "verticalSignificanceSurfaceObservations":
+                if past_marker:
+                    break  # the next cloud group starts here
+                past_marker = True
+            elif name == "cloudAmount":
+                if amount_seen:
+                    break  # the next cloud group starts here without a significance key
+                amount, amount_seen = value, True
+            elif name == "heightOfBaseOfCloud":
+                if not base_seen:
+                    base, base_seen, base_idx = value, True, base_index
+                base_index += 1
+            elif name == "cloudType" and len(types) < 3:
+                types.append(value)
+            if amount_seen and base_seen and len(types) == 3:
+                break
+
+    base_units = _cloud_base_units(subset, base_idx) if base_idx is not None else None
+
+    res = (amount, base, [_as_code(t) for t in types], base_units)
+    setattr(subset, "_cloud_summary", res)
+    return res
+
+
+class CloudSummaryAccessor(Accessor):
+    """Base class for the accessors extracting a column of the cloud summary group.
+
+    The subclasses select one value of the group returned by :func:`_scan_cloud_summary`.
+    The cloud amount and the cloud types are raw BUFR code table values (0 20 011 and 0 20 001)
+    without units. The cloud base has the BUFR units of its key (metres): like the other
+    parameters with units it supports the ``units_columns`` option and the unit conversion
+    (``unit_system`` and ``units``).
+    """
+
+    needed_keys: List[str] = CLOUD_SUMMARY_KEYS
+    param: PARAMS.Parameter
+
+    def empty_result(self) -> Dict[str, Optional[Any]]:
+        label: str = self.param.label
+        return {label: None}
+
+    def extract(self, summary: CloudSummary) -> Tuple[Any, Optional[str]]:
+        """Select the value of the column and its units from the cloud summary group."""
+        raise NotImplementedError
+
+    def collect(
+        self,
+        collector: Any,
+        raise_on_missing: bool = False,
+        units_converter: Optional[Any] = None,
+        add_units: bool = False,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        value, units = self.extract(_scan_cloud_summary(collector))
+        if value is None and raise_on_missing:
+            raise AllValueMissingException(f"No value found for accessor={self.name}")
+        label: str = self.param.label
+        # convert the units exactly like SimpleAccessor.parse_collected does. Only the accessors
+        # whose Parameter has units, i.e. not the code table columns, are ever converted.
+        if value is not None and units is not None and units_converter is not None and self.param.units:
+            value, units = units_converter.convert(label, value, units)
+        res: Dict[str, Any] = {label: value}
+        # add units column
+        if add_units and self.param.units:
+            res[label + "_units"] = units
+        return res
+
+
+class CloudTypeAccessor(CloudSummaryAccessor):
+    """Base class for the low, middle and high cloud type accessors.
+
+    The cloud types are assigned to the columns positionally, in the order they are reported
+    in the cloud summary group (CL, CM, CH). They are raw code table 0 20 001 values without
+    units.
+    """
+
+    cloud_type_index: int = 0
+
+    def extract(self, summary: CloudSummary) -> Tuple[Any, Optional[str]]:
+        types = summary[2]
+        value = types[self.cloud_type_index] if self.cloud_type_index < len(types) else None
+        return value, None
+
+
+class CloudTypeLowAccessor(CloudTypeAccessor):
+    param: PARAMS.Parameter = PARAMS.CLOUD_TYPE_LOW
+    cloud_type_index = 0
+
+
+class CloudTypeMiddleAccessor(CloudTypeAccessor):
+    param: PARAMS.Parameter = PARAMS.CLOUD_TYPE_MIDDLE
+    cloud_type_index = 1
+
+
+class CloudTypeHighAccessor(CloudTypeAccessor):
+    param: PARAMS.Parameter = PARAMS.CLOUD_TYPE_HIGH
+    cloud_type_index = 2
+
+
+class CloudAmountNhAccessor(CloudSummaryAccessor):
+    """The cloud amount of the low cloud (Nh) of the cloud summary group. It is a raw code
+    table 0 20 011 value without units.
+    """
+
+    param: PARAMS.Parameter = PARAMS.CLOUD_AMOUNT_NH
+
+    def extract(self, summary: CloudSummary) -> Tuple[Any, Optional[str]]:
+        return summary[0], None
+
+
+class CloudBaseLowestAccessor(CloudSummaryAccessor):
+    """The height of the base of the lowest cloud, with the BUFR units of the
+    ``heightOfBaseOfCloud`` key (metres), supporting units columns and unit conversion.
+    """
+
+    param: PARAMS.Parameter = PARAMS.CLOUD_BASE_LOWEST
+
+    def extract(self, summary: CloudSummary) -> Tuple[Any, Optional[str]]:
+        return summary[1], summary[3]
 
 
 class SnowDepthAccessor(SimpleAccessor):
@@ -541,6 +799,11 @@ EXTRA_OBS_ACCESSORS: tuple = (
     Wind10mDirAccessor,
     WindGustSpeedAccessor,
     WindGustDirAccessor,
+    CloudTypeLowAccessor,
+    CloudTypeMiddleAccessor,
+    CloudTypeHighAccessor,
+    CloudAmountNhAccessor,
+    CloudBaseLowestAccessor,
 )
 
 DEFAULT_ACCESSORS = STATION_ACCESSORS + DEFAULT_OBS_ACCESSORS

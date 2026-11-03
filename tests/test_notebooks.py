@@ -20,14 +20,13 @@ import pytest
 
 EXAMPLES = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "source", "how-tos")
 TUTORIALS = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "source", "tutorials")
-LEGACY_EXAMPLES = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "source", "legacy")
 
 SKIP = ("prefilter_headers.ipynb",)  # data file too large to be downloaded in CI
 
 
 def notebooks_list() -> T.Iterable[str]:
     notebooks = []
-    for root in (EXAMPLES, LEGACY_EXAMPLES, TUTORIALS):
+    for root in (EXAMPLES, TUTORIALS):
         for dirpath, dirnames, filenames in os.walk(root):
             dirnames[:] = [d for d in dirnames if d != ".ipynb_checkpoints"]
             for filename in filenames:
