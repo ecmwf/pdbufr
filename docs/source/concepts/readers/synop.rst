@@ -425,6 +425,58 @@ These parameters are not added by default but can be specified in ``columns``.
      - P
      -
 
+   * - cloud_type_low
+     -
+     - | Cloud type at low level (CL), taken from the
+       | cloud summary group
+     -
+     -
+
+   * - cloud_type_middle
+     -
+     - | Cloud type at middle level (CM), taken from the
+       | cloud summary group
+     -
+     -
+
+   * - cloud_type_high
+     -
+     - | Cloud type at high level (CH), taken from the
+       | cloud summary group
+     -
+     -
+
+   * - cloud_amount_nh
+     -
+     - | Cloud amount of the low cloud (Nh), or of the middle cloud when
+       | no low cloud is reported, as a raw code table 020011 value
+     -
+     -
+
+   * - cloud_base_lowest
+     - m
+     - Height of the base of the lowest cloud, taken from the cloud summary group
+     -
+     -
+
+The cloud summary columns are extracted from the cloud group with
+``verticalSignificanceSurfaceObservations`` = 7 ("low cloud" in WMO Code Table 0 08 002).
+When a subset has no such group, its first cloud group is used only if its vertical
+significance is missing (e.g. template 307092) or 0 (in SYNOP reports 0 means that the group
+follows the SYNOP rules and describes the lowest cloud base and the cloud types). The groups
+with vertical significance 1-6 are individual cloud layers and never fill these columns.
+The cloud types are raw WMO Code Table 0 20 001 values, assigned positionally to the CL, CM,
+CH columns in the order they are reported, and ``cloud_amount_nh`` is a raw Code Table 0 20 011
+value (e.g. 2 = two oktas, 8 = overcast, 9 = sky obscured), not a percentage.
+
+Only ``cloud_base_lowest`` has associated units: the BUFR units of its ``heightOfBaseOfCloud``
+key, which are metres ("m"). Like the other parameters with units, it gets a
+``cloud_base_lowest_units`` column when ``units_columns=True`` and its values are unit converted
+when ``unit_system`` or ``units`` requests a conversion. The cloud types and
+``cloud_amount_nh`` are code table values without units: no "_units" column is created for
+them, even when ``units_columns=True``, and their values are never unit converted, even when
+``unit_system`` or ``units`` requests a conversion.
+
 .. _synop-filters:
 
 Parameter filters
@@ -473,3 +525,4 @@ Examples
 ++++++++++++++++++++++++++++
 
 - :ref:`/tutorials/synop/r_synop_overview.ipynb`
+- :ref:`/tutorials/synop/r_synop_cloud.ipynb`

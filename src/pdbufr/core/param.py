@@ -125,6 +125,11 @@ PAST_WEATHER_1 = Parameter("past_weather_1", desc="past weather")
 PAST_WEATHER_2 = Parameter("past_weather_2", desc="past weather")
 PAST_WEATHER = Parameter("past_weather", desc="past weather")
 CLOUD_COVER = Parameter("cloud_cover", desc="total cloud cover", units="%")
+CLOUD_TYPE_LOW = Parameter("cloud_type_low", desc="cloud type at low level (CL)")
+CLOUD_TYPE_MIDDLE = Parameter("cloud_type_middle", desc="cloud type at middle level (CM)")
+CLOUD_TYPE_HIGH = Parameter("cloud_type_high", desc="cloud type at high level (CH)")
+CLOUD_AMOUNT_NH = Parameter("cloud_amount_nh", desc="cloud amount (Nh), code table 020011")
+CLOUD_BASE_LOWEST = Parameter("cloud_base_lowest", desc="height of base of the lowest cloud", units="m")
 MAX_T2M = Parameter("max_t2m", desc="max 2m temperature", units="K")
 MIN_T2M = Parameter("min_t2m", desc="min 2m temperature", units="K")
 PRECIPITATION = Parameter("precipitation", desc="precipitation", units="kg m-2")
@@ -151,6 +156,24 @@ ZH = Parameter("zh", desc="geopotentialHeight", units="gpm")
 WIND = Parameter("wind", desc="wind", units=["m/s", "deg"])
 WIND_SPEED = Parameter("wind_speed", desc="wind speed", units="m/s")
 WIND_DIR = Parameter("wind_dir", desc="wind direction", units="deg")
+
+# tropical cyclone track parameters. The storm centre uses LAT, LON and MSLP.
+OBSERVED_LAT = Parameter("observed_lat", desc="latitude of the observed storm centre", units="deg")
+OBSERVED_LON = Parameter("observed_lon", desc="longitude of the observed storm centre", units="deg")
+MAX_WIND_LAT = Parameter("max_wind_lat", desc="latitude of the maximum wind", units="deg")
+MAX_WIND_LON = Parameter("max_wind_lon", desc="longitude of the maximum wind", units="deg")
+MAX_WIND_SPEED = Parameter("max_wind_speed", desc="maximum 10m wind speed", units="m/s")
+
+# wind radii: the effective radius with respect to a wind speed threshold in the four quadrants
+WIND_RADII = {
+    f"radius_{threshold}ms_{quadrant}": Parameter(
+        f"radius_{threshold}ms_{quadrant}",
+        desc=f"{quadrant.upper()} quadrant radius of the {threshold} m/s wind",
+        units="m",
+    )
+    for threshold in (18, 26, 33)
+    for quadrant in ("ne", "se", "sw", "nw")
+}
 
 
 UNITS = {}
