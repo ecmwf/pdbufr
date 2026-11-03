@@ -8,10 +8,11 @@ Version 0.16.0
 New features
 ---------------------
 
-- Added a new :ref:`tropical cyclone reader <tropical-cyclone-reader>` (:pr:`129`)
-- Enabled :ref:`synop reader <synop-reader>` to extract cloud group data from SYNOP messages (:pr:`130`)
+- Added a new :ref:`reader for tropical cyclone <tropical-cyclone-reader>` data (:pr:`129`). See the corresponding notebook example:
 
-See the notebook examples:
+    - :ref:`/tutorials/tropical_cyclone/r_tropical_cyclone_overview.ipynb`
 
-  - :ref:`/tutorials/tropical_cyclone/r_tropical_cyclone.ipynb`
-  - :ref:`/tutorials/synop/r_synop_cloud.ipynb`
+
+- Enabled the :ref:`synop reader <synop-reader>` to extract cloud group data from SYNOP messages (:pr:`130`). See the corresponding notebook example:
+
+    - :ref:`/tutorials/synop/r_synop_cloud.ipynb`
