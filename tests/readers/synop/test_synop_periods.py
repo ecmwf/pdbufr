@@ -93,6 +93,8 @@ PERIOD_FILES = [
     "buoy_12_98_M13.bufr",
     "synop_period_end_offset.bufr",
     "synop_period_heights.bufr",
+    "synop_4_98_M13.bufr",
+    "synop_min_t2m_12h.bufr",
 ]
 
 LEVEL_COLUMNS = [True, False]
@@ -622,3 +624,41 @@ def test_maxt_keeps_dynamic_and_fixed_periods_side_by_side() -> None:
         "max_t2m_<24h>": 288.5,
         "max_t2m_<24h>_level": 2,
     }
+
+
+# ---------------------------------------------------------------------------
+# fixed-period 2 m extremes (minimum/maximumTemperatureAt2MPast12/24Hours)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("level_columns", LEVEL_COLUMNS)
+@pytest.mark.parametrize(
+    "name,expected",
+    [
+        # ~/metview/BUFR/surf_land/synop_4_98_M13.bufr: minimumTemperatureAt2MPast24Hours
+        # = 275.9 K, maximumTemperatureAt2MPast24Hours MISSING, no timePeriod keys
+        ("synop_4_98_M13.bufr", {"min_t2m_24h": 275.9, "max_t2m_24h": None}),
+        # message 86 of tests/sample_data/perf_synop.bufr, written out unchanged:
+        # minimumTemperatureAt2MPast12Hours = 275.3 K,
+        # maximumTemperatureAt2MPast12Hours = 279.0 K
+        ("synop_min_t2m_12h.bufr", {"min_t2m_12h": 275.3, "max_t2m_12h": 279.0}),
+    ],
+)
+def test_fixed_period_2m_extremes(name, expected, level_columns):
+    # the period comes from the key name and the level is the fixed 2 m
+    df = read_period_file(name, level_columns)
+
+    extremes = {c for c in df.columns if c.startswith(("max_t2m", "min_t2m"))}
+    if level_columns:
+        assert extremes == set(expected) | {c + "_level" for c in expected}
+    else:
+        assert extremes == set(expected)
+
+    for col, value in expected.items():
+        v = df[col][0]
+        if value is None:
+            assert v is None or v != v
+        else:
+            assert v == pytest.approx(value)
+        if level_columns:
+            assert df[col + "_level"][0] == 2
