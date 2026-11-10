@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import pdbufr.core.param as PARAMS
 from pdbufr.core.keys import COMPUTED_KEYS
+from pdbufr.core.structure import pair_key_name
 from pdbufr.utils.exception import AllValueMissingException
 
 LOG = logging.getLogger(__name__)
@@ -131,7 +132,10 @@ class SimpleAccessor(Accessor):
 
                     # handle period
                     if param.is_period():
-                        v = param.concat_units(v, units)
+                        # keep a present-but-MISSING displacement as a (None,
+                        # units) tuple so that a start/end pair with a missing
+                        # element can be told apart from a single displacement
+                        v = param.parse(v, units, present=key in value)
                     elif v is not None and self.dtype is not None and self.param and self.param.label == label:
                         try:
                             v = self.dtype(v)
@@ -157,6 +161,7 @@ class SimpleAccessor(Accessor):
         add_units: bool = False,
         first: bool = True,
         filters: Optional[Dict[str, Any]] = None,
+        pair_keys: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         value = None
@@ -172,7 +177,9 @@ class SimpleAccessor(Accessor):
         if filters is None:
             filters = {}
 
-        for v in collector.collect(self.bufr_keys, filters, mandatory_keys=mandatory, units_keys=units_keys):
+        for v in collector.collect(
+            self.bufr_keys, filters, mandatory_keys=mandatory, units_keys=units_keys, pair_keys=pair_keys
+        ):
             value = v
             res = self.parse_collected(value, skip, units_converter, add_units, raise_on_missing)
             if first:
@@ -237,6 +244,109 @@ class ComputedKeyAccessor(Accessor):
         return {self.labels[0]: val}
 
 
+#: column suffixes that only make together with the identically named value column
+DERIVED_SUFFIXES = ("_level", "_units")
+
+
+def candidate_rank(
+    value: Optional[Any],
+    height: Optional[Any],
+    nominal_height: Optional[float] = None,
+    min_height: Optional[float] = None,
+) -> tuple:
+    """Rank one candidate of a colliding (label, period) column; the lowest rank wins.
+
+    The rank is a tuple compared lexicographically:
+
+    * first tier: a real (non-None) value ranks before a missing one. A missing
+      value never wins a collision (A3).
+    * second tier (only with *nominal_height*): 0 for a sensor height, 1 for no
+      height at all, so a value without a height ranks after any value with one.
+    * third tier (only with *nominal_height*): the distance to the nominal height,
+      so the sensor closest to the nominal height of the parameter wins.
+
+    Without *nominal_height* only the first tier exists, i.e. parameters keep
+    their current rule except that missing never beats real. Sensors below
+    *min_height* are not ranked here: :meth:`CoordAccessor.relabel` removes them
+    from the candidates first (see :func:`is_ground_sensor`); as a safeguard
+    they rank after every other candidate.
+    """
+    has_value = 0 if value is not None else 1
+    if nominal_height is None:
+        return (has_value,)
+    h = _as_height(height)
+    if h is None:
+        return (has_value, 1, 0.0)
+    if min_height is not None and h < min_height:
+        return (1, 2, 0.0)
+    return (has_value, 0, abs(h - nominal_height))
+
+
+def _as_height(height: Optional[Any]) -> Optional[float]:
+    """The sensor height as a float, or None when it is missing or not a number."""
+    if height is None:
+        return None
+    try:
+        return float(height)
+    except (TypeError, ValueError):
+        return None
+
+
+def is_ground_sensor(height: Optional[Any], min_height: Optional[float]) -> bool:
+    """True when *height* is a valid sensor height below *min_height*.
+
+    Such a sensor (e.g. a ground or grass minimum thermometer at 0.05 m) is not a
+    candidate for a parameter with a minimum height, such as the 2 m temperature
+    extremes (D2). Without *min_height*, or without a valid height, it is False.
+    """
+    if min_height is None:
+        return False
+    h = _as_height(height)
+    return h is not None and h < min_height
+
+
+def _derived_stem(key: str):
+    """Split a ``_level``/``_units`` column name into (value column, suffix).
+
+    Returns (None, None) for a value column name.
+    """
+    for suffix in DERIVED_SUFFIXES:
+        if key.endswith(suffix):
+            return key[: -len(suffix)], suffix
+    return None, None
+
+
+def merge_period_results(base: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
+    """Merge two accessor results so that a missing value never overwrites a real one.
+
+    For every value column of *new*: when *base* already has a non-None value and
+    *new* only has a missing one, *base* (with its ``_level``/``_units`` columns)
+    is kept; otherwise *new* wins and its ``_level``/``_units`` columns replace
+    those of *base* (stale derived columns without a new value are dropped). A
+    ``_level``/``_units`` column of *new* without its value column is never
+    merged, so no phantom derived column can appear. The column order of *new*
+    is preserved. *base* is modified and returned.
+    """
+    winners = {
+        key: not (key in base and base[key] is not None and v is None)
+        for key, v in new.items()
+        if _derived_stem(key)[0] is None
+    }
+    for key, v in new.items():
+        stem, _ = _derived_stem(key)
+        if stem is None:
+            if winners[key]:
+                base[key] = v
+        elif stem in winners and winners[stem]:
+            base[key] = v
+    for key, won in winners.items():
+        if won:
+            for suffix in DERIVED_SUFFIXES:
+                if key + suffix not in new:
+                    base.pop(key + suffix, None)
+    return base
+
+
 class CoordAccessor(SimpleAccessor):
     def __init__(
         self,
@@ -245,8 +355,39 @@ class CoordAccessor(SimpleAccessor):
         period: Optional[str] = None,
         fixed_period: Optional[Any] = None,
         first: bool = True,
+        nominal_height: Optional[float] = None,
+        min_height: Optional[float] = None,
+        missing_last: bool = False,
         **kwargs: Any,
     ):
+        """Accessor of value columns optionally named by a period.
+
+        The value columns of records with a period are suffixed ``_<period>``
+        (resolved later to e.g. ``max_t2m_12h``). When several records collide
+        on the same (label, period) column the winner is selected with the
+        opt-in rules below (see :func:`candidate_rank`); the default keeps the
+        previous last-record-wins behaviour.
+
+        Parameters (collision selection, opt-in; see :func:`candidate_rank`)
+        ---------------------------------------------------------------
+        nominal_height : float, optional
+            When set, records colliding on the same (label, period) column are
+            selected by sensor height: the height closest to this nominal height
+            of the parameter wins; a record without a height ranks after any
+            eligible height. Also enables the missing-value rule below.
+        min_height : float, optional
+            Sensor heights below this value (ground sensors) are not
+            candidates: such a record counts as a missing value without a
+            height, so it never wins against nor hides another reading.
+        missing_last : bool
+            A missing (None) value never overwrites a real one when records of
+            this accessor collide on the same (label, period) column. Default
+            False keeps the previous last-record-wins behaviour.
+        """
+        self.nominal_height = nominal_height
+        self.min_height = min_height
+        self.missing_last = missing_last
+
         super().__init__(**kwargs)
 
         self.mandatory = [*self.bufr_keys]
@@ -255,7 +396,11 @@ class CoordAccessor(SimpleAccessor):
 
         # period coords
         self.period_bufr_key = None
+        self.period_pair_bufr_key = None
         self.period = None
+        self.period_pair = None
+        #: True when the period is read from a BUFR key (as opposed to fixed or absent)
+        self.dynamic_period = False
 
         if fixed_period and period:
             raise ValueError("Cannot have both fixed_period and period")
@@ -264,9 +409,15 @@ class CoordAccessor(SimpleAccessor):
             self.period_bufr_key = period
             self.period = PARAMS.PeriodParameter("_period")
             self.keys[period] = self.period
+            # the second occurrence of a consecutive pair of period keys (WMO
+            # start/end displacements) is collected under this paired key name
+            self.period_pair_bufr_key = pair_key_name(period)
+            self.period_pair = PARAMS.PeriodParameter("_period_pair")
+            self.keys[self.period_pair_bufr_key] = self.period_pair
             # period precedes the param keys in the message
             self.bufr_keys = [period, *self.bufr_keys]
             self.mandatory.append(period)
+            self.dynamic_period = True
         elif fixed_period:
             self.period = PARAMS.FixedParameter("_period", fixed_period)
 
@@ -298,40 +449,56 @@ class CoordAccessor(SimpleAccessor):
             c = PARAMS.FixedCoordParameter("_fixed_coords", fixed_coords, suffix=coord_suffix)
             self.coords["_fixed_coords"] = c
 
-    def get_period(self, record: Dict[str, Any]) -> str:
+    def get_period(self, record: Dict[str, Any]) -> Optional[str]:
+        """The period string of the record, or None when the period is missing.
+
+        The (already parsed) ``_period``/``_period_pair`` entries are removed from
+        the record. A pair of consecutive period values is named by its duration,
+        with an ``_endNh`` suffix when the period does not end at the observation
+        time. A pair with a missing element (a present-but-MISSING ``(None, units)``
+        slot) is a missing period (D3): the known half never names the column.
+        A missing period yields None (never "nan").
+        """
         if self.period:
             if self.period.is_fixed():
                 return self.period.value
-            period = record.pop("_period", None)
-            if not period or period is None:
-                period = "nan"
-            return period
+            start = record.pop("_period", None)
+            end = record.pop("_period_pair", None)
+            return self.period.format(start, end)
         return None
 
-    def get_coords(self, record: Dict[str, Any], period) -> Dict[str, Any]:
+    def get_coords(
+        self, period: str, coord_values: Dict[Any, Any], present: Optional[set] = None
+    ) -> Optional[Dict[str, Any]]:
+        """The ``_<suffix>`` columns of one record, from its already extracted coord values."""
         if self.coords:
             coords = {}
             if self.extract_coords:
-                for coord in self.extract_coords:
-                    v = record.pop(coord.label, None)
+                for coord, v in coord_values.items():
                     for key in self.key_labels:
+                        if present is not None and key not in present:
+                            continue
                         label = key + period + "_" + coord.suffix
                         coords[label] = v
             else:
                 for key in self.key_labels:
-                    for k, coord in self.coords.items():
+                    if present is not None and key not in present:
+                        continue
+                    for coord in self.coords.values():
                         label = key + period + "_" + coord.suffix
                         coords[label] = coord.value
 
             return coords
         return None
 
-    def get_units(self, record: Dict[str, Any], period: str) -> Dict[str, Any]:
+    def get_units(self, record: Dict[str, Any], period: str, present: Optional[set] = None) -> Dict[str, Any]:
         units = {}
         for key in self.key_labels:
             label = key + "_units"
             if label in record:
                 v = record.pop(label, None)
+                if present is not None and key not in present:
+                    continue
                 label = key + period + "_units"
                 units[label] = v
         return units
@@ -340,14 +507,52 @@ class CoordAccessor(SimpleAccessor):
         self, value: Union[Dict[str, Any], List[Dict[str, Any]]], add_coord: bool, add_units: bool
     ) -> Dict[str, Any]:
         if isinstance(value, dict):
+            if not value:
+                # collect_any(first=True, raise_on_missing=False) found no record at
+                # all: emit nothing, in particular no _level/_units without a value
+                return {}
             value = [value]
 
+        rank_collisions = self.missing_last or self.nominal_height is not None
+
         res = {}
+        ranks: Dict[str, tuple] = {}
         for r in value:
             # LOG.debug(f"CoordAccessor: relabeling record: {r}")
             period = self.get_period(r)
             coords = None
             units = None
+
+            # The sensor height decides which record wins a label+period collision
+            # (D2), so it is extracted also when the _level columns are not asked
+            # for; when they are, get_coords formats the same values.
+            coord_values = {coord: r.pop(coord.label, None) for coord in self.extract_coords}
+            height = next((v for v in coord_values.values() if v is not None), None)
+            if height is None and not self.extract_coords:
+                for coord in self.coords.values():
+                    if coord.value is not None:
+                        height = coord.value
+                        break
+
+            # A sensor below min_height (a ground sensor) is not a candidate (D2):
+            # the record is kept only as a missing value without a height, so it
+            # can neither win against nor hide a reading at an eligible height.
+            if is_ground_sensor(height, self.min_height):
+                for k in self.key_labels:
+                    if k in r:
+                        r[k] = None
+                    if k + "_units" in r:
+                        r[k + "_units"] = None
+                coord_values = dict.fromkeys(coord_values)
+                height = None
+
+            # A missing dynamic period is never named "nan": a label that has a
+            # value uses the plain name, a label without one emits no columns at
+            # all (also no _level/_units for it).
+            if period is None and self.dynamic_period:
+                present = {k for k in self.key_labels if r.get(k) is not None}
+            else:
+                present = set(self.key_labels)
 
             if period is not None:
                 period = "_<" + period + ">"
@@ -355,9 +560,9 @@ class CoordAccessor(SimpleAccessor):
                 period = ""
 
             if add_coord:
-                coords = self.get_coords(r, period)
+                coords = self.get_coords(period, coord_values, present)
             if add_units:
-                units = self.get_units(r, period)
+                units = self.get_units(r, period, present)
 
             # LOG.debug(f"Period: {period}, coords: {coords}, units: {units}")
 
@@ -365,15 +570,34 @@ class CoordAccessor(SimpleAccessor):
                 f"Record {r} has more keys than expected: {self.key_labels}! {len(r)} != {len(self.key_labels)}"
             )
 
-            for k, v in r.items():
-                if k in self.key_labels:
-                    res[k + period] = v
-
+            derived = {}
             if units:
-                res.update(units)
-
+                derived.update(units)
             if coords:
-                res.update(coords)
+                derived.update(coords)
+
+            cols = {}
+            for k, v in r.items():
+                if k in self.key_labels and k in present:
+                    out = k + period
+                    if rank_collisions:
+                        rank = candidate_rank(v, height, self.nominal_height, self.min_height)
+                        # a strictly worse candidate loses the column to the current
+                        # winner with all of its columns; on equal rank the later
+                        # record wins, as before
+                        if out in ranks and rank > ranks[out]:
+                            continue
+                        ranks[out] = rank
+                    cols[out] = v
+
+            # keep the historic column insertion order: values, units, coords;
+            # the _level/_units columns only follow the winner of their value
+            # column (a record that loses a collision also loses its level)
+            res.update(cols)
+            for dkey, dval in derived.items():
+                stem, _ = _derived_stem(dkey)
+                if stem in cols:
+                    res[dkey] = dval
 
         return res
 
@@ -386,8 +610,10 @@ class CoordAccessor(SimpleAccessor):
         add_units: bool = False,
         **kwargs: Any,
     ) -> Dict[str, Any]:
+        # the sensor height is needed for the collision ranking also when the
+        # _level columns are not requested
         skip = []
-        if not add_coord:
+        if not add_coord and self.nominal_height is None:
             skip = self.extract_coords
 
         mandatory = self.mandatory
@@ -405,6 +631,7 @@ class CoordAccessor(SimpleAccessor):
             units_converter=units_converter,
             add_units=add_units,
             first=self.first,
+            pair_keys=[self.period_bufr_key] if self.period_bufr_key else None,
             **kwargs,
         )
 
@@ -451,12 +678,21 @@ class MultiFirstAccessor(MultiAccessorBase):
 
 
 class MultiAllAccessor(MultiAccessorBase):
+    #: when True, the results of the sub-accessors are merged with
+    #: :func:`merge_period_results`: a missing value never overwrites a real one
+    #: (or its _level/_units columns) and no _level/_units without a value column
+    #: is kept. Default False keeps the previous last-writer-wins merge.
+    missing_last = False
+
     def collect(self, collector: Any, **kwargs: Any) -> Dict[str, Any]:
         res = {}
         for a in self.accessors:
             r = a.collect(collector, raise_on_missing=False, **kwargs)
             if r:
-                res.update(r)
+                if self.missing_last:
+                    merge_period_results(res, r)
+                else:
+                    res.update(r)
 
         if res:
             return res

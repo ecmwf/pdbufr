@@ -46,18 +46,85 @@ class Parameter:
         return f"Parameter({self.name}, label={self.label}, units={self.units}"
 
 
+def _format_period_number(n: Union[int, float]) -> str:
+    """Format a period number: whole floats lose the trailing ".0"."""
+    if isinstance(n, float) and n.is_integer():
+        n = int(n)
+    return str(n)
+
+
 class PeriodParameter(Parameter):
     def is_period(self) -> bool:
         return True
 
+    def parse(self, v: Optional[Union[int, float]], units: Optional[str], present: bool = True) -> Optional[tuple]:
+        """Keep a raw time displacement (value + units) for :meth:`format`.
+
+        *present* tells whether the displacement was in the message at all.
+        A present but MISSING displacement becomes ``(None, units)`` so that
+        :meth:`format` can tell a start/end pair with a missing element from a
+        single displacement. Returns None only for an absent displacement.
+        """
+        if v is None and not present:
+            return None
+        return (v, units or "")
+
     def concat_units(self, v: Optional[Union[int, float]], units: str) -> Optional[str]:
+        """Format a single time displacement as a period string.
+
+        Displacements are counted back from the observation time, so -12 h is a
+        period of "12h". A value is always named by its absolute size (no "-" in
+        the name).
+        """
         period = v
         if period is not None:
-            period = str(-period)
+            period = _format_period_number(abs(period))
             # units = value.get(key + "->units", "")
             period = period + units
             v = period
         return v
+
+    def format(self, start: Optional[tuple], end: Optional[tuple]) -> Optional[str]:
+        """Build the column period string from raw ``(value, units)`` displacements.
+
+        Each slot is the result of :meth:`parse`: None when the displacement is
+        not in the message at all, ``(value, units)`` when present, and
+        ``(None, units)`` for a present but MISSING element.
+
+        * a single start displacement is named by its absolute duration:
+          ``(-12, "h")`` -> ``"12h"``
+        * a present end slot marks the two displacements as a start/end pair,
+          counted back from the observation time. The period is named by the
+          duration between them; when the end is not at the observation time,
+          the end offset is appended: ``(-12, "h"), (0, "h")`` -> ``"12h"``,
+          ``(-30, "h"), (-6, "h")`` -> ``"24h_end6h"``. The values are read by
+          their absolute size.
+        * a pair with a missing element is a missing period (D3): the known
+          half never names the column, so ``(None, "h"), (0, "h")`` and
+          ``(-1537, "h"), (None, "h")`` return None, as does a single missing
+          displacement. The caller then uses the plain name without a period
+          suffix (never "nan"), or emits no column when the value is missing.
+        """
+        if end is None:
+            # no pair: a single displacement, named by its absolute size,
+            # or None when the displacement or the whole period is missing
+            return None if start is None else self.concat_units(start[0], start[1])
+        if start is None or start[0] is None or end[0] is None:
+            # a pair with a missing element is a missing period (D3)
+            return None
+
+        (start_value, start_units), (end_value, end_units) = start, end
+        if start_units != end_units:
+            # a start/end pair is only meaningful in one unit; fall back to
+            # naming by the start displacement
+            return self.concat_units(start_value, start_units)
+
+        duration = abs(start_value - end_value)
+        end_offset = abs(end_value)
+        period = _format_period_number(duration) + end_units
+        if end_offset:
+            period += "_end" + _format_period_number(end_offset) + end_units
+        return period
 
 
 class CoordParameter(Parameter):

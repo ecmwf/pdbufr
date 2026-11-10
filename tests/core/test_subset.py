@@ -13,6 +13,7 @@ import eccodes  # type: ignore
 import numpy as np
 
 from pdbufr.core.keys import BufrKey
+from pdbufr.core.structure import pair_key_name
 from pdbufr.core.subset import BufrSubsetReader
 
 MISSING_LONG = eccodes.CODES_MISSING_LONG
@@ -200,6 +201,159 @@ def test_iter_values_unexpanded_descriptors_not_indexed() -> None:
         assert name == "unexpandedDescriptors"
         assert isinstance(value, np.ndarray)
         assert value.tolist() == [1001, 1002, 12101]
+
+
+def _period_message() -> _CountingMessage:
+    return _CountingMessage({
+        "compressedData": 0,
+        "numberOfSubsets": 1,
+        "#1#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 1.25,
+        "#1#timePeriod": -12,
+        "#2#timePeriod": 0,
+        "#1#maximumTemperatureAtHeightAndOverPeriodSpecified": 291.49,
+        "#2#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 2.0,
+        "#3#timePeriod": -30,
+        "#4#timePeriod": -6,
+        "#2#maximumTemperatureAtHeightAndOverPeriodSpecified": 292.49,
+        "#1#timePeriod->units": "h",
+        "#2#timePeriod->units": "h",
+        "#3#timePeriod->units": "h",
+        "#4#timePeriod->units": "h",
+    })
+
+
+def _period_keys() -> T.List[BufrKey]:
+    height = "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform"
+    maxt = "maximumTemperatureAtHeightAndOverPeriodSpecified"
+    return [
+        BufrKey.from_level_key(0, "#1#" + height),
+        BufrKey.from_level_key(1, "#1#timePeriod"),
+        BufrKey.from_level_key(1, "#2#timePeriod"),
+        BufrKey.from_level_key(2, "#1#" + maxt),
+        BufrKey.from_level_key(0, "#2#" + height),
+        BufrKey.from_level_key(1, "#3#timePeriod"),
+        BufrKey.from_level_key(1, "#4#timePeriod"),
+        BufrKey.from_level_key(2, "#2#" + maxt),
+    ]
+
+
+def test_collect_period_pair() -> None:
+    # two consecutive timePeriod values are collected as one start/end pair: the
+    # second value is kept under the paired name instead of evicting the first
+    message = _period_message()
+    reader = BufrSubsetReader(message, _period_keys())
+    subset = next(iter(reader.subsets()))
+
+    keys = ["timePeriod", "maximumTemperatureAtHeightAndOverPeriodSpecified"]
+    records = list(subset.collect(keys, {}, mandatory_keys=keys, pair_keys=["timePeriod"]))
+
+    assert len(records) == 2
+    assert records[0]["timePeriod"][0] == -12
+    assert records[0][pair_key_name("timePeriod")][0] == 0
+    assert records[1]["timePeriod"][0] == -30
+    assert records[1][pair_key_name("timePeriod")][0] == -6
+
+
+def test_collect_period_pair_with_units() -> None:
+    # units are collected for the paired key as well
+    message = _period_message()
+    reader = BufrSubsetReader(message, _period_keys())
+    subset = next(iter(reader.subsets()))
+
+    records = list(subset.collect(["timePeriod"], {}, units_keys=["timePeriod"], pair_keys=["timePeriod"]))
+
+    assert records[0]["timePeriod"] == (-12, "h")
+    assert records[0][pair_key_name("timePeriod")] == (0, "h")
+
+
+def test_collect_without_pair_keys_evicts_as_before() -> None:
+    # without pair_keys the old last-value-wins behaviour is preserved
+    message = _period_message()
+    reader = BufrSubsetReader(message, _period_keys())
+    subset = next(iter(reader.subsets()))
+
+    keys = ["timePeriod", "maximumTemperatureAtHeightAndOverPeriodSpecified"]
+    records = list(subset.collect(keys, {}, mandatory_keys=keys))
+
+    assert len(records) == 2
+    # only the END of the pair is kept (this is bug 1 without the pairing fix)
+    assert records[0]["timePeriod"][0] == 0
+    assert pair_key_name("timePeriod") not in records[0]
+    assert records[1]["timePeriod"][0] == -6
+
+
+def test_collect_pair_second_occurrences_are_cached_per_reader() -> None:
+    message = _period_message()
+    reader = BufrSubsetReader(message, _period_keys())
+
+    pairs1 = reader.pair_second_keys(["timePeriod"])
+    pairs2 = reader.pair_second_keys(["timePeriod"])
+
+    assert pairs1 == {"#2#timePeriod", "#4#timePeriod"}
+    assert pairs1 is pairs2
+    assert reader.pair_second_keys(["maximumTemperatureAtHeightAndOverPeriodSpecified"]) == set()
+
+
+def test_collect_single_period_still_works() -> None:
+    # a lone timePeriod (no consecutive pair) is collected unchanged
+    message = _CountingMessage({
+        "compressedData": 0,
+        "numberOfSubsets": 1,
+        "#1#timePeriod": -60,
+        "#1#maximumWindGustSpeed": 8.0,
+    })
+    keys = [BufrKey.from_level_key(1, "#1#timePeriod"), BufrKey.from_level_key(2, "#1#maximumWindGustSpeed")]
+    reader = BufrSubsetReader(message, keys)
+    subset = next(iter(reader.subsets()))
+
+    records = list(
+        subset.collect(
+            ["timePeriod", "maximumWindGustSpeed"],
+            {},
+            mandatory_keys=["maximumWindGustSpeed"],
+            pair_keys=["timePeriod"],
+        )
+    )
+
+    assert len(records) == 1
+    assert records[0]["timePeriod"][0] == -60
+    assert pair_key_name("timePeriod") not in records[0]
+
+
+def test_collect_non_consecutive_periods_are_not_paired() -> None:
+    # a height between the two timePeriod occurrences breaks the pair
+    height = "heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform"
+    message = _CountingMessage({
+        "compressedData": 0,
+        "numberOfSubsets": 1,
+        "#1#timePeriod": -10,
+        "#1#" + height: 10.0,
+        "#2#timePeriod": -60,
+        "#1#maximumWindGustSpeed": 8.0,
+    })
+    keys = [
+        BufrKey.from_level_key(1, "#1#timePeriod"),
+        BufrKey.from_level_key(2, "#1#" + height),
+        BufrKey.from_level_key(1, "#2#timePeriod"),
+        BufrKey.from_level_key(2, "#1#maximumWindGustSpeed"),
+    ]
+    reader = BufrSubsetReader(message, keys)
+    subset = next(iter(reader.subsets()))
+
+    assert reader.pair_second_keys(["timePeriod"]) == set()
+
+    records = list(
+        subset.collect(
+            ["timePeriod", "maximumWindGustSpeed"],
+            {},
+            mandatory_keys=["maximumWindGustSpeed"],
+            pair_keys=["timePeriod"],
+        )
+    )
+
+    assert len(records) == 1
+    assert records[0]["timePeriod"][0] == -60
+    assert pair_key_name("timePeriod") not in records[0]
 
 
 def test_iter_values_uncompressed_single_subset() -> None:
