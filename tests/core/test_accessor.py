@@ -123,13 +123,13 @@ def test_coord_accessor_pair_ending_at_observation_time() -> None:
 
 
 def test_coord_accessor_pair_ending_before_observation_time() -> None:
-    # D1: (-30, -6) is a 24h period ending 6h before T -> "24h_end6h"
+    # D1: (-30, -6) is a 24h period ending 6h before T -> "24h_lag6h"
     ac = _make_t2m_accessor()
 
     res = ac.collect(_FakeCollector([_record(-30, -6)]), add_coord=True)
 
-    assert res == {"max_t2m_<24h_end6h>": 291.49, "max_t2m_<24h_end6h>_level": 1.25}
-    assert resolve_period_key("max_t2m_<24h_end6h>_level") == "max_t2m_24h_end6h_level"
+    assert res == {"max_t2m_<24h_lag6h>": 291.49, "max_t2m_<24h_lag6h>_level": 1.25}
+    assert resolve_period_key("max_t2m_<24h_lag6h>_level") == "max_t2m_24h_lag6h_level"
     assert "max_t2m_<6h>" not in res
 
 
@@ -141,7 +141,7 @@ def test_coord_accessor_positive_period_is_named_by_absolute_value() -> None:
     assert res == {"max_t2m_<12h>": 291.49, "max_t2m_<12h>_level": 1.25}
 
     res = ac.collect(_FakeCollector([_record(30, 6)]), add_coord=True)
-    assert res == {"max_t2m_<24h_end6h>": 291.49, "max_t2m_<24h_end6h>_level": 1.25}
+    assert res == {"max_t2m_<24h_lag6h>": 291.49, "max_t2m_<24h_lag6h>_level": 1.25}
 
 
 def test_coord_accessor_missing_period_with_present_value_uses_plain_name() -> None:
@@ -269,7 +269,7 @@ def test_coord_accessor_units_follow_the_period_name() -> None:
 
     res = ac.collect(_FakeCollector([record]), add_units=True)
 
-    assert res == {"total_sunshine_<24min_end6min>": 60.0, "total_sunshine_<24min_end6min>_units": "min"}
+    assert res == {"total_sunshine_<24min_lag6min>": 60.0, "total_sunshine_<24min_lag6min>_units": "min"}
 
 
 def test_coord_accessor_no_records_emits_no_columns() -> None:

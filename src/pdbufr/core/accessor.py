@@ -454,9 +454,13 @@ class CoordAccessor(SimpleAccessor):
 
         The (already parsed) ``_period``/``_period_pair`` entries are removed from
         the record. A pair of consecutive period values is named by its duration,
-        with an ``_endNh`` suffix when the period does not end at the observation
-        time. A pair with a missing element (a present-but-MISSING ``(None, units)``
-        slot) is a missing period (D3): the known half never names the column.
+        with an ``_lagNh`` suffix when the period does not end at the observation
+        time: it is shifted back and ends N before it. A complete pair with equal
+        value and units repeats a single displacement: the second element is
+        dropped and the period is named by that displacement, so ``-24 h, -24 h``
+        gives "24h". A pair with a missing element (a present-but-MISSING
+        ``(None, units)`` slot) is a missing period (D3): the known half never
+        names the column.
         A missing period yields None (never "nan").
         """
         if self.period:

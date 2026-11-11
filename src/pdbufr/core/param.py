@@ -96,14 +96,18 @@ class PeriodParameter(Parameter):
         * a present end slot marks the two displacements as a start/end pair,
           counted back from the observation time. The period is named by the
           duration between them; when the end is not at the observation time,
-          the end offset is appended: ``(-12, "h"), (0, "h")`` -> ``"12h"``,
-          ``(-30, "h"), (-6, "h")`` -> ``"24h_end6h"``. The values are read by
+          its lag is appended: ``(-12, "h"), (0, "h")`` -> ``"12h"``,
+          ``(-30, "h"), (-6, "h")`` -> ``"24h_lag6h"``. The values are read by
           their absolute size.
         * a pair with a missing element is a missing period (D3): the known
           half never names the column, so ``(None, "h"), (0, "h")`` and
           ``(-1537, "h"), (None, "h")`` return None, as does a single missing
           displacement. The caller then uses the plain name without a period
           suffix (never "nan"), or emits no column when the value is missing.
+        * a complete pair with equal value and units repeats a single
+          displacement: the second element is dropped and the period is named
+          by that displacement, so ``(-24, "h"), (-24, "h")`` -> ``"24h"``
+          (and ``(0, "h"), (0, "h")`` -> ``"0h"``).
         """
         if end is None:
             # no pair: a single displacement, named by its absolute size,
@@ -118,12 +122,18 @@ class PeriodParameter(Parameter):
             # a start/end pair is only meaningful in one unit; fall back to
             # naming by the start displacement
             return self.concat_units(start_value, start_units)
+        if start_value == end_value:
+            # a complete pair whose elements are equal repeats a single
+            # displacement (e.g. the -24/-24 h extreme temperature pairs of
+            # some SYNOP messages): drop the second element and name the
+            # period by the single displacement, e.g. (-24, "h") -> "24h"
+            return self.concat_units(start_value, start_units)
 
         duration = abs(start_value - end_value)
         end_offset = abs(end_value)
         period = _format_period_number(duration) + end_units
         if end_offset:
-            period += "_end" + _format_period_number(end_offset) + end_units
+            period += "_lag" + _format_period_number(end_offset) + end_units
         return period
 
 

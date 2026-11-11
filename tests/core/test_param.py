@@ -50,10 +50,16 @@ def test_concat_units(value, units, expected) -> None:
         ((None, "h"), None, None),
         # a consecutive (start, end) pair is named by its duration (D1, A2)
         ((-12, "h"), (0, "h"), "12h"),
-        ((30, "h"), (6, "h"), "24h_end6h"),
-        ((-30, "h"), (-6, "h"), "24h_end6h"),
-        ((-24, "h"), (-24, "h"), "0h_end24h"),  # degenerate pair: zero duration
-        ((-30, "min"), (-6, "min"), "24min_end6min"),
+        ((30, "h"), (6, "h"), "24h_lag6h"),
+        ((-30, "h"), (-6, "h"), "24h_lag6h"),
+        # a complete pair with equal value and units repeats a single
+        # displacement: the second element is dropped and the period is named
+        # by that displacement
+        ((-24, "h"), (-24, "h"), "24h"),
+        ((-6, "h"), (-6, "h"), "6h"),
+        ((-30, "min"), (-30, "min"), "30min"),
+        ((0, "h"), (0, "h"), "0h"),
+        ((-30, "min"), (-6, "min"), "24min_lag6min"),
         # no "-" may appear in a name
         ((-12, "h"), (0, "h"), "12h"),
         # a pair with a MISSING element is a missing period (D3): the known
@@ -69,6 +75,9 @@ def test_concat_units(value, units, expected) -> None:
         (None, None, None),
         # a mixed-unit pair is nonsense: fall back to naming by the start value
         ((-12, "h"), (0, "min"), "12h"),
+        # equal values in mixed units are NOT a repeated displacement: the
+        # mixed-unit fallback names by the start displacement
+        ((-24, "h"), (-24, "min"), "24h"),
     ],
 )
 def test_format(start, end, expected) -> None:

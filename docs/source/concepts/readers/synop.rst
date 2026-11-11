@@ -89,19 +89,19 @@ Periods ending before the observation time
 
 A period does not always end at the observation time: the maximum temperature reported at 12 UTC can be the maximum of the previous calendar day. Such periods are encoded with **two consecutive** time period descriptors: the first one is the start of the period and the second one is its end, both counted back from the observation time. The second value is 0 when the period ends at the observation time. This is the rule for the extreme temperatures in the SYNOP land template TM 307080; see WMO-No. 306, Manual on Codes Volume I.2, regulation B/C1.10.4.2 "Periods of reference for extreme temperatures", Notes (1) and (2) (the same rule is repeated for the mobile land (B/C5) and ship (B/C10) reports).
 
-The column is named by the **duration** of the period and, when the period does not end at the observation time, the offset of its end from the observation time is appended as "_end" plus that offset with its units. E.g. the pair -12/0 is the 12 hours ending at the observation time::
+The column is named by the **duration** of the period and, when the period does not end at the observation time, the offset of its end from the observation time is appended as "_lag" plus that offset with its units: ``_lagNh`` means the period is shifted back by N and ends N hours before the observation time. E.g. the pair -12/0 is the 12 hours ending at the observation time::
 
       stnid  max_t2m_12h  min_t2m_12h
     0  8495       291.49       289.89
 
 (``tests/sample_data/synop_0_74_M32.bufr``, ``columns=["stnid", "max_t2m", "min_t2m"]``), while the pair -30/-6 is the 24 hours ending 6 hours before the observation time::
 
-      stnid  max_t2m_24h_end6h  min_t2m_24h_end6h
+      stnid  max_t2m_24h_lag6h  min_t2m_24h_lag6h
     0  8495             291.49             289.89
 
 (``tests/sample_data/synop_period_end_offset.bufr``, the same values with the pairs changed to -30/-6).
 
-Only two consecutive time period descriptors are a start/end pair. Two periods separated by another data element (for example a time significance) are two independent periods, and the replications of a sequence (the 1/3/6/12/24 hour precipitation, the 1/24 hour sunshine and radiation, the 10/60/360 minute gust) are separate periods as well, never a pair.
+Only two consecutive time period descriptors are a start/end pair. Two periods separated by another data element (for example a time significance) are two independent periods, and the replications of a sequence (the 1/3/6/12/24 hour precipitation, the 1/24 hour sunshine and radiation, the 10/60/360 minute gust) are separate periods as well, never a pair. A complete pair whose two values are **equal** (same number and same units) repeats a single displacement: the second value is dropped and the column is named by that displacement, so the pair -24/-24 of ``tests/sample_data/synop_period_equal_pair.bufr`` is the period "24h", never "0h_lag24h".
 
 Messages that do not follow the WMO regulations and encode a period as a positive displacement are read by its absolute value, so a column name never contains a "-". E.g. the corrupt ``tests/sample_data/synop_0_231_M15.bufr`` reports a gust period of 1448::
 

@@ -13,7 +13,10 @@ behaviour:
 
 - D1: a ``timePeriod`` pair ``(start, end)`` counted back from the observation
   time names the column by its duration; ``-12/0`` -> ``max_t2m_12h``,
-  ``-30/-6`` -> ``max_t2m_24h_end6h`` (level column ``max_t2m_24h_end6h_level``).
+  ``-30/-6`` -> ``max_t2m_24h_lag6h`` (level column ``max_t2m_24h_lag6h_level``).
+  A complete pair of two EQUAL ``timePeriod`` values (same number and units)
+  repeats a single displacement: the second element is dropped, so
+  ``-24/-24`` -> ``max_t2m_24h`` (never ``0h_lag24h``).
 - D2: for min/max 2 m temperature the value of the sensor height closest to
   2 m is used, sensors below 0.5 m are ignored.
 - D3: no column name ever ends in ``_nan``.  When both the value and its
@@ -26,7 +29,8 @@ behaviour:
 - A2: a positive period is read by its absolute value (no ``-`` in names).
 - ``_level`` columns never appear without their value column.
 
-Two synthetic fixtures complement the real sample files.  They were created
+Two synthetic fixtures complement the real sample files, and a third one is
+derived from a real Sri Lankan SYNOP.  They were created
 with the following eccodes script (run from the repository root, note the
 required ``pack`` step before re-encoding)::
 
@@ -70,6 +74,22 @@ required ``pack`` step before re-encoding)::
             ("#6#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", 2.6),
         ],
     )
+
+    # tests/sample_data/synop_period_equal_pair.bufr: the real Sri Lankan
+    # SYNOP msg_13738.bufr (ident 43421 ANURADHAPURA, template 307086), whose
+    # extreme temperatures are MISSING and whose four 24 h timePeriods form
+    # two EQUAL (-24/-24) pairs; the two extreme temperatures were set to
+    # 305.15 / 295.15 K and the sensor height #6 (the one in front of the
+    # maximum block, kept by both temperature records) to 2 m
+    edit(
+        "msg_13738.bufr",
+        "tests/sample_data/synop_period_equal_pair.bufr",
+        [
+            ("#6#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", 2.0),
+            ("#1#maximumTemperatureAtHeightAndOverPeriodSpecified", 305.15),
+            ("#1#minimumTemperatureAtHeightAndOverPeriodSpecified", 295.15),
+        ],
+    )
 """
 
 import pytest
@@ -93,6 +113,7 @@ PERIOD_FILES = [
     "buoy_12_98_M13.bufr",
     "synop_period_end_offset.bufr",
     "synop_period_heights.bufr",
+    "synop_period_equal_pair.bufr",
     "synop_4_98_M13.bufr",
     "synop_min_t2m_12h.bufr",
 ]
@@ -155,16 +176,41 @@ def test_period_ending_before_observation_has_end_offset_suffix(level_columns):
     # observation time, values 291.49 / 289.89 at 1.25 m
     df = read_period_file("synop_period_end_offset.bufr", level_columns)
 
-    assert df["max_t2m_24h_end6h"][0] == pytest.approx(291.49)
-    assert df["min_t2m_24h_end6h"][0] == pytest.approx(289.89)
+    assert df["max_t2m_24h_lag6h"][0] == pytest.approx(291.49)
+    assert df["min_t2m_24h_lag6h"][0] == pytest.approx(289.89)
 
     if level_columns:
-        assert df["max_t2m_24h_end6h_level"][0] == pytest.approx(1.25)
-        assert df["min_t2m_24h_end6h_level"][0] == pytest.approx(1.25)
+        assert df["max_t2m_24h_lag6h_level"][0] == pytest.approx(1.25)
+        assert df["min_t2m_24h_lag6h_level"][0] == pytest.approx(1.25)
 
     # the last element of the pair (offset -6) alone must not name the column
     assert "max_t2m_6h" not in df.columns
     assert "min_t2m_6h" not in df.columns
+
+
+@pytest.mark.parametrize("level_columns", LEVEL_COLUMNS)
+def test_equal_timeperiod_pair_is_a_single_displacement(level_columns):
+    # synop_period_equal_pair.bufr: the two extreme-temperature blocks each
+    # encode their period as a pair of two consecutive EQUAL timePeriod
+    # displacements (-24 h / -24 h, template 307086); such a pair repeats a
+    # single displacement, so both columns are named by the 24 h duration
+    # and never by the "0h_lag24h" the pair arithmetic would give
+    df = pdbufr.read_bufr(
+        sample_test_data_path("synop_period_equal_pair.bufr"),
+        reader="synop",
+        columns=["stnid", "max_t2m", "min_t2m"],
+        level_columns=level_columns,
+    )
+
+    assert df["max_t2m_24h"][0] == pytest.approx(305.15)
+    assert df["min_t2m_24h"][0] == pytest.approx(295.15)
+
+    if level_columns:
+        assert df["max_t2m_24h_level"][0] == pytest.approx(2.0)
+        assert df["min_t2m_24h_level"][0] == pytest.approx(2.0)
+
+    # the degenerate "0h_lag24h" naming must not appear
+    assert [c for c in df.columns if "_lag" in c] == []
 
 
 @pytest.mark.parametrize("level_columns", LEVEL_COLUMNS)
@@ -219,7 +265,7 @@ def test_pair_with_missing_end_is_a_missing_period(level_columns):
     df = read_period_file("synop_0_231_M15.bufr", level_columns)
 
     assert [c for c in df.columns if "1537" in c] == []
-    max_v = df["max_t2m_3583h_end2046h"][0]
+    max_v = df["max_t2m_3583h_lag2046h"][0]
     assert max_v is None or max_v != max_v
 
 
