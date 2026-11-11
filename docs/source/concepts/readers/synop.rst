@@ -61,26 +61,78 @@ In the context of this reader the term "SYNOP-like" means data that is similar t
 The resulting DataFrame
 +++++++++++++++++++++++++
 
-The resulting DataFrame will contain one row for each station/platform and one column for each :ref:`parameter <synop-params>`. The columns are named after the parameter names, e.g. "t2m". With the default settings the first columns are always the station/platform identifier, time, latitude, longitude and elevation followed by the observed parameters. E.g.::
+The resulting DataFrame will contain one row for each station/platform and one column for each :ref:`parameter <synop-params>`. The columns are named after the parameter names, e.g. "t2m". With the default settings the first columns are always the station/platform identifier, time, latitude, longitude and elevation followed by the observed parameters. E.g. the first parameters of ``tests/sample_data/syn_new.bufr``::
 
+       stnid       lat        lon  elevation       time     t2m  rh2m
+    0  91948 -23.13017 -134.96533       91.0 2020-03-15  300.45    73
+    1  11766  49.77722   17.54194      748.1 2020-03-15  269.25    65
+    2  56257  30.00000  100.27000     3950.0 2020-03-15  276.35    37
 
-        stnid       lat        lon   elevation       time     t2m  rh2m   ...
-    0  91948 -23.13017 -134.96533       91.0 2020-03-15  300.45    73   ...
-    1  11766  49.77722   17.54194      748.1 2020-03-15  269.25    65   ...
-
+All the examples below were generated from the files in ``tests/sample_data``.
 
 .. _synop-periods:
 
 Periods
 /////////////////////
 
-When a parameter is associated with a **time period** for each period a separate column is created with the period encoded into the column name. E.g. if windgust is available for the last 10 minutes, the resulting DataFrame will contain the following columns::
+Some parameters are only meaningful together with a **time period**: a maximum temperature is the highest value measured during a period, a precipitation amount is what accumulated during a period. For every period found in the message a separate column is created, with the period encoded into the column name.
 
-            wind_gust_speed_10min  wind_gust_dir_10min
-    0                 5.0            225
-    1                 4.5            123
+A period is named by its **duration** followed by the units ecCodes reports for the BUFR time period descriptor, i.e. "h" for a period in hours and "min" for a period in minutes. E.g. ``tests/sample_data/synop_150_85_M22.bufr`` reports the maximum wind gust for the last 10 minutes, the last hour and the last 6 hours. Reading it with ``columns=["stnid", "max_wgust_speed"]`` gives one column per period::
 
-The period string is constructed from the values encoded in the BUFR message. When the period is not available the "_nan" suffix is used, e.d. "wind_gust_nan".
+      stnid  max_wgust_speed_10min  max_wgust_speed_60min  max_wgust_speed_360min
+    0  7005                    5.6                    7.7                    12.9
+
+Time periods are counted **backwards** from the observation time, so a single period of -12 hours describes the 12 hours ending at the observation time and is named "12h".
+
+Periods ending before the observation time
+//////////////////////////////////////////
+
+A period does not always end at the observation time: the maximum temperature reported at 12 UTC can be the maximum of the previous calendar day. Such periods are encoded with **two consecutive** time period descriptors: the first one is the start of the period and the second one is its end, both counted back from the observation time. The second value is 0 when the period ends at the observation time. This is the rule for the extreme temperatures in the SYNOP land template TM 307080; see WMO-No. 306, Manual on Codes Volume I.2, regulation B/C1.10.4.2 "Periods of reference for extreme temperatures", Notes (1) and (2) (the same rule is repeated for the mobile land (B/C5) and ship (B/C10) reports).
+
+The column is named by the **duration** of the period and, when the period does not end at the observation time, the offset of its end from the observation time is appended as "_lag" plus that offset with its units: ``_lagNh`` means the period is shifted back by N and ends N hours before the observation time. E.g. the pair -12/0 is the 12 hours ending at the observation time::
+
+      stnid  max_t2m_12h  min_t2m_12h
+    0  8495       291.49       289.89
+
+(``tests/sample_data/synop_0_74_M32.bufr``, ``columns=["stnid", "max_t2m", "min_t2m"]``), while the pair -30/-6 is the 24 hours ending 6 hours before the observation time::
+
+      stnid  max_t2m_24h_lag6h  min_t2m_24h_lag6h
+    0  8495             291.49             289.89
+
+(``tests/sample_data/synop_period_end_offset.bufr``, the same values with the pairs changed to -30/-6).
+
+Only two consecutive time period descriptors are a start/end pair. Two periods separated by another data element (for example a time significance) are two independent periods, and the replications of a sequence (the 1/3/6/12/24 hour precipitation, the 1/24 hour sunshine and radiation, the 10/60/360 minute gust) are separate periods as well, never a pair. A complete pair whose two values are **equal** (same number and same units) repeats a single displacement: the second value is dropped and the column is named by that displacement, so the pair -24/-24 of ``tests/sample_data/synop_period_equal_pair.bufr`` is the period "24h", never "0h_lag24h".
+
+Messages that do not follow the WMO regulations and encode a period as a positive displacement are read by its absolute value, so a column name never contains a "-". E.g. the corrupt ``tests/sample_data/synop_0_231_M15.bufr`` reports a gust period of 1448::
+
+       stnid  max_wgust_speed_1448min
+    0  26029                     25.5
+
+Sensor heights
+///////////////
+
+Several sensors can report the same parameter for the same period. When that happens the value of the sensor closest to the **nominal height** of the parameter is used: 2 m for the maximum/minimum 2 m temperature and 10 m for the wind gust. For the 2 m temperatures the sensors below 0.5 m (a ground or grass sensor) are ignored. A value reported without a sensor height is still used, but a value from a sensor with a known (eligible) height takes precedence. A reported value always wins over a missing one, and it keeps its own level and units.
+
+E.g. ``tests/sample_data/synop_172_98_M29.bufr`` reports the same 60 minute minimum twice, 275.45 K at 2 m and 274.95 K at 0.05 m. The ground sensor is ignored and the 2 m value is reported with its own height (``columns=["stnid", "min_t2m"]``, ``level_columns=True``)::
+
+       stnid  min_t2m_60min  min_t2m_60min_level
+    0  12805         275.45                  2.0
+
+.. note::
+
+    The height selection works within each BUFR encoding of a parameter. Two cases are not handled, and neither occurs in the sample data used for testing: a ground sensor whose height is given only as "heightAboveStation" is not ignored; and when the same 2 m temperature period is reported by two different BUFR elements in one message (e.g. "minimumTemperatureAtHeightAndOverPeriodSpecified" and "minimumTemperatureAtHeightSpecifiedPast12Hours"), the later one is used, not the one closest to 2 m.
+
+Values without a period
+////////////////////////
+
+A parameter can be reported without a time period. The value is then written into the column named after the parameter alone, without a period suffix, e.g. "precipitation". The "_nan" suffix used for a missing period in earlier versions of the reader no longer occurs.
+
+E.g. ``tests/sample_data/synop_0_212_M14.bufr`` reports the precipitation twice, once for a 3 hour period and once without a period (``columns=["stnid", "precipitation"]``)::
+
+      stnid  precipitation  precipitation_3h precipitation_24h
+    0  8534            0.0               0.0              None
+
+When both the value and the period are missing no period column is created at all; the plain column may still appear, filled with None, as the generic result of a requested parameter that was not found (in the example above the ``max_t2m`` and ``min_t2m`` columns of this file are None). Conversely, when the period is known but the value is missing, the suffixed column may appear filled with None, e.g. ``max_t2m_12h`` in ``tests/sample_data/synop_176_98_M29.bufr``.
 
 .. _synop-levels:
 
@@ -89,9 +141,12 @@ Levels
 
 When ``level_columns=True`` and a parameter is associated with a **height level** a separate column is created for the level value. The column name is formed by adding the "_level" suffix to the parameter name::
 
-        t2m       t2m_level
-    0   273.15       2.0
-    1   274.15       2.5
+       stnid     t2m  t2m_level
+    0  91948  300.45        1.5
+    1  11766  269.25        2.0
+    2  56257  276.35        1.5
+
+(``tests/sample_data/syn_new.bufr``, ``columns=["stnid", "t2m"]``, ``level_columns=True``)
 
 .. _synop-units:
 
@@ -100,29 +155,33 @@ Units
 
 When ``units_columns=True`` and a parameter has an associated **units** a separate column is created for the units. The column name is formed by adding the "_units" suffix to the parameter name::
 
-        t2m       t2m_units
-    0   273.15       K
-    1   274.15       K
+       stnid     t2m t2m_units
+    0  91948  300.45         K
+    1  11766  269.25         K
+    2  56257  276.35         K
+
+(``tests/sample_data/syn_new.bufr``, ``columns=["stnid", "t2m"]``, ``units_columns=True``)
 
 Levels and units
 /////////////////////
 
-Options ``level_columns=True`` and ``units_columns=True`` can be used together. In this case the column names are formed as follows::
+Options ``level_columns=True`` and ``units_columns=True`` can be used together. In this case both suffix columns are added::
 
-            t2m    t2m_units   t2m_level
-    0   273.15       K              2.0
-    1   274.15       K              2.5
+       stnid     t2m t2m_units  t2m_level
+    0  91948  300.45         K        1.5
+    1  11766  269.25         K        2.0
+    2  56257  276.35         K        1.5
 
 
 Periods, levels and units
 ////////////////////////////
 
-When periods are available "_level" and/or "_units" suffixes are added after the period in the column names. E.g. when ``level_columns=True`` the column names are formed as follows::
+The "_level" and "_units" suffixes are added **after** the period, so they always follow the column of the value they describe. E.g. ``tests/sample_data/synop_0_74_M32.bufr`` with ``columns=["stnid", "max_t2m"]``, ``level_columns=True`` and ``units_columns=True``::
 
-            wind_gust_speed_10min  wind_gust_10min_level  wind_gust_dir_10min  wind_gust_dir_10min_level
-    0               5.0              9.6                   225                    9.6
-    1               4.5              9.6                   123                    9.6
+      stnid  max_t2m_12h max_t2m_12h_units  max_t2m_12h_level
+    0  8495       291.49                 K               1.25
 
+A "_level" or "_units" column is never created without the value column it belongs to.
 
 
 

@@ -13,6 +13,8 @@ from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple
 import eccodes  # type: ignore
 import numpy as np
 
+from pdbufr.core.structure import pair_key_name, pair_second_occurrences
+
 
 def subset_info(message: Mapping[str, Any]) -> Tuple[int, bool, bool]:
     is_compressed = False
@@ -121,11 +123,42 @@ class BufrSubsetCollector:
         mandatory_keys: Optional[List[str]] = None,
         units_keys: Optional[List[str]] = None,
         value_and_units: bool = True,
+        pair_keys: Optional[List[str]] = None,
     ) -> Generator[Dict[str, Any], None, None]:
+        """Split the subset's filtered keys into records.
+
+        Parameters
+        ----------
+        keys : list of str
+            The key names to collect.
+        filters : dict
+            BUFR key filters.
+        mandatory_keys : list of str, optional
+            Record is only yielded when all of them are present.
+        units_keys : list of str, optional
+            Collect the units for these keys.
+        value_and_units : bool
+            Store ``(value, units)`` instead of the bare value.
+        pair_keys : list of str, optional
+            Key names where two consecutive occurrences in the full expanded key
+            sequence form a start/end pair (e.g. the two ``timePeriod`` displacements
+            of a WMO extreme temperature block). The second value is then kept in the
+            record under :func:`pdbufr.core.structure.pair_key_name` instead of
+            replacing the first one.
+
+        Yields
+        ------
+        dict
+            One record per observation: key name to ``(value, units)`` (or value).
+        """
         value_cache = {}
         current_observation = collections.OrderedDict({})
         current_levels = [0]
         failed_match_level = None
+
+        pair_second = None
+        if pair_keys:
+            pair_second = self.owner.pair_second_keys(pair_keys)
 
         for bufr_key in self.filtered_keys:
             name = bufr_key.name
@@ -142,20 +175,37 @@ class BufrSubsetCollector:
             if failed_match_level is not None and level > failed_match_level:
                 continue
 
+            # the second occurrence of a consecutive pair extends the record that
+            # still holds the first one instead of closing and replacing it
+            merge_pair = (
+                pair_second is not None
+                and name in pair_keys
+                and bufr_key.key in pair_second
+                and bool(current_observation)
+                and current_levels[-1] == level
+                and name in current_observation
+                and pair_key_name(name) not in current_observation
+            )
+
             # TODO: make into a function
-            if current_observation and (
-                # if all(name in current_observation for name in keys) and (
-                level < current_levels[-1] or (level == current_levels[-1] and name in current_observation)
+            if (
+                not merge_pair
+                and current_observation
+                and (
+                    # if all(name in current_observation for name in keys) and (
+                    level < current_levels[-1] or (level == current_levels[-1] and name in current_observation)
+                )
             ):
                 if not mandatory_keys or all(name in current_observation for name in mandatory_keys):
                     # copy the content of current_items
                     yield dict(current_observation)
 
-            while len(current_observation) and (
-                level < current_levels[-1] or (level == current_levels[-1] and name in current_observation)
-            ):
-                current_observation.popitem()  # OrderedDict.popitem uses LIFO order
-                current_levels.pop()
+            if not merge_pair:
+                while len(current_observation) and (
+                    level < current_levels[-1] or (level == current_levels[-1] and name in current_observation)
+                ):
+                    current_observation.popitem()  # OrderedDict.popitem uses LIFO order
+                    current_levels.pop()
 
             if bufr_key.key not in value_cache:
                 value_cache[bufr_key.key] = self.owner.message.get(bufr_key.key)
@@ -188,13 +238,14 @@ class BufrSubsetCollector:
                     continue
 
             if name in keys:
+                stored_name = pair_key_name(name) if merge_pair else name
                 units = None
                 if units_keys and name in units_keys:
                     units = self.owner.message.get(bufr_key.key + "->units")
                 if value_and_units:
-                    current_observation[name] = (value, units)
+                    current_observation[stored_name] = (value, units)
                 else:
-                    current_observation[name] = value
+                    current_observation[stored_name] = value
             current_levels.append(level)
 
         # yield the last observation
@@ -210,6 +261,19 @@ class BufrSubsetReader:
         self.filtered_keys = filtered_keys
         self.subset_count, self.is_uncompressed, self.is_compressed = subset_info(self.message)
         self.cache = {}
+        self._pair_keys_cache: Dict[Tuple[str, ...], set] = {}
+
+    def pair_second_keys(self, names: List[str]) -> set:
+        """Ranked key strings of the second elements of consecutive pairs among *names*.
+
+        Computed once per message and name set (the pairs are a property of the
+        expanded descriptor sequence, not of a subset). See
+        :func:`pdbufr.core.structure.pair_second_occurrences`.
+        """
+        uid = tuple(sorted(set(names)))
+        if uid not in self._pair_keys_cache:
+            self._pair_keys_cache[uid] = pair_second_occurrences(self.message, uid)
+        return self._pair_keys_cache[uid]
 
     def subsets(self) -> Generator[BufrSubsetCollector, None, None]:
         if not self.is_compressed and not self.is_uncompressed:
