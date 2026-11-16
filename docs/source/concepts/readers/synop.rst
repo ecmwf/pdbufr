@@ -84,55 +84,28 @@ A period is named by its **duration** followed by the units ecCodes reports for 
 
 Time periods are counted **backwards** from the observation time, so a single period of -12 hours describes the 12 hours ending at the observation time and is named "12h".
 
+A parameter reported without a period is written to the plain column named after the parameter, e.g. "precipitation". A column can be None when no value was found for it.
+
+.. _synop-period-lag:
+
 Periods ending before the observation time
 //////////////////////////////////////////
 
-A period does not always end at the observation time: the maximum temperature reported at 12 UTC can be the maximum of the previous calendar day. Such periods are encoded with **two consecutive** time period descriptors: the first one is the start of the period and the second one is its end, both counted back from the observation time. The second value is 0 when the period ends at the observation time. This is the rule for the extreme temperatures in the SYNOP land template TM 307080; see WMO-No. 306, Manual on Codes Volume I.2, regulation B/C1.10.4.2 "Periods of reference for extreme temperatures", Notes (1) and (2) (the same rule is repeated for the mobile land (B/C5) and ship (B/C10) reports).
+A period can end before the observation time, e.g. the maximum temperature reported at 12 UTC can be the maximum of the previous calendar day.
 
-The column is named by the **duration** of the period and, when the period does not end at the observation time, the offset of its end from the observation time is appended as "_lag" plus that offset with its units: ``_lagNh`` means the period is shifted back by N and ends N hours before the observation time. E.g. the pair -12/0 is the 12 hours ending at the observation time::
-
-      stnid  max_t2m_12h  min_t2m_12h
-    0  8495       291.49       289.89
-
-(``tests/sample_data/synop_0_74_M32.bufr``, ``columns=["stnid", "max_t2m", "min_t2m"]``), while the pair -30/-6 is the 24 hours ending 6 hours before the observation time::
+The column is named by the **duration** of the period with "_lag" and the offset of its end appended: ``_lag6h`` means the period ends 6 hours before the observation time. E.g. a 24 hour period ending 6 hours before the observation time is named "24h_lag6h"::
 
       stnid  max_t2m_24h_lag6h  min_t2m_24h_lag6h
     0  8495             291.49             289.89
 
-(``tests/sample_data/synop_period_end_offset.bufr``, the same values with the pairs changed to -30/-6).
+*New in version 0.17.0.* In earlier versions only the first period of such a pair was used, which gave a wrong result.
 
-Only two consecutive time period descriptors are a start/end pair. Two periods separated by another data element (for example a time significance) are two independent periods, and the replications of a sequence (the 1/3/6/12/24 hour precipitation, the 1/24 hour sunshine and radiation, the 10/60/360 minute gust) are separate periods as well, never a pair. A complete pair whose two values are **equal** (same number and same units) repeats a single displacement: the second value is dropped and the column is named by that displacement, so the pair -24/-24 of ``tests/sample_data/synop_period_equal_pair.bufr`` is the period "24h", never "0h_lag24h".
+Wrongly encoded periods
+//////////////////////////
 
-Messages that do not follow the WMO regulations and encode a period as a positive displacement are read by its absolute value, so a column name never contains a "-". E.g. the corrupt ``tests/sample_data/synop_0_231_M15.bufr`` reports a gust period of 1448::
+Some messages describe a period with the same start and end, e.g. -24 h/-24 h. This is not a valid start/end pair, so it is read as a single period counted back from the observation time and named by that value, e.g. "24h" (and never "0h_lag24h").
 
-       stnid  max_wgust_speed_1448min
-    0  26029                     25.5
-
-Sensor heights
-///////////////
-
-Several sensors can report the same parameter for the same period. When that happens the value of the sensor closest to the **nominal height** of the parameter is used: 2 m for the maximum/minimum 2 m temperature and 10 m for the wind gust. For the 2 m temperatures the sensors below 0.5 m (a ground or grass sensor) are ignored. A value reported without a sensor height is still used, but a value from a sensor with a known (eligible) height takes precedence. A reported value always wins over a missing one, and it keeps its own level and units.
-
-E.g. ``tests/sample_data/synop_172_98_M29.bufr`` reports the same 60 minute minimum twice, 275.45 K at 2 m and 274.95 K at 0.05 m. The ground sensor is ignored and the 2 m value is reported with its own height (``columns=["stnid", "min_t2m"]``, ``level_columns=True``)::
-
-       stnid  min_t2m_60min  min_t2m_60min_level
-    0  12805         275.45                  2.0
-
-.. note::
-
-    The height selection works within each BUFR encoding of a parameter. Two cases are not handled, and neither occurs in the sample data used for testing: a ground sensor whose height is given only as "heightAboveStation" is not ignored; and when the same 2 m temperature period is reported by two different BUFR elements in one message (e.g. "minimumTemperatureAtHeightAndOverPeriodSpecified" and "minimumTemperatureAtHeightSpecifiedPast12Hours"), the later one is used, not the one closest to 2 m.
-
-Values without a period
-////////////////////////
-
-A parameter can be reported without a time period. The value is then written into the column named after the parameter alone, without a period suffix, e.g. "precipitation". The "_nan" suffix used for a missing period in earlier versions of the reader no longer occurs.
-
-E.g. ``tests/sample_data/synop_0_212_M14.bufr`` reports the precipitation twice, once for a 3 hour period and once without a period (``columns=["stnid", "precipitation"]``)::
-
-      stnid  precipitation  precipitation_3h precipitation_24h
-    0  8534            0.0               0.0              None
-
-When both the value and the period are missing no period column is created at all; the plain column may still appear, filled with None, as the generic result of a requested parameter that was not found (in the example above the ``max_t2m`` and ``min_t2m`` columns of this file are None). Conversely, when the period is known but the value is missing, the suffixed column may appear filled with None, e.g. ``max_t2m_12h`` in ``tests/sample_data/synop_176_98_M29.bufr``.
+*New in version 0.17.0.* Earlier versions do not support this case.
 
 .. _synop-levels:
 
@@ -146,7 +119,7 @@ When ``level_columns=True`` and a parameter is associated with a **height level*
     1  11766  269.25        2.0
     2  56257  276.35        1.5
 
-(``tests/sample_data/syn_new.bufr``, ``columns=["stnid", "t2m"]``, ``level_columns=True``)
+When several sensors report the same parameter for the same period, the value from the sensor closest to the **nominal height** (2 m for the maximum/minimum 2 m temperature, 10 m for the maximum wind gust) is used, and it keeps its own level. For the maximum/minimum 2 m temperature sensors below 0.5 m (e.g. a grass sensor) are ignored.
 
 .. _synop-units:
 
@@ -159,8 +132,6 @@ When ``units_columns=True`` and a parameter has an associated **units** a separa
     0  91948  300.45         K
     1  11766  269.25         K
     2  56257  276.35         K
-
-(``tests/sample_data/syn_new.bufr``, ``columns=["stnid", "t2m"]``, ``units_columns=True``)
 
 Levels and units
 /////////////////////
@@ -486,55 +457,48 @@ These parameters are not added by default but can be specified in ``columns``.
 
    * - cloud_type_low
      -
-     - | Cloud type at low level (CL), taken from the
-       | cloud summary group
+     - Cloud type at low level (CL), see :ref:`synop-cloud-params`
      -
      -
 
    * - cloud_type_middle
      -
-     - | Cloud type at middle level (CM), taken from the
-       | cloud summary group
+     - Cloud type at middle level (CM), see :ref:`synop-cloud-params`
      -
      -
 
    * - cloud_type_high
      -
-     - | Cloud type at high level (CH), taken from the
-       | cloud summary group
+     - Cloud type at high level (CH), see :ref:`synop-cloud-params`
      -
      -
 
    * - cloud_amount_nh
      -
-     - | Cloud amount of the low cloud (Nh), or of the middle cloud when
-       | no low cloud is reported, as a raw code table 020011 value
+     - Cloud amount (Nh), see :ref:`synop-cloud-params`
      -
      -
 
    * - cloud_base_lowest
      - m
-     - Height of the base of the lowest cloud, taken from the cloud summary group
+     - Height of the base of the lowest cloud, see :ref:`synop-cloud-params`
      -
      -
 
-The cloud summary columns are extracted from the cloud group with
-``verticalSignificanceSurfaceObservations`` = 7 ("low cloud" in WMO Code Table 0 08 002).
-When a subset has no such group, its first cloud group is used only if its vertical
-significance is missing (e.g. template 307092) or 0 (in SYNOP reports 0 means that the group
-follows the SYNOP rules and describes the lowest cloud base and the cloud types). The groups
-with vertical significance 1-6 are individual cloud layers and never fill these columns.
-The cloud types are raw WMO Code Table 0 20 001 values, assigned positionally to the CL, CM,
-CH columns in the order they are reported, and ``cloud_amount_nh`` is a raw Code Table 0 20 011
-value (e.g. 2 = two oktas, 8 = overcast, 9 = sky obscured), not a percentage.
+.. _synop-cloud-params:
 
-Only ``cloud_base_lowest`` has associated units: the BUFR units of its ``heightOfBaseOfCloud``
-key, which are metres ("m"). Like the other parameters with units, it gets a
-``cloud_base_lowest_units`` column when ``units_columns=True`` and its values are unit converted
-when ``unit_system`` or ``units`` requests a conversion. The cloud types and
-``cloud_amount_nh`` are code table values without units: no "_units" column is created for
-them, even when ``units_columns=True``, and their values are never unit converted, even when
-``unit_system`` or ``units`` requests a conversion.
+Cloud parameters
+////////////////////////////////////
+
+The following parameters describe the cloud summary of a report:
+
+- ``cloud_type_low``, ``cloud_type_middle`` and ``cloud_type_high``: the cloud types CL, CM and CH. The values are raw WMO Code Table 0 20 001 values, assigned to the three columns in the order they are reported.
+- ``cloud_amount_nh``: the cloud amount (Nh) of the low cloud, or of the middle cloud when no low cloud is reported. The value is a raw WMO Code Table 0 20 011 value, **not** a percentage (e.g. 2 = two oktas, 8 = overcast, 9 = sky obscured).
+- ``cloud_base_lowest``: the height of the base of the lowest cloud in metres.
+
+The values are taken from the cloud group with vertical significance 7 ("low cloud" in WMO Code Table 0 08 002). When there is no such group, the first cloud group is used if its vertical significance is missing or 0. Groups with vertical significance 1-6 are individual cloud layers and are never used for these parameters.
+
+Only ``cloud_base_lowest`` has units. Like the other parameters with units, it gets a ``cloud_base_lowest_units`` column when ``units_columns=True`` and it is converted when ``unit_system`` or ``units`` requests a conversion. The other cloud parameters are code table values: they never get a "_units" column and are never converted.
 
 .. _synop-filters:
 
@@ -584,4 +548,5 @@ Examples
 ++++++++++++++++++++++++++++
 
 - :ref:`/tutorials/synop/r_synop_overview.ipynb`
+- :ref:`/tutorials/synop/r_synop_periods_levels.ipynb`
 - :ref:`/tutorials/synop/r_synop_cloud.ipynb`
