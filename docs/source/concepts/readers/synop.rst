@@ -75,14 +75,14 @@ All the examples below were generated from the files in ``tests/sample_data``.
 Periods
 /////////////////////
 
-Some parameters are only meaningful together with a **time period**: a maximum temperature is the highest value measured during a period, a precipitation amount is what accumulated during a period. For every period found in the message a separate column is created, with the period encoded into the column name.
+Some parameters are only meaningful together with a **time period**: a maximum temperature is the highest value measured during a period, a precipitation amount is what accumulated during a period. For every period found in the message a separate column is created, with the period included in the column name.
 
 A period is named by its **duration** followed by the units ecCodes reports for the BUFR time period descriptor, i.e. "h" for a period in hours and "min" for a period in minutes. E.g. ``tests/sample_data/synop_150_85_M22.bufr`` reports the maximum wind gust for the last 10 minutes, the last hour and the last 6 hours. Reading it with ``columns=["stnid", "max_wgust_speed"]`` gives one column per period::
 
       stnid  max_wgust_speed_10min  max_wgust_speed_60min  max_wgust_speed_360min
     0  7005                    5.6                    7.7                    12.9
 
-Time periods are counted **backwards** from the observation time, so a single period of -12 hours describes the 12 hours ending at the observation time and is named "12h".
+Time periods are counted **backwards** from the observation time. This is how they are encoded in the BUFR message: a single period of -12 hours (the value stored in the BUFR message) describes the 12 hours ending at the observation time and is named "12h".
 
 A parameter reported without a period is written to the plain column named after the parameter, e.g. "precipitation". A column can be None when no value was found for it.
 
@@ -93,19 +93,19 @@ Periods ending before the observation time
 
 A period can end before the observation time, e.g. the maximum temperature reported at 12 UTC can be the maximum of the previous calendar day.
 
-The column is named by the **duration** of the period with "_lag" and the offset of its end appended: ``_lag6h`` means the period ends 6 hours before the observation time. E.g. a 24 hour period ending 6 hours before the observation time is named "24h_lag6h"::
+The column is named by the **duration** of the period with "_lag" and the offset of its end appended: ``_lag6h`` means the period ends 6 hours before the observation time. E.g. a 24 hour period ending 6 hours before the observation time is named "24h_lag6h". In the BUFR message such a period is encoded as a start/end pair of time displacements, i.e. -30 h/-6 h::
 
       stnid  max_t2m_24h_lag6h  min_t2m_24h_lag6h
     0  8495             291.49             289.89
 
-*New in version 0.17.0.* In earlier versions only the first period of such a pair was used, which gave a wrong result.
+*New in version 0.17.0.* In earlier versions only the second (end) period of such a pair was used, which gave a wrong result.
 
 Wrongly encoded periods
 //////////////////////////
 
-Some messages describe a period with the same start and end, e.g. -24 h/-24 h. This is not a valid start/end pair, so it is read as a single period counted back from the observation time and named by that value, e.g. "24h" (and never "0h_lag24h").
+Some BUFR messages encode a period with the same start and end, e.g. -24 h/-24 h. This is not a valid start/end pair, so it is read as a single period counted back from the observation time and named by that value, e.g. "24h" (and never "0h_lag24h").
 
-*New in version 0.17.0.* Earlier versions do not support this case.
+Some BUFR messages encode the period with a positive value, e.g. 24 h instead of -24 h. The resulting periods are always non-negative: the sign is ignored, so such a period is also read as "24h". *New in version 0.17.0.* Earlier versions did not convert such periods and the column name contained a minus sign.
 
 .. _synop-levels:
 
