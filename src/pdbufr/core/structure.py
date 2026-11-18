@@ -166,6 +166,74 @@ class IsCoordCache:
         return c
 
 
+#: Suffix used to store the second occurrence of a consecutive pair of same-name
+#: keys in a collected record (e.g. the start/end ``timePeriod`` displacements of
+#: a WMO extreme temperature block). BUFR key names never contain "#".
+PAIR_KEY_SUFFIX = "#2"
+
+#: Replication operator keys. They may appear between the two occurrences of a
+#: pair without breaking it: they are not data elements.
+REPLICATION_FACTOR_KEYS = frozenset({
+    "count",
+    "delayedDescriptorReplicationFactor",
+    "shortDelayedDescriptorReplicationFactor",
+    "extendedDelayedDescriptorReplicationFactor",
+})
+
+
+def pair_key_name(name: str) -> str:
+    """The internal record key holding the second value of a consecutive pair of
+    same-name keys ``name``.
+    """
+    return name + PAIR_KEY_SUFFIX
+
+
+def pair_second_occurrences(message: T.Any, names: T.Iterable[str]) -> T.Set[str]:
+    """Return the ranked key strings of the occurrences that immediately repeat a name.
+
+    A pair is defined on the full expanded key sequence of the message: the second
+    occurrence of ``name`` is a pair element only when no other data element appears
+    between it and the previous occurrence of the same name. Replication operator
+    keys (``count``, ``*DelayedDescriptorReplicationFactor``) are not data elements
+    and do not break a pair. A ``subsetNumber`` or ``firstOrderStatistics*`` key
+    always breaks a pair.
+
+    Parameters
+    ----------
+    message : Any
+        The BUFR message to iterate over.
+    names : iterable of str
+        The key names to look for pairs in.
+
+    Returns
+    -------
+    set of str
+        The ranked key strings (e.g. ``"#7#timePeriod"``) of the second occurrences.
+    """
+    names = set(names)
+    result: T.Set[str] = set()
+    if not names:
+        return result
+
+    message = MessageWrapper.wrap_methods(message)
+    prev_name = None
+    for key in message:
+        name = key.rpartition("#")[2]
+        if "->" in name:
+            # pseudo keys only present in dict-based test messages
+            continue
+        if name == "subsetNumber" or name.startswith("firstOrderStatistics"):
+            prev_name = None
+            continue
+        if name in REPLICATION_FACTOR_KEYS:
+            continue
+        if name == prev_name and name in names:
+            result.add(key)
+        prev_name = name
+
+    return result
+
+
 def message_structure(message: T.Any) -> T.Iterator[T.Tuple[int, str]]:
     level = 0
     coords: T.Dict[str, int] = collections.OrderedDict()

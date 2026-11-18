@@ -61,26 +61,51 @@ In the context of this reader the term "SYNOP-like" means data that is similar t
 The resulting DataFrame
 +++++++++++++++++++++++++
 
-The resulting DataFrame will contain one row for each station/platform and one column for each :ref:`parameter <synop-params>`. The columns are named after the parameter names, e.g. "t2m". With the default settings the first columns are always the station/platform identifier, time, latitude, longitude and elevation followed by the observed parameters. E.g.::
+The resulting DataFrame will contain one row for each station/platform and one column for each :ref:`parameter <synop-params>`. The columns are named after the parameter names, e.g. "t2m". With the default settings the first columns are always the station/platform identifier, time, latitude, longitude and elevation followed by the observed parameters. E.g. the first parameters of ``tests/sample_data/syn_new.bufr``::
 
+       stnid       lat        lon  elevation       time     t2m  rh2m
+    0  91948 -23.13017 -134.96533       91.0 2020-03-15  300.45    73
+    1  11766  49.77722   17.54194      748.1 2020-03-15  269.25    65
+    2  56257  30.00000  100.27000     3950.0 2020-03-15  276.35    37
 
-        stnid       lat        lon   elevation       time     t2m  rh2m   ...
-    0  91948 -23.13017 -134.96533       91.0 2020-03-15  300.45    73   ...
-    1  11766  49.77722   17.54194      748.1 2020-03-15  269.25    65   ...
-
+All the examples below were generated from the files in ``tests/sample_data``.
 
 .. _synop-periods:
 
 Periods
 /////////////////////
 
-When a parameter is associated with a **time period** for each period a separate column is created with the period encoded into the column name. E.g. if windgust is available for the last 10 minutes, the resulting DataFrame will contain the following columns::
+Some parameters are only meaningful together with a **time period**: a maximum temperature is the highest value measured during a period, a precipitation amount is what accumulated during a period. For every period found in the message a separate column is created, with the period included in the column name.
 
-            wind_gust_speed_10min  wind_gust_dir_10min
-    0                 5.0            225
-    1                 4.5            123
+A period is named by its **duration** followed by the units ecCodes reports for the BUFR time period descriptor, i.e. "h" for a period in hours and "min" for a period in minutes. E.g. ``tests/sample_data/synop_150_85_M22.bufr`` reports the maximum wind gust for the last 10 minutes, the last hour and the last 6 hours. Reading it with ``columns=["stnid", "max_wgust_speed"]`` gives one column per period::
 
-The period string is constructed from the values encoded in the BUFR message. When the period is not available the "_nan" suffix is used, e.d. "wind_gust_nan".
+      stnid  max_wgust_speed_10min  max_wgust_speed_60min  max_wgust_speed_360min
+    0  7005                    5.6                    7.7                    12.9
+
+Time periods are counted **backwards** from the observation time. This is how they are encoded in the BUFR message: a single period of -12 hours (the value stored in the BUFR message) describes the 12 hours ending at the observation time and is named "12h".
+
+A parameter reported without a period is written to the plain column named after the parameter, e.g. "precipitation". A column can be None when no value was found for it.
+
+.. _synop-period-lag:
+
+Periods ending before the observation time
+//////////////////////////////////////////
+
+A period can end before the observation time, e.g. the maximum temperature reported at 12 UTC can be the maximum of the previous calendar day.
+
+The column is named by the **duration** of the period with "_lag" and the offset of its end appended: ``_lag6h`` means the period ends 6 hours before the observation time. E.g. a 24 hour period ending 6 hours before the observation time is named "24h_lag6h". In the BUFR message such a period is encoded as a start/end pair of time displacements, i.e. -30 h/-6 h::
+
+      stnid  max_t2m_24h_lag6h  min_t2m_24h_lag6h
+    0  8495             291.49             289.89
+
+*New in version 0.17.0.* In earlier versions only the second (end) period of such a pair was used, which gave a wrong result.
+
+Wrongly encoded periods
+//////////////////////////
+
+Some BUFR messages encode a period with the same start and end, e.g. -24 h/-24 h. This is not a valid start/end pair, so it is read as a single period counted back from the observation time and named by that value, e.g. "24h" (and never "0h_lag24h").
+
+Some BUFR messages encode the period with a positive value, e.g. 24 h instead of -24 h. The resulting periods are always non-negative: the sign is ignored, so such a period is also read as "24h". *New in version 0.17.0.* Earlier versions did not convert such periods and the column name contained a minus sign.
 
 .. _synop-levels:
 
@@ -89,9 +114,12 @@ Levels
 
 When ``level_columns=True`` and a parameter is associated with a **height level** a separate column is created for the level value. The column name is formed by adding the "_level" suffix to the parameter name::
 
-        t2m       t2m_level
-    0   273.15       2.0
-    1   274.15       2.5
+       stnid     t2m  t2m_level
+    0  91948  300.45        1.5
+    1  11766  269.25        2.0
+    2  56257  276.35        1.5
+
+When several sensors report the same parameter for the same period, the value from the sensor closest to the **nominal height** (2 m for the maximum/minimum 2 m temperature, 10 m for the maximum wind gust) is used, and it keeps its own level. For the maximum/minimum 2 m temperature sensors below 0.5 m (e.g. a grass sensor) are ignored.
 
 .. _synop-units:
 
@@ -100,29 +128,31 @@ Units
 
 When ``units_columns=True`` and a parameter has an associated **units** a separate column is created for the units. The column name is formed by adding the "_units" suffix to the parameter name::
 
-        t2m       t2m_units
-    0   273.15       K
-    1   274.15       K
+       stnid     t2m t2m_units
+    0  91948  300.45         K
+    1  11766  269.25         K
+    2  56257  276.35         K
 
 Levels and units
 /////////////////////
 
-Options ``level_columns=True`` and ``units_columns=True`` can be used together. In this case the column names are formed as follows::
+Options ``level_columns=True`` and ``units_columns=True`` can be used together. In this case both suffix columns are added::
 
-            t2m    t2m_units   t2m_level
-    0   273.15       K              2.0
-    1   274.15       K              2.5
+       stnid     t2m t2m_units  t2m_level
+    0  91948  300.45         K        1.5
+    1  11766  269.25         K        2.0
+    2  56257  276.35         K        1.5
 
 
 Periods, levels and units
 ////////////////////////////
 
-When periods are available "_level" and/or "_units" suffixes are added after the period in the column names. E.g. when ``level_columns=True`` the column names are formed as follows::
+The "_level" and "_units" suffixes are added **after** the period, so they always follow the column of the value they describe. E.g. ``tests/sample_data/synop_0_74_M32.bufr`` with ``columns=["stnid", "max_t2m"]``, ``level_columns=True`` and ``units_columns=True``::
 
-            wind_gust_speed_10min  wind_gust_10min_level  wind_gust_dir_10min  wind_gust_dir_10min_level
-    0               5.0              9.6                   225                    9.6
-    1               4.5              9.6                   123                    9.6
+      stnid  max_t2m_12h max_t2m_12h_units  max_t2m_12h_level
+    0  8495       291.49                 K               1.25
 
+A "_level" or "_units" column is never created without the value column it belongs to.
 
 
 
@@ -427,55 +457,48 @@ These parameters are not added by default but can be specified in ``columns``.
 
    * - cloud_type_low
      -
-     - | Cloud type at low level (CL), taken from the
-       | cloud summary group
+     - Cloud type at low level (CL), see :ref:`synop-cloud-params`
      -
      -
 
    * - cloud_type_middle
      -
-     - | Cloud type at middle level (CM), taken from the
-       | cloud summary group
+     - Cloud type at middle level (CM), see :ref:`synop-cloud-params`
      -
      -
 
    * - cloud_type_high
      -
-     - | Cloud type at high level (CH), taken from the
-       | cloud summary group
+     - Cloud type at high level (CH), see :ref:`synop-cloud-params`
      -
      -
 
    * - cloud_amount_nh
      -
-     - | Cloud amount of the low cloud (Nh), or of the middle cloud when
-       | no low cloud is reported, as a raw code table 020011 value
+     - Cloud amount (Nh), see :ref:`synop-cloud-params`
      -
      -
 
    * - cloud_base_lowest
      - m
-     - Height of the base of the lowest cloud, taken from the cloud summary group
+     - Height of the base of the lowest cloud, see :ref:`synop-cloud-params`
      -
      -
 
-The cloud summary columns are extracted from the cloud group with
-``verticalSignificanceSurfaceObservations`` = 7 ("low cloud" in WMO Code Table 0 08 002).
-When a subset has no such group, its first cloud group is used only if its vertical
-significance is missing (e.g. template 307092) or 0 (in SYNOP reports 0 means that the group
-follows the SYNOP rules and describes the lowest cloud base and the cloud types). The groups
-with vertical significance 1-6 are individual cloud layers and never fill these columns.
-The cloud types are raw WMO Code Table 0 20 001 values, assigned positionally to the CL, CM,
-CH columns in the order they are reported, and ``cloud_amount_nh`` is a raw Code Table 0 20 011
-value (e.g. 2 = two oktas, 8 = overcast, 9 = sky obscured), not a percentage.
+.. _synop-cloud-params:
 
-Only ``cloud_base_lowest`` has associated units: the BUFR units of its ``heightOfBaseOfCloud``
-key, which are metres ("m"). Like the other parameters with units, it gets a
-``cloud_base_lowest_units`` column when ``units_columns=True`` and its values are unit converted
-when ``unit_system`` or ``units`` requests a conversion. The cloud types and
-``cloud_amount_nh`` are code table values without units: no "_units" column is created for
-them, even when ``units_columns=True``, and their values are never unit converted, even when
-``unit_system`` or ``units`` requests a conversion.
+Cloud parameters
+////////////////////////////////////
+
+The following parameters describe the cloud summary of a report:
+
+- ``cloud_type_low``, ``cloud_type_middle`` and ``cloud_type_high``: the cloud types CL, CM and CH. The values are raw WMO Code Table 0 20 001 values, assigned to the three columns in the order they are reported.
+- ``cloud_amount_nh``: the cloud amount (Nh) of the low cloud, or of the middle cloud when no low cloud is reported. The value is a raw WMO Code Table 0 20 011 value, **not** a percentage (e.g. 2 = two oktas, 8 = overcast, 9 = sky obscured).
+- ``cloud_base_lowest``: the height of the base of the lowest cloud in metres.
+
+The values are taken from the cloud group with vertical significance 7 ("low cloud" in WMO Code Table 0 08 002). When there is no such group, the first cloud group is used if its vertical significance is missing or 0. Groups with vertical significance 1-6 are individual cloud layers and are never used for these parameters.
+
+Only ``cloud_base_lowest`` has units. Like the other parameters with units, it gets a ``cloud_base_lowest_units`` column when ``units_columns=True`` and it is converted when ``unit_system`` or ``units`` requests a conversion. The other cloud parameters are code table values: they never get a "_units" column and are never converted.
 
 .. _synop-filters:
 
@@ -525,4 +548,5 @@ Examples
 ++++++++++++++++++++++++++++
 
 - :ref:`/tutorials/synop/r_synop_overview.ipynb`
+- :ref:`/tutorials/synop/r_synop_periods_levels.ipynb`
 - :ref:`/tutorials/synop/r_synop_cloud.ipynb`
