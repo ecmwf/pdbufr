@@ -5,6 +5,7 @@ visibility = "public"
 fork-pull-requests = false
 compiler-inputs = []
 ci-pre-commit = false
+ci-schedule = "from-dependencies+21"
 full-history = true
 
 [[deps]]
