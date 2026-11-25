@@ -3,6 +3,7 @@ name = "pdbufr"
 repo = "ecmwf/pdbufr"
 visibility = "public"
 fork-pull-requests = false
+allow-stale-deps = true
 compiler-inputs = []
 ci-pre-commit = false
 ci-schedule = "from-dependencies+21"
