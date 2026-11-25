@@ -1,37 +1,22 @@
-[package]
-name = "pdbufr"
-repo = "ecmwf/pdbufr"
-visibility = "public"
-fork-pull-requests = false
-allow-stale-deps = true
-compiler-inputs = []
-ci-pre-commit = false
-ci-schedule = "from-dependencies+21"
-full-history = true
-
 [[deps]]
-repo = "ecmwf/eccodes-python"
-package = "eccodes-python"
-ref = "develop"
 compiler-inputs = []
+package = "eccodes-python"
 python-version-input = "python-version"
-
-[[trigger-downstream]]
-repo = "ecmwf/earthkit-data"
 ref = "develop"
+repo = "ecmwf/eccodes-python"
 
 [matrix.test]
 triggers = ["upstream-change", "rebuild-request"]
 
 # The container and compiler of eccodes' build, whose library the tests load.
 [matrix.test.defaults]
-job-script = "./.ci/test.sh.j2"
-runs-on = "ubuntu-latest"
-container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-gcc13-gfortran13"
-platform = "ubuntu-24.04"
-cxx-compiler = "g++-13"
-c-compiler = "gcc-13"
 build-type = "RelWithDebInfo"
+c-compiler = "gcc-13"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-gcc13-gfortran13"
+cxx-compiler = "g++-13"
+job-script = "./.ci/test.sh.j2"
+platform = "ubuntu-24.04"
+runs-on = "ubuntu-latest"
 
 [[matrix.test.include]]
 python-version = "3.11"
@@ -41,3 +26,18 @@ python-version = "3.12"
 
 [[matrix.test.include]]
 python-version = "3.13"
+
+[package]
+allow-stale-deps = true
+ci-pre-commit = false
+ci-schedule = "from-dependencies+21"
+compiler-inputs = []
+fork-pull-requests = false
+full-history = true
+name = "pdbufr"
+repo = "ecmwf/pdbufr"
+visibility = "public"
+
+[[trigger-downstream]]
+ref = "develop"
+repo = "ecmwf/earthkit-data"
