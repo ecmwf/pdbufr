@@ -1,0 +1,19 @@
+{% extends "ci-infrastructure/python-runner.sh.j2" %}
+{% block set_environment %}
+# fetch-deps puts each dep's lib dirs on LD_LIBRARY_PATH, where findlibs finds them;
+# eccodes still needs its definitions and samples.
+IFS=';:' read -ra dep_prefixes <<<"${CMAKE_PREFIX_PATH:-}"
+for prefix in ${dep_prefixes[@]+"${dep_prefixes[@]}"}; do
+  if [ -d "$prefix/share/eccodes/definitions" ]; then
+    export ECCODES_DEFINITION_PATH="$prefix/share/eccodes/definitions"
+    export ECCODES_SAMPLES_PATH="$prefix/share/eccodes/samples"
+  fi
+done
+export FINDLIBS_DISABLE_PACKAGE=yes
+{% endblock %}
+{% block test_requirements %}-r "$CI_SOURCE_DIR/tests/downstream-ci-requirements.txt"{% endblock %}
+{% block test %}
+cd "$CI_SOURCE_DIR"
+python -m pytest --cov=./ --cov-report=xml -k 'not test_notebooks'
+python -m pytest -v -k 'test_notebooks'
+{% endblock %}

@@ -7,4 +7,5 @@ Synop reader
     :maxdepth: 1
 
     r_synop_overview.ipynb
+    r_synop_periods_levels.ipynb
     r_synop_cloud.ipynb

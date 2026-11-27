@@ -173,12 +173,19 @@ class WindGustAccessor(MultiFirstAccessor):
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", True)],
             period="timePeriod",
             first=False,
+            # D2: among colliding sensor heights take the one closest to the
+            # nominal 10 m of the gust (no ground exclusion); A3: missing never
+            # beats real
+            nominal_height=10.0,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"maximumWindGustSpeed": PARAMS.WGUST_SPEED, "maximumWindGustDirection": PARAMS.WGUST_DIR},
             coords=[("heightAboveStation", "level", True)],
             period="timePeriod",
             first=False,
+            nominal_height=10.0,
+            missing_last=True,
         ),
     ]
 
@@ -191,12 +198,16 @@ class WindGustSpeedAccessor(MultiFirstAccessor):
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", True)],
             period="timePeriod",
             first=False,
+            nominal_height=10.0,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"maximumWindGustSpeed": PARAMS.WGUST_SPEED},
             coords=[("heightAboveStation", "level", True)],
             period="timePeriod",
             first=False,
+            nominal_height=10.0,
+            missing_last=True,
         ),
     ]
 
@@ -209,12 +220,16 @@ class WindGustDirAccessor(MultiFirstAccessor):
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", True)],
             period="timePeriod",
             first=False,
+            nominal_height=10.0,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"maximumWindGustDirection": PARAMS.WGUST_DIR},
             coords=[("heightAboveStation", "level", True)],
             period="timePeriod",
             first=False,
+            nominal_height=10.0,
+            missing_last=True,
         ),
     ]
 
@@ -235,12 +250,17 @@ class PastWeatherAccessor(CoordAccessor):
         super().__init__(
             period="timePeriod",
             first=False,
+            # A3: a missing value never overwrites a real one
+            missing_last=True,
             **kwargs,
         )
 
 
 class TotalPrecipAccessor(MultiAllAccessor):
     param: PARAMS.Parameter = PARAMS.PRECIPITATION
+    # A3: a missing value never overwrites a real one, not within a
+    # sub-accessor and not across the fixed-period fallbacks
+    missing_last = True
     accessors: List[Accessor] = [
         CoordAccessor(
             keys={"totalPrecipitationOrTotalWaterEquivalent": PARAMS.PRECIPITATION},
@@ -249,77 +269,111 @@ class TotalPrecipAccessor(MultiAllAccessor):
             ],
             period="timePeriod",
             first=False,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"totalPrecipitationPast1Hours": PARAMS.PRECIPITATION},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             fixed_period="1h",
             first=False,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"totalPrecipitationPast3Hours": PARAMS.PRECIPITATION},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             fixed_period="3h",
             first=False,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"totalPrecipitationPast6Hours": PARAMS.PRECIPITATION},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             fixed_period="6h",
             first=False,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"totalPrecipitationPast12Hours": PARAMS.PRECIPITATION},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             fixed_period="12h",
             first=False,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"totalPrecipitationPast24Hours": PARAMS.PRECIPITATION},
             coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             fixed_period="24h",
             first=False,
+            missing_last=True,
         ),
     ]
 
 
+# The min/max 2 m temperature accessors run all their sub-accessors and merge
+# with missing_last (A3): a dynamic value is never overwritten by a missing
+# fixed-key fallback nor by the fallback's fixed 2 m level, and every distinct
+# period is reported (dynamic and fixed-key periods side by side). The dynamic
+# and AtHeightSpecified sub-accessors select among several sensor heights the
+# one closest to the nominal 2 m, ignoring ground sensors below 0.5 m (D2).
+# The sensor height (heightOfSensor...) is optional: a value reported without
+# any height is still accepted and ranks after values with a height (D5).
 class MinTAccessor(MultiAllAccessor):
     param: PARAMS.Parameter = PARAMS.MIN_T2M
+    missing_last = True
     accessors: List[Accessor] = [
         CoordAccessor(
             keys={"minimumTemperatureAtHeightAndOverPeriodSpecified": PARAMS.MIN_T2M},
-            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", True)],
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             period="timePeriod",
             first=False,
+            nominal_height=2.0,
+            min_height=0.5,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"minimumTemperatureAtHeightAndOverPeriodSpecified": PARAMS.MIN_T2M},
             coords=[("heightAboveStation", "level", True)],
             period="timePeriod",
             first=False,
+            nominal_height=2.0,
+            missing_last=True,
         ),
         # SimpleAccessor(
         #     keys={"minimumTemperatureAtHeightAndOverPeriodSpecified": PARAMS.MIN_T2M},
         # ),
         CoordAccessor(
             keys={"minimumTemperatureAtHeightSpecifiedPast12Hours": PARAMS.MIN_T2M},
-            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", True)],
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             fixed_period="12h",
+            first=False,
+            nominal_height=2.0,
+            min_height=0.5,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"minimumTemperatureAtHeightSpecifiedPast12Hours": PARAMS.MIN_T2M},
             coords=[("heightAboveStation", "level", True)],
             fixed_period="12h",
+            first=False,
+            nominal_height=2.0,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"minimumTemperatureAtHeightSpecifiedPast24Hours": PARAMS.MIN_T2M},
-            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", True)],
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             fixed_period="24h",
+            first=False,
+            nominal_height=2.0,
+            min_height=0.5,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"minimumTemperatureAtHeightSpecifiedPast24Hours": PARAMS.MIN_T2M},
             coords=[("heightAboveStation", "level", True)],
             fixed_period="24h",
+            first=False,
+            nominal_height=2.0,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"minimumTemperatureAt2MPast12Hours": PARAMS.MIN_T2M},
@@ -336,40 +390,60 @@ class MinTAccessor(MultiAllAccessor):
     ]
 
 
-class MaxTAccessor(MultiFirstAccessor):
+class MaxTAccessor(MultiAllAccessor):
     param: PARAMS.Parameter = PARAMS.MAX_T2M
+    missing_last = True
     accessors: List[Accessor] = [
         CoordAccessor(
             keys={"maximumTemperatureAtHeightAndOverPeriodSpecified": PARAMS.MAX_T2M},
-            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", True)],
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             period="timePeriod",
             first=False,
+            nominal_height=2.0,
+            min_height=0.5,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"maximumTemperatureAtHeightAndOverPeriodSpecified": PARAMS.MAX_T2M},
             coords=[("heightAboveStation", "level", True)],
             period="timePeriod",
             first=False,
+            nominal_height=2.0,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"maximumTemperatureAtHeightSpecifiedPast12Hours": PARAMS.MAX_T2M},
-            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", True)],
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             fixed_period="12h",
+            first=False,
+            nominal_height=2.0,
+            min_height=0.5,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"maximumTemperatureAtHeightSpecifiedPast12Hours": PARAMS.MAX_T2M},
             coords=[("heightAboveStation", "level", True)],
             fixed_period="12h",
+            first=False,
+            nominal_height=2.0,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"maximumTemperatureAtHeightSpecifiedPast24Hours": PARAMS.MAX_T2M},
-            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", True)],
+            coords=[("heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform", "level", False)],
             fixed_period="24h",
+            first=False,
+            nominal_height=2.0,
+            min_height=0.5,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"maximumTemperatureAtHeightSpecifiedPast24Hours": PARAMS.MAX_T2M},
             coords=[("heightAboveStation", "level", True)],
             fixed_period="24h",
+            first=False,
+            nominal_height=2.0,
+            missing_last=True,
         ),
         CoordAccessor(
             keys={"maximumTemperatureAt2MPast12Hours": PARAMS.MAX_T2M},
@@ -686,77 +760,91 @@ class PressureChangeAccessor(MultiAllAccessor):
 
 class LongWaveRadiationAccessor(MultiAllAccessor):
     param: PARAMS.Parameter = PARAMS.LONG_WAVE_RADIATION
+    missing_last = True
     accessors: List[Accessor] = [
         CoordAccessor(
             keys={"longWaveRadiationIntegratedOverPeriodSpecified": PARAMS.LONG_WAVE_RADIATION},
             period="timePeriod",
             first=False,
+            missing_last=True,
         ),
     ]
 
 
 class NetRadiationAccessor(MultiAllAccessor):
     param: PARAMS.Parameter = PARAMS.NET_RADIATION
+    missing_last = True
     accessors: List[Accessor] = [
         CoordAccessor(
             keys={"netRadiationIntegratedOverPeriodSpecified": PARAMS.NET_RADIATION},
             period="timePeriod",
             first=False,
+            missing_last=True,
         ),
     ]
 
 
 class ShortWaveRadiationAccessor(MultiAllAccessor):
     param: PARAMS.Parameter = PARAMS.SHORT_WAVE_RADIATION
+    missing_last = True
     accessors: List[Accessor] = [
         CoordAccessor(
             keys={"shortWaveRadiationIntegratedOverPeriodSpecified": PARAMS.SHORT_WAVE_RADIATION},
             period="timePeriod",
             first=False,
+            missing_last=True,
         ),
     ]
 
 
 class GlobalSolarRadiationAccessor(MultiAllAccessor):
     param: PARAMS.Parameter = PARAMS.GLOBAL_SOLAR_RADIATION
+    missing_last = True
     accessors: List[Accessor] = [
         CoordAccessor(
             keys={"globalSolarRadiationIntegratedOverPeriodSpecified": PARAMS.GLOBAL_SOLAR_RADIATION},
             period="timePeriod",
             first=False,
+            missing_last=True,
         ),
     ]
 
 
 class DiffuseSolarRadiationAccessor(MultiAllAccessor):
     param: PARAMS.Parameter = PARAMS.DIFFUSE_SOLAR_RADIATION
+    missing_last = True
     accessors: List[Accessor] = [
         CoordAccessor(
             keys={"diffuseSolarRadiationIntegratedOverPeriodSpecified": PARAMS.DIFFUSE_SOLAR_RADIATION},
             period="timePeriod",
             first=False,
+            missing_last=True,
         ),
     ]
 
 
 class DirectSolarRadiationAccessor(MultiAllAccessor):
     param: PARAMS.Parameter = PARAMS.DIRECT_SOLAR_RADIATION
+    missing_last = True
     accessors: List[Accessor] = [
         CoordAccessor(
             keys={"directSolarRadiationIntegratedOverPeriodSpecified": PARAMS.DIRECT_SOLAR_RADIATION},
             period="timePeriod",
             first=False,
+            missing_last=True,
         ),
     ]
 
 
 class TotalSunshineAccessor(MultiAllAccessor):
     param: PARAMS.Parameter = PARAMS.TOTAL_SUNSHINE
+    missing_last = True
     accessors: List[Accessor] = [
         CoordAccessor(
             keys={"totalSunshine": PARAMS.TOTAL_SUNSHINE},
             period="timePeriod",
             first=False,
+            missing_last=True,
         ),
     ]
 

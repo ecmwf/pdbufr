@@ -15,7 +15,13 @@ import pytest
 from pdbufr import stream_bufr
 from pdbufr.core.filters import BufrFilter
 from pdbufr.core.keys import BufrKey, datetime_from_bufr, wigos_id_from_bufr, wmo_station_id_from_bufr
-from pdbufr.core.structure import filter_keys, filter_keys_cached, message_structure
+from pdbufr.core.structure import (
+    filter_keys,
+    filter_keys_cached,
+    message_structure,
+    pair_key_name,
+    pair_second_occurrences,
+)
 from pdbufr.readers.generic import extract_observations
 
 
@@ -75,6 +81,98 @@ def test_message_structure() -> None:
     #     print(f)
 
     assert list(res)[:-2] == expected
+
+
+def test_pair_key_name() -> None:
+    assert pair_key_name("timePeriod") == "timePeriod#2"
+
+
+def test_pair_second_occurrences_consecutive() -> None:
+    # two consecutive timePeriod values (start/end displacements) form a pair
+    message = {
+        "edition": 4,
+        "#1#heightOfSensorAboveLocalGroundOrDeckOfMarinePlatform": 1.25,
+        "#6#timePeriod": -12,
+        "#7#timePeriod": 0,
+        "#1#maximumTemperatureAtHeightAndOverPeriodSpecified": 291.49,
+    }
+
+    assert pair_second_occurrences(message, ["timePeriod"]) == {"#7#timePeriod"}
+
+
+def test_pair_second_occurrences_not_consecutive() -> None:
+    # with another data element (here timeSignificance) in between the values are
+    # two separate periods, not a start/end pair, even when the intermediate key
+    # is not among the requested keys
+    message = {
+        "edition": 4,
+        "#1#timeSignificance": 2,
+        "#6#timePeriod": -10,
+        "#2#timeSignificance": None,
+        "#7#timePeriod": -10,
+        "#1#maximumWindGustSpeed": 8.0,
+    }
+
+    assert pair_second_occurrences(message, ["timePeriod"]) == set()
+    # nothing is paired when the name is not requested
+    assert pair_second_occurrences(message, ["maximumWindGustSpeed"]) == set()
+
+
+def test_pair_second_occurrences_two_pairs() -> None:
+    message = {
+        "edition": 4,
+        "#1#timePeriod": -12,
+        "#2#timePeriod": 0,
+        "#1#maximumTemperatureAtHeightAndOverPeriodSpecified": 291.49,
+        "#3#timePeriod": -30,
+        "#4#timePeriod": -6,
+        "#1#minimumTemperatureAtHeightAndOverPeriodSpecified": 289.89,
+    }
+
+    assert pair_second_occurrences(message, ["timePeriod"]) == {"#2#timePeriod", "#4#timePeriod"}
+
+
+def test_pair_second_occurrences_replication_factor_does_not_break_pair() -> None:
+    # replication operator keys are not data elements
+    message = {
+        "edition": 4,
+        "#1#timePeriod": -12,
+        "#1#delayedDescriptorReplicationFactor": 1,
+        "#2#timePeriod": 0,
+    }
+
+    assert pair_second_occurrences(message, ["timePeriod"]) == {"#2#timePeriod"}
+
+
+def test_pair_second_occurrences_subset_and_statistics_boundaries() -> None:
+    # occurrences in different subsets or across the statistics marker are not pairs
+    message = {
+        "edition": 4,
+        "#1#timePeriod": -12,
+        "#1#subsetNumber": 2,
+        "#2#timePeriod": -30,
+        "#1#firstOrderStatisticsTimePeriod": -6,
+        "#3#timePeriod": 0,
+    }
+
+    assert pair_second_occurrences(message, ["timePeriod"]) == set()
+
+
+def test_pair_second_occurrences_missing_or_other_names() -> None:
+    message = {
+        "edition": 4,
+        # missing values still pair
+        "#1#timePeriod": None,
+        "#2#timePeriod": None,
+        # other same-name consecutive keys are not considered
+        "#1#windDirection": 10,
+        "#2#windDirection": 20,
+        "->code": "004024",
+    }
+
+    assert pair_second_occurrences(message, ["timePeriod"]) == {"#2#timePeriod"}
+    # an empty set of names yields no pairs
+    assert pair_second_occurrences(message, []) == set()
 
 
 def test_filter_keys() -> None:
